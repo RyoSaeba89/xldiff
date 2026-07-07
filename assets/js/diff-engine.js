@@ -1,0 +1,71 @@
+// ============================================================
+//  XLDiff — diff-engine.js
+//  Moteur de comparaison : différence de multi-ensembles entre
+//  deux jeux de lignes, sur des listes de colonnes-clés qui
+//  peuvent différer entre A et B (mapping de colonnes).
+//
+//  API : XLDiffEngine.diff(dataA, dataB, colsA, colsB)
+//        → { onlyA, onlyB, all }
+//        Chaque ligne retournée porte __rowNum (n° de ligne Excel,
+//        l'en-tête étant la ligne 1) et __source ('A' ou 'B').
+// ============================================================
+
+const XLDiffEngine = (() => {
+  const SEP = '\x00';
+
+  function makeKey(row, cols) {
+    let k = '';
+    for (let i = 0; i < cols.length; i++) {
+      if (i) k += SEP;
+      k += String(row[cols[i]] ?? '');
+    }
+    return k;
+  }
+
+  function indexRows(data, cols) {
+    const count = new Map();
+    const rowsByKey = new Map();
+    for (let ri = 0; ri < data.length; ri++) {
+      const row = data[ri];
+      row.__rowNum = ri + 2; // ligne Excel (1-based, l'en-tête est la ligne 1)
+      const k = makeKey(row, cols);
+      count.set(k, (count.get(k) || 0) + 1);
+      if (!rowsByKey.has(k)) rowsByKey.set(k, []);
+      rowsByKey.get(k).push(row);
+    }
+    return { count, rowsByKey };
+  }
+
+  function diff(dataA, dataB, colsA, colsB) {
+    const a = indexRows(dataA, colsA);
+    const b = indexRows(dataB, colsB);
+
+    const onlyA = [];
+    const onlyB = [];
+
+    // Clés de A : si A en contient plus que B, l'excédent est « uniquement A »
+    for (const [k, cA] of a.count) {
+      const cB = b.count.get(k) || 0;
+      if (cA > cB) {
+        const rows = a.rowsByKey.get(k);
+        for (let i = 0; i < cA - cB; i++) onlyA.push(rows[i]);
+      }
+    }
+
+    // Clés de B : si B en contient plus que A, l'excédent est « uniquement B »
+    for (const [k, cB] of b.count) {
+      const cA = a.count.get(k) || 0;
+      if (cB > cA) {
+        const rows = b.rowsByKey.get(k);
+        for (let i = 0; i < cB - cA; i++) onlyB.push(rows[i]);
+      }
+    }
+
+    for (const r of onlyA) r.__source = 'A';
+    for (const r of onlyB) r.__source = 'B';
+
+    return { onlyA, onlyB, all: onlyA.concat(onlyB) };
+  }
+
+  return { diff };
+})();

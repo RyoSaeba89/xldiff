@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XLDiff — Comparateur de fichiers Excel</title>
+<link rel="stylesheet" href="assets/css/theme.css">
+<link rel="stylesheet" href="assets/css/home.css">
+</head>
+<body>
+
+<div class="header">
+  <a class="brand" href="index.html">
+    <div class="logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="3" width="18" height="18" rx="2.5" stroke="#fff" stroke-width="1.5"/>
+        <line x1="9" y1="3" x2="9" y2="21" stroke="#fff" stroke-width="1" opacity=".5"/>
+        <line x1="15" y1="3" x2="15" y2="21" stroke="#fff" stroke-width="1" opacity=".5"/>
+        <line x1="3" y1="9" x2="21" y2="9" stroke="#fff" stroke-width="1" opacity=".5"/>
+        <line x1="3" y1="15" x2="21" y2="15" stroke="#fff" stroke-width="1" opacity=".5"/>
+        <text x="12" y="13.5" text-anchor="middle" font-size="7" font-weight="700" fill="#fff" font-family="sans-serif">X</text>
+      </svg>
+    </div>
+    <h1>XLDiff</h1>
+  </a>
+  <div class="header-sep"></div>
+  <div class="header-sub">Comparateur de fichiers Excel</div>
+</div>
+
+<div class="container">
+  <div class="hero">
+    <h2>Comparez deux fichiers Excel <span class="accent">en quelques secondes</span></h2>
+    <p>Identifiez les lignes présentes dans un fichier et absentes de l'autre. Choisissez le mode adapté à vos fichiers.</p>
+  </div>
+
+  <div class="mode-grid">
+    <a class="mode-card" href="pages/simple.html">
+      <div class="mode-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <line x1="9" y1="13" x2="15" y2="13"/>
+          <line x1="9" y1="17" x2="15" y2="17"/>
+        </svg>
+      </div>
+      <div class="mode-title">Comparatif simple</div>
+      <div class="mode-desc">Deux fichiers issus du <strong>même export Excel</strong> (mêmes colonnes). La comparaison est entièrement automatique.</div>
+      <ul class="mode-steps">
+        <li>Déposez les deux fichiers</li>
+        <li>Colonnes communes détectées automatiquement</li>
+        <li>Comparaison sur toutes les colonnes</li>
+      </ul>
+      <span class="mode-cta">Commencer →</span>
+    </a>
+
+    <a class="mode-card advanced" href="pages/advanced.html">
+      <div class="mode-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="21" x2="4" y2="14"/>
+          <line x1="4" y1="10" x2="4" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12" y2="3"/>
+          <line x1="20" y1="21" x2="20" y2="16"/>
+          <line x1="20" y1="12" x2="20" y2="3"/>
+          <line x1="1" y1="14" x2="7" y2="14"/>
+          <line x1="9" y1="8" x2="15" y2="8"/>
+          <line x1="17" y1="16" x2="23" y2="16"/>
+        </svg>
+      </div>
+      <div class="mode-title">Comparatif avancé</div>
+      <div class="mode-desc">Deux fichiers <strong>différents</strong>. Associez les colonnes à comparer, seules ces colonnes servent à la comparaison.</div>
+      <ul class="mode-steps">
+        <li>Déposez deux fichiers quelconques</li>
+        <li>Associez les colonnes A ↔ B</li>
+        <li>Comparaison sur les colonnes choisies</li>
+      </ul>
+      <span class="mode-cta">Commencer →</span>
+    </a>
+  </div>
+
+  <div class="privacy-note">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+    100 % local — vos fichiers sont traités dans votre navigateur, aucune donnée n'est envoyée sur le réseau.
+  </div>
+</div>
+
+</body>
+</html>

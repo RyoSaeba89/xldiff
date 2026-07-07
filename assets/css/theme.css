@@ -1,0 +1,128 @@
+/* ============================================================
+   XLDiff — theme.css
+   Variables globales, base, en-tête, boutons (commun à toutes les pages)
+   ============================================================ */
+
+:root {
+  --bg: #f3f5f7;
+  --white: #ffffff;
+  --surface2: #f8faf8;
+  --border: #e0e4e8;
+  --text: #1a1a1a;
+  --text-sec: #5f6b7a;
+  --text-light: #8b95a3;
+  --g1: #217346;
+  --g2: #185c38;
+  --gl: #e8f5ee;
+  --gl2: #f0faf4;
+  --ga: #2e9960;
+  --orange: #e67e22;
+  --orange-l: #fef5eb;
+  --orange-row: #fdf0e0;
+  --green-row: #e6f4ed;
+  --red: #d9534f;
+  --r: 8px;
+  --rl: 12px;
+  --sh: 0 1px 3px rgba(0, 0, 0, .06);
+  --shm: 0 2px 8px rgba(0, 0, 0, .08);
+  --font: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ---------- HEADER ---------- */
+
+.header {
+  background: var(--g1);
+  padding: 0 32px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(33, 115, 70, .25);
+}
+.header a.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+.logo {
+  width: 34px;
+  height: 34px;
+  background: rgba(255, 255, 255, .18);
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+}
+.header h1 { font-size: 16px; font-weight: 700; color: #fff; }
+.header-sep { width: 1px; height: 24px; background: rgba(255, 255, 255, .25); }
+.header-sub { font-size: 13px; color: rgba(255, 255, 255, .7); }
+.header-home {
+  margin-left: auto;
+  font-size: 13px;
+  color: rgba(255, 255, 255, .85);
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, .3);
+  transition: all .15s;
+}
+.header-home:hover { background: rgba(255, 255, 255, .15); color: #fff; }
+
+.container { max-width: 1320px; margin: 0 auto; padding: 24px 32px 48px; }
+
+/* ---------- BOUTONS ---------- */
+
+.btn {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 24px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all .2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary { background: var(--g1); color: #fff; box-shadow: 0 2px 8px rgba(33, 115, 70, .2); }
+.btn-primary:hover:not(:disabled) { background: var(--g2); }
+.btn-secondary { background: var(--white); color: var(--g1); border: 1px solid var(--g1); }
+.btn-secondary:hover:not(:disabled) { background: var(--gl); }
+
+.status-text { font-size: 12px; color: var(--text-light); }
+.status-text.warn { color: var(--orange); font-weight: 600; }
+
+/* ---------- BARRE DE PROGRESSION ---------- */
+
+.progress-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  display: none;
+  margin-bottom: 20px;
+}
+.progress-bar.visible { display: block; }
+.progress-fill {
+  height: 100%;
+  background: var(--g1);
+  border-radius: 2px;
+  transition: width .3s;
+  width: 0%;
+}
+
+@media (max-width: 900px) {
+  .container { padding: 16px; }
+  .header { padding: 0 16px; }
+}

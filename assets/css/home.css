@@ -1,0 +1,125 @@
+/* ============================================================
+   XLDiff — home.css
+   Page d'accueil : hero et cartes de choix de mode
+   ============================================================ */
+
+.hero {
+  text-align: center;
+  padding: 48px 20px 36px;
+}
+.hero h2 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.hero h2 .accent { color: var(--g1); }
+.hero p {
+  font-size: 15px;
+  color: var(--text-sec);
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.mode-card {
+  display: block;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--rl);
+  padding: 32px 28px;
+  text-decoration: none;
+  color: var(--text);
+  box-shadow: var(--sh);
+  transition: all .2s;
+  position: relative;
+  overflow: hidden;
+}
+.mode-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: var(--g1);
+}
+.mode-card.advanced::before { background: var(--orange); }
+.mode-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .1);
+  border-color: var(--g1);
+}
+.mode-card.advanced:hover { border-color: var(--orange); }
+
+.mode-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 18px;
+  background: var(--gl);
+  color: var(--g1);
+}
+.mode-card.advanced .mode-icon { background: var(--orange-l); color: var(--orange); }
+
+.mode-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.mode-desc {
+  font-size: 13px;
+  color: var(--text-sec);
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+.mode-steps {
+  list-style: none;
+  margin-bottom: 20px;
+}
+.mode-steps li {
+  font-size: 12px;
+  color: var(--text-light);
+  padding: 4px 0 4px 22px;
+  position: relative;
+}
+.mode-steps li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--g1);
+  font-weight: 700;
+}
+.mode-card.advanced .mode-steps li::before { color: var(--orange); }
+
+.mode-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--g1);
+}
+.mode-card.advanced .mode-cta { color: var(--orange); }
+
+.privacy-note {
+  text-align: center;
+  margin-top: 36px;
+  font-size: 12px;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .mode-grid { grid-template-columns: 1fr; }
+  .hero { padding: 28px 16px 24px; }
+}
