@@ -6,6 +6,7 @@
   "scripts": {
     "dist": "node scripts/make-dist.js",
     "exe": "npm run dist && tauri build --no-bundle",
+    "sign": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sign-exe.ps1",
     "tauri": "tauri"
   },
   "devDependencies": {

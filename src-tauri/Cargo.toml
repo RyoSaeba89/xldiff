@@ -10,6 +10,8 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
+# Boîte de dialogue native « Enregistrer sous » pour l'export .xlsx
+rfd = "0.15"
 
 # Binaire final le plus compact possible
 [profile.release]
