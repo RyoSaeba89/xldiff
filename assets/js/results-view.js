@@ -1,7 +1,11 @@
 // ============================================================
 //  XLDiff — results-view.js
-//  Rendu des résultats de comparaison : statistiques, onglets,
+//  Rendu des résultats : résumé en phrases simples, onglets,
 //  tableau (rendu par blocs) et export .xlsx.
+//
+//  Deux modes d'affichage :
+//    'diff'  (défaut) — comparaison : différences entre A et B
+//    'dupes'          — recherche de doublons : lignes communes
 //
 //  Les colonnes affichées sont décrites par des objets
 //  { label, colA, colB } : pour une ligne issue de A on lit
@@ -9,7 +13,7 @@
 //  (null = colonne absente de ce fichier → cellule vide).
 //
 //  API : XLDiffResults.init()
-//        XLDiffResults.show({ diff, columns, totalA, totalB })
+//        XLDiffResults.show({ diff, columns, totalA, totalB, mode })
 //        XLDiffResults.setColumns(columns)
 //        XLDiffResults.exportResults()
 // ============================================================
@@ -17,7 +21,7 @@
 const XLDiffResults = (() => {
   const $ = id => document.getElementById(id);
   let dom = null;
-  let state = null; // { diff, columns, totalA, totalB, activeTab }
+  let state = null; // { diff, columns, totalA, totalB, mode, activeTab }
 
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -26,6 +30,8 @@ const XLDiffResults = (() => {
     return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
   function pad2(n) { return String(n).padStart(2, '0'); }
+  function fmt(n) { return `<strong>${n.toLocaleString('fr-FR')}</strong>`; }
+  function plur(n) { return n > 1 ? 's' : ''; }
 
   function cellValue(row, col) {
     const c = row.__source === 'A' ? col.colA : col.colB;
@@ -36,15 +42,17 @@ const XLDiffResults = (() => {
   function init() {
     dom = {
       results: $('results'),
-      statsRow: $('statsRow'),
+      summaryBox: $('summaryBox'),
       tabsBar: $('tabsBar'),
       thead: $('thead'),
       tbody: $('tbody'),
     };
+    const btnRestart = $('btnRestart');
+    if (btnRestart) btnRestart.addEventListener('click', () => location.reload());
   }
 
-  function show({ diff, columns, totalA, totalB }) {
-    state = { diff, columns, totalA, totalB, activeTab: 'all' };
+  function show({ diff, columns, totalA, totalB, mode }) {
+    state = { diff, columns, totalA, totalB, mode: mode || 'diff', activeTab: 'all' };
     render();
   }
 
@@ -54,22 +62,74 @@ const XLDiffResults = (() => {
     render();
   }
 
+  // ---------- Résumé en phrases simples ----------
+
+  function renderSummary() {
+    const { diff, totalA, totalB, mode } = state;
+    let headline = '';
+    let headlineOk = false;
+    const lines = [];
+
+    if (mode === 'dupes') {
+      const n = diff.onlyA.length; // nombre de correspondances A ↔ B
+      if (n === 0) {
+        headline = 'Aucun doublon : aucune ligne n\'est présente à la fois dans les deux fichiers.';
+        headlineOk = true;
+      } else {
+        headline = `Il y a ${fmt(n)} ligne${plur(n)} en double, présente${plur(n)} à la fois dans A et dans B.`;
+      }
+      lines.push({ cls: 'sum-a', html: `Le fichier A contient ${fmt(totalA)} ligne${plur(totalA)}, dont ${fmt(totalA - n)} sans équivalent dans B.` });
+      lines.push({ cls: 'sum-b', html: `Le fichier B contient ${fmt(totalB)} ligne${plur(totalB)}, dont ${fmt(totalB - n)} sans équivalent dans A.` });
+    } else {
+      const nDiff = diff.all.length;
+      const identical = totalA - diff.onlyA.length; // lignes appariées entre A et B
+      const delta = totalB - totalA;
+
+      if (nDiff === 0) {
+        headline = 'Aucune différence : les deux fichiers contiennent exactement les mêmes lignes.';
+        headlineOk = true;
+      } else {
+        headline = `Il y a ${fmt(nDiff)} différence${plur(nDiff)} entre les deux fichiers.`;
+      }
+
+      lines.push({ cls: 'sum-eq', html: `Il y a ${fmt(identical)} ligne${plur(identical)} identique${plur(identical)} entre A et B.` });
+      if (diff.onlyA.length)
+        lines.push({ cls: 'sum-a', html: `Il y a ${fmt(diff.onlyA.length)} ligne${plur(diff.onlyA.length)} uniquement dans A (absente${plur(diff.onlyA.length)} de B).` });
+      if (diff.onlyB.length)
+        lines.push({ cls: 'sum-b', html: `Il y a ${fmt(diff.onlyB.length)} ligne${plur(diff.onlyB.length)} uniquement dans B (absente${plur(diff.onlyB.length)} de A).` });
+      if (delta === 0) {
+        lines.push({ cls: 'sum-n', html: `Les deux fichiers ont le même nombre de lignes (${fmt(totalA)}).` });
+      } else {
+        const sens = delta > 0 ? 'de plus' : 'de moins';
+        const abs = Math.abs(delta);
+        lines.push({ cls: 'sum-n', html: `Il y a une différence de ${fmt(abs)} ligne${plur(abs)} : le fichier B en contient ${abs.toLocaleString('fr-FR')} ${sens} que le fichier A (A : ${totalA.toLocaleString('fr-FR')}, B : ${totalB.toLocaleString('fr-FR')}).` });
+      }
+    }
+
+    dom.summaryBox.innerHTML =
+      `<div class="summary-headline${headlineOk ? ' ok' : ''}">${headlineOk ? '✓ ' : ''}${headline}</div>` +
+      `<ul class="summary-lines">${lines.map(l => `<li class="${l.cls}">${l.html}</li>`).join('')}</ul>`;
+  }
+
+  // ---------- Rendu principal ----------
+
   function render() {
-    const { diff, columns, totalA, totalB, activeTab } = state;
+    const { diff, columns, mode, activeTab } = state;
     dom.results.classList.add('visible');
 
-    dom.statsRow.innerHTML = `
-      <div class="stat-card"><div class="stat-label">Lignes fichier A</div><div class="stat-value color-a">${totalA.toLocaleString()}</div></div>
-      <div class="stat-card"><div class="stat-label">Lignes fichier B</div><div class="stat-value color-b">${totalB.toLocaleString()}</div></div>
-      <div class="stat-card"><div class="stat-label">Uniquement dans A</div><div class="stat-value color-a">${diff.onlyA.length.toLocaleString()}</div></div>
-      <div class="stat-card"><div class="stat-label">Uniquement dans B</div><div class="stat-value color-b">${diff.onlyB.length.toLocaleString()}</div></div>
-    `;
+    renderSummary();
 
-    const tabs = [
-      { id: 'all', label: 'Toutes les différences', count: diff.all.length },
-      { id: 'onlyA', label: 'Uniquement A', count: diff.onlyA.length },
-      { id: 'onlyB', label: 'Uniquement B', count: diff.onlyB.length },
-    ];
+    const tabs = mode === 'dupes'
+      ? [
+          { id: 'all', label: 'Tous les doublons', count: diff.all.length },
+          { id: 'onlyA', label: 'Doublons côté A', count: diff.onlyA.length },
+          { id: 'onlyB', label: 'Doublons côté B', count: diff.onlyB.length },
+        ]
+      : [
+          { id: 'all', label: 'Toutes les différences', count: diff.all.length },
+          { id: 'onlyA', label: 'Uniquement A', count: diff.onlyA.length },
+          { id: 'onlyB', label: 'Uniquement B', count: diff.onlyB.length },
+        ];
     dom.tabsBar.innerHTML = '';
     tabs.forEach(t => {
       const btn = document.createElement('button');
@@ -86,7 +146,8 @@ const XLDiffResults = (() => {
     dom.tbody.innerHTML = '';
 
     if (rows.length === 0) {
-      dom.tbody.innerHTML = `<tr><td colspan="${columns.length + 2}" class="empty-state">Aucune différence dans cette catégorie</td></tr>`;
+      const emptyMsg = mode === 'dupes' ? 'Aucun doublon dans cette catégorie' : 'Aucune différence dans cette catégorie';
+      dom.tbody.innerHTML = `<tr><td colspan="${columns.length + 2}" class="empty-state">${emptyMsg}</td></tr>`;
       return;
     }
 
@@ -120,7 +181,7 @@ const XLDiffResults = (() => {
 
   function exportResults() {
     if (!state) return;
-    const { diff, columns } = state;
+    const { diff, columns, mode } = state;
     const wb = XLSX.utils.book_new();
 
     function toSheet(rows, withSource) {
@@ -134,15 +195,19 @@ const XLDiffResults = (() => {
       return XLSX.utils.json_to_sheet(out);
     }
 
-    XLSX.utils.book_append_sheet(wb, toSheet(diff.all, true), 'Toutes différences');
+    const names = mode === 'dupes'
+      ? { all: 'Tous les doublons', onlyA: 'Doublons côté A', onlyB: 'Doublons côté B', file: 'xldiff_doublons' }
+      : { all: 'Toutes différences', onlyA: 'Uniquement A', onlyB: 'Uniquement B', file: 'xldiff' };
+
+    XLSX.utils.book_append_sheet(wb, toSheet(diff.all, true), names.all);
     if (diff.onlyA.length)
-      XLSX.utils.book_append_sheet(wb, toSheet(diff.onlyA, false), 'Uniquement A');
+      XLSX.utils.book_append_sheet(wb, toSheet(diff.onlyA, false), names.onlyA);
     if (diff.onlyB.length)
-      XLSX.utils.book_append_sheet(wb, toSheet(diff.onlyB, false), 'Uniquement B');
+      XLSX.utils.book_append_sheet(wb, toSheet(diff.onlyB, false), names.onlyB);
 
     const ts = new Date();
     const stamp = `${ts.getFullYear()}${pad2(ts.getMonth() + 1)}${pad2(ts.getDate())}_${pad2(ts.getHours())}${pad2(ts.getMinutes())}`;
-    XLSX.writeFile(wb, `xldiff_${stamp}.xlsx`);
+    XLSX.writeFile(wb, `${names.file}_${stamp}.xlsx`);
   }
 
   return { init, show, setColumns, exportResults };

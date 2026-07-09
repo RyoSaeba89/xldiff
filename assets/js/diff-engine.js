@@ -6,6 +6,10 @@
 //
 //  API : XLDiffEngine.diff(dataA, dataB, colsA, colsB)
 //        → { onlyA, onlyB, all }
+//        XLDiffEngine.common(dataA, dataB, colsA, colsB)
+//        → même forme { onlyA, onlyB, all }, mais onlyA/onlyB
+//        contiennent les lignes EN COMMUN vues côté A / côté B
+//        (recherche de doublons entre les deux fichiers).
 //        Chaque ligne retournée porte __rowNum (n° de ligne Excel,
 //        l'en-tête étant la ligne 1) et __source ('A' ou 'B').
 // ============================================================
@@ -67,5 +71,34 @@ const XLDiffEngine = (() => {
     return { onlyA, onlyB, all: onlyA.concat(onlyB) };
   }
 
-  return { diff };
+  // Lignes communes aux deux fichiers (doublons A ↔ B), en sémantique
+  // multi-ensemble : une clé présente 3 fois dans A et 1 fois dans B
+  // ne compte que pour 1 correspondance. Le résultat reprend la forme
+  // de diff() pour être affiché par XLDiffResults sans adaptation :
+  // onlyA = correspondances vues côté A, onlyB = vues côté B
+  // (onlyA.length === onlyB.length === nombre de correspondances).
+  function common(dataA, dataB, colsA, colsB) {
+    const a = indexRows(dataA, colsA);
+    const b = indexRows(dataB, colsB);
+
+    const inA = [];
+    const inB = [];
+
+    for (const [k, cA] of a.count) {
+      const cB = b.count.get(k) || 0;
+      const n = Math.min(cA, cB);
+      if (n === 0) continue;
+      const rowsA = a.rowsByKey.get(k);
+      const rowsB = b.rowsByKey.get(k);
+      for (let i = 0; i < n; i++) inA.push(rowsA[i]);
+      for (let i = 0; i < n; i++) inB.push(rowsB[i]);
+    }
+
+    for (const r of inA) r.__source = 'A';
+    for (const r of inB) r.__source = 'B';
+
+    return { onlyA: inA, onlyB: inB, all: inA.concat(inB) };
+  }
+
+  return { diff, common };
 })();

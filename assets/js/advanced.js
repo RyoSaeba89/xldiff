@@ -1,14 +1,19 @@
 // ============================================================
 //  XLDiff — advanced.js
-//  Mode « comparatif avancé » : deux fichiers différents.
-//  L'utilisateur associe les colonnes à comparer (mapping
-//  colonne A ↔ colonne B) ; seules ces associations servent
-//  de clé de comparaison. Les colonnes de même nom sont
-//  pré-associées automatiquement.
+//  Flux « fichiers différents » : l'utilisateur associe les
+//  colonnes à analyser (mapping colonne A ↔ colonne B) ; seules
+//  ces associations servent de clé. Les colonnes de même nom
+//  sont pré-associées automatiquement.
+//
+//  Deux pages utilisent ce contrôleur, selon window.XLDIFF_MODE
+//  (défini par la page avant ce script) :
+//    'diff'  (défaut) — advanced.html        : différences A / B
+//    'dupes'          — doublons-avance.html : lignes communes
 // ============================================================
 
 (() => {
   const $ = id => document.getElementById(id);
+  const MODE = window.XLDIFF_MODE === 'dupes' ? 'dupes' : 'diff';
 
   let mappings = []; // [{ colA, colB }]
 
@@ -167,9 +172,10 @@
   function updateReady() {
     btnCompare.disabled = mappings.length === 0;
     statusText.className = 'status-text';
+    const action = MODE === 'dupes' ? 'la recherche de doublons' : 'la comparaison';
     statusText.textContent = mappings.length === 0
-      ? 'Ajoutez au moins une association de colonnes pour comparer.'
-      : `${mappings.length} association(s) de colonnes — la comparaison portera uniquement sur ces colonnes.`;
+      ? 'Ajoutez au moins une association de colonnes pour lancer l\'analyse.'
+      : `${mappings.length} association(s) de colonnes — ${action} portera uniquement sur ces colonnes.`;
   }
 
   // ---------- Colonnes affichées dans les résultats ----------
@@ -211,7 +217,7 @@
     progressBar.classList.add('visible');
     progressFill.style.width = '30%';
     statusText.className = 'status-text';
-    statusText.textContent = 'Comparaison en cours…';
+    statusText.textContent = MODE === 'dupes' ? 'Recherche en cours…' : 'Comparaison en cours…';
     btnCompare.disabled = true;
 
     requestAnimationFrame(() => setTimeout(runCompare, 30));
@@ -220,21 +226,26 @@
   function runCompare() {
     const colsA = mappings.map(m => m.colA);
     const colsB = mappings.map(m => m.colB);
-    const diff = XLDiffEngine.diff(slotA.data, slotB.data, colsA, colsB);
+    const result = MODE === 'dupes'
+      ? XLDiffEngine.common(slotA.data, slotB.data, colsA, colsB)
+      : XLDiffEngine.diff(slotA.data, slotB.data, colsA, colsB);
 
     progressFill.style.width = '100%';
     setTimeout(() => { progressBar.classList.remove('visible'); progressFill.style.width = '0%'; }, 400);
 
     XLDiffResults.show({
-      diff,
+      diff: result,
       columns: buildColumns(showAllCols.checked),
       totalA: slotA.data.length,
       totalB: slotB.data.length,
+      mode: MODE,
     });
 
     btnCompare.disabled = false;
     btnExport.disabled = false;
-    statusText.textContent = `Terminé — ${diff.all.length.toLocaleString()} différence(s) trouvée(s)`;
+    statusText.textContent = MODE === 'dupes'
+      ? `Terminé — ${result.onlyA.length.toLocaleString()} doublon(s) trouvé(s)`
+      : `Terminé — ${result.all.length.toLocaleString()} différence(s) trouvée(s)`;
   }
 
   btnCompare.addEventListener('click', compare);

@@ -20,6 +20,104 @@
   margin: 0 auto;
 }
 
+/* ---------- QUESTION D'ENTRÉE : différences ou doublons ---------- */
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.choice-card {
+  font-family: var(--font);
+  display: block;
+  text-align: left;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--rl);
+  padding: 26px 26px 24px;
+  text-decoration: none;
+  color: var(--text);
+  box-shadow: var(--sh);
+  transition: all .2s;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.choice-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: var(--g1);
+}
+.choice-card.dupes::before { background: var(--blue); }
+.choice-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .1);
+  border-color: var(--g1);
+}
+.choice-card.dupes:hover { border-color: var(--blue); }
+.choice-card.selected {
+  border-color: var(--g1);
+  background: var(--gl2);
+  box-shadow: 0 0 0 2px var(--g1), var(--shm);
+}
+.choice-card.dupes.selected {
+  border-color: var(--blue);
+  background: var(--blue-l);
+  box-shadow: 0 0 0 2px var(--blue), var(--shm);
+}
+
+.choice-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+}
+.choice-icon-diff { background: var(--gl); color: var(--g1); }
+.choice-icon-dupes { background: var(--blue-l); color: var(--blue); }
+
+.choice-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.choice-desc {
+  font-size: 13px;
+  color: var(--text-sec);
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+.choice-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--g1);
+}
+.choice-card.dupes .choice-cta { color: var(--blue); }
+
+/* ---------- MODES (révélés après le choix « différences ») ---------- */
+
+.mode-section { display: none; margin-top: 40px; }
+.mode-section.visible { display: block; animation: mode-in .25s ease-out; }
+@keyframes mode-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.mode-section-title {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
 .mode-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -120,6 +218,6 @@
 }
 
 @media (max-width: 700px) {
-  .mode-grid { grid-template-columns: 1fr; }
+  .choice-grid, .mode-grid { grid-template-columns: 1fr; }
   .hero { padding: 28px 16px 24px; }
 }

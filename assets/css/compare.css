@@ -199,30 +199,61 @@
 }
 .results-options label { cursor: pointer; user-select: none; }
 
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.stat-card {
+/* ---------- RÉSUMÉ EN PHRASES SIMPLES ---------- */
+
+.summary-box {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 16px 18px;
+  border-radius: var(--rl);
+  padding: 20px 24px;
+  margin-bottom: 20px;
   box-shadow: var(--sh);
 }
-.stat-label {
-  font-size: 11px;
-  color: var(--text-light);
-  text-transform: uppercase;
-  letter-spacing: .4px;
-  margin-bottom: 4px;
-  font-weight: 600;
+.summary-headline {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 12px;
 }
-.stat-value { font-size: 28px; font-weight: 700; }
-.color-a { color: var(--g1); }
-.color-b { color: var(--orange); }
+.summary-headline strong { color: var(--g1); }
+.summary-headline.ok { color: var(--g1); margin-bottom: 0; }
+.summary-headline.ok + .summary-lines { margin-top: 12px; }
+.summary-lines {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.summary-lines li {
+  font-size: 13px;
+  color: var(--text-sec);
+  padding-left: 20px;
+  position: relative;
+}
+.summary-lines li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-light);
+}
+.summary-lines li.sum-eq::before { background: var(--ga); }
+.summary-lines li.sum-a::before { background: var(--g1); }
+.summary-lines li.sum-b::before { background: var(--orange); }
+.summary-lines li strong { color: var(--text); font-weight: 700; }
+.summary-lines li.sum-eq strong { color: var(--ga); }
+.summary-lines li.sum-a strong { color: var(--g1); }
+.summary-lines li.sum-b strong { color: var(--orange); }
+
+/* ---------- BOUTON RECOMMENCER ---------- */
+
+.restart-bar {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
 
 /* ---------- ONGLETS ---------- */
 
@@ -322,6 +353,5 @@ tr:hover td { background: #f0f3f5; }
 
 @media (max-width: 900px) {
   .drop-row { grid-template-columns: 1fr; }
-  .stats-row { grid-template-columns: 1fr 1fr; }
   .map-select { min-width: 120px; }
 }

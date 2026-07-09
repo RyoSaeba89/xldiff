@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>XLDiff — Comparatif avancé</title>
+<title>XLDiff — Doublons avancé</title>
 <link rel="stylesheet" href="../assets/css/theme.css">
 <link rel="stylesheet" href="../assets/css/compare.css">
 </head>
@@ -24,7 +24,7 @@
     <h1>XLDiff</h1>
   </a>
   <div class="header-sep"></div>
-  <div class="header-sub">Comparatif avancé — fichiers différents</div>
+  <div class="header-sub">Doublons avancé — fichiers différents</div>
   <a class="header-home" href="../index.html">← Accueil</a>
 </div>
 
@@ -57,7 +57,7 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
       1. Choix des feuilles
     </div>
-    <div class="panel-hint">Un des fichiers contient plusieurs feuilles (onglets Excel) : choisissez la feuille à comparer pour chaque fichier.</div>
+    <div class="panel-hint">Un des fichiers contient plusieurs feuilles (onglets Excel) : choisissez la feuille à analyser pour chaque fichier.</div>
     <div class="sheet-choice-list" id="sheetChoiceList"></div>
   </div>
 
@@ -66,7 +66,7 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><line x1="9" y1="12" x2="15" y2="12"/><polyline points="12,9 15,12 12,15"/></svg>
       <span id="mappingTitle">2. Association des colonnes à comparer</span>
     </div>
-    <div class="panel-hint">Associez chaque colonne du fichier A à la colonne correspondante du fichier B. Seules ces colonnes servent à identifier les différences. Les colonnes de même nom sont pré-associées.</div>
+    <div class="panel-hint">Associez chaque colonne du fichier A à la colonne correspondante du fichier B. Deux lignes sont considérées en double si toutes les colonnes associées sont identiques. Les colonnes de même nom sont pré-associées.</div>
     <div class="map-list" id="mapList"></div>
     <button class="map-add" id="btnAddMapping">+ Ajouter une association</button>
   </div>
@@ -76,7 +76,7 @@
       <input type="checkbox" id="showAllCols">
       <label for="showAllCols">Afficher toutes les colonnes (pas uniquement les colonnes comparées)</label>
     </div>
-    <button class="btn btn-primary" id="btnCompare" disabled>Comparer</button>
+    <button class="btn btn-primary" id="btnCompare" disabled>Rechercher les doublons</button>
     <button class="btn btn-secondary" id="btnExport" disabled>↓ Exporter .xlsx</button>
     <span class="status-text" id="statusText"></span>
   </div>
@@ -97,6 +97,7 @@
 
 <div class="footer">XLDiff v2 — Jacques Rennie · Eurométropole de Strasbourg</div>
 
+<script>window.XLDIFF_MODE = 'dupes';</script>
 <script src="../assets/vendor/xlsx.full.min.js"></script>
 <script src="../assets/js/file-loader.js"></script>
 <script src="../assets/js/diff-engine.js"></script>
