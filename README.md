@@ -77,6 +77,21 @@ XLDiff/
 
 Le code n'utilise aucun framework ni gestionnaire de paquets : JavaScript natif, la seule librairie (SheetJS) est embarquée dans `assets/vendor/`.
 
+## Application de bureau (xldiff.exe)
+
+L'application web peut être encapsulée dans un exécutable Windows **portable** avec [Tauri](https://tauri.app) : tout XLDiff (HTML, CSS, JS, SheetJS) est embarqué dans le binaire (~8 Mo), aucune ressource externe n'est téléchargée ni requise au lancement. Tauri n'embarque **pas** de navigateur : il s'appuie sur **WebView2**, le moteur d'Edge fourni et maintenu par Windows (préinstallé sur Windows 10/11).
+
+Prérequis de build (poste de développement uniquement) : Rust + outils MSVC, Node.js.
+
+```
+npm install        # une seule fois (CLI Tauri)
+npm run exe        # copie l'app dans dist/ puis compile
+```
+
+Le binaire est produit dans `src-tauri/target/release/xldiff.exe` — un seul fichier à copier sur un lecteur réseau ou à diffuser via Nextcloud. Il se lance d'un double-clic, sans installation.
+
+Fichiers concernés : `src-tauri/` (configuration, icônes, enveloppe Rust), `scripts/make-dist.js` (copie de l'app web dans `dist/`), `scripts/make-icon.js` (régénération de l'icône source si besoin).
+
 ## Déploiement GitLab Pages
 
 Le fichier `.gitlab-ci.yml` publie automatiquement le site sur GitLab Pages à chaque push sur la branche par défaut. L'URL est visible dans *Deploy → Pages* du projet GitLab. Si vous ne souhaitez pas utiliser Pages, supprimez simplement ce fichier.

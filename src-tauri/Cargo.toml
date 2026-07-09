@@ -1,0 +1,20 @@
+[package]
+name = "xldiff"
+version = "2.0.0"
+description = "XLDiff — comparateur de fichiers Excel"
+authors = ["Jacques Rennie"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+# Binaire final le plus compact possible
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

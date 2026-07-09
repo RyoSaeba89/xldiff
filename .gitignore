@@ -10,3 +10,9 @@ Desktop.ini
 # Divers
 *.log
 node_modules/
+
+# Build de l'exe Tauri
+dist/
+src-tauri/target/
+scripts/icon-source.png
+src-tauri/gen/
