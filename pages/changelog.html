@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XLDiff — Nouveautés</title>
+<link rel="stylesheet" href="../assets/css/theme.css">
+<style>
+/* Page « Nouveautés » : rendu du changelog pour les usagers */
+.changelog { max-width: 760px; margin: 0 auto; }
+.changelog-title { text-align: center; font-size: 24px; font-weight: 700; padding: 36px 16px 24px; }
+.release {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--rl);
+  padding: 24px 28px;
+  margin-bottom: 20px;
+  box-shadow: var(--sh);
+}
+.release-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.release-tag {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--g1);
+  padding: 3px 12px;
+  border-radius: 6px;
+}
+.release.old .release-tag { background: var(--text-light); }
+.release-date { font-size: 12px; color: var(--text-light); }
+.release h3 { font-size: 14px; margin: 16px 0 8px; }
+.release p, .release li { font-size: 13px; color: var(--text-sec); line-height: 1.6; }
+.release ul { margin: 0 0 4px 0; padding-left: 22px; }
+.release li { margin-bottom: 6px; }
+.release li strong, .release p strong { color: var(--text); }
+.back-bar { text-align: center; margin: 28px 0 8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a class="brand" href="../index.html">
+    <div class="logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="3" width="18" height="18" rx="2.5" stroke="#fff" stroke-width="1.5"/>
+        <line x1="9" y1="3" x2="9" y2="21" stroke="#fff" stroke-width="1" opacity=".5"/>
+        <line x1="15" y1="3" x2="15" y2="21" stroke="#fff" stroke-width="1" opacity=".5"/>
+        <line x1="3" y1="9" x2="21" y2="9" stroke="#fff" stroke-width="1" opacity=".5"/>
+        <line x1="3" y1="15" x2="21" y2="15" stroke="#fff" stroke-width="1" opacity=".5"/>
+        <text x="12" y="13.5" text-anchor="middle" font-size="7" font-weight="700" fill="#fff" font-family="sans-serif">X</text>
+      </svg>
+    </div>
+    <h1>XLDiff</h1>
+  </a>
+  <div class="header-sep"></div>
+  <div class="header-sub">Nouveautés</div>
+  <a class="header-home" href="../index.html">← Accueil</a>
+</div>
+
+<div class="container">
+  <div class="changelog">
+    <div class="changelog-title">Nouveautés d'XLDiff</div>
+
+    <div class="release">
+      <div class="release-header">
+        <span class="release-tag">Version 2</span>
+        <span class="release-date">9 juillet 2026</span>
+      </div>
+
+      <h3>Nouveautés</h3>
+      <ul>
+        <li><strong>Recherche de doublons</strong> : en plus des différences, XLDiff peut maintenant trouver les lignes présentes <strong>à la fois dans deux fichiers</strong>. Comme pour les différences, deux modes sont proposés : <em>doublons simple</em> (vos deux fichiers ont les mêmes colonnes, tout est automatique) et <em>doublons avancé</em> (vos fichiers sont différents, vous choisissez les colonnes à faire correspondre).</li>
+        <li><strong>Accueil guidé</strong> : la page d'accueil vous pose directement la question « Que recherchez-vous ? » — les différences ou les doublons — puis « Vos deux fichiers ont-ils les mêmes colonnes ? ». Plus besoin de deviner quel mode choisir.</li>
+        <li><strong>Bouton « Recommencer »</strong> : en bas des résultats, un clic remet la page à zéro pour lancer une nouvelle analyse.</li>
+      </ul>
+
+      <h3>Améliorations</h3>
+      <ul>
+        <li><strong>Résultats en langage clair</strong> : fini les tableaux de chiffres à interpréter, les résultats s'affichent en phrases simples — « Il y a 1 500 lignes identiques entre A et B », « Il y a 12 lignes uniquement dans A (absentes de B) », « Il y a une différence de 4 lignes : le fichier B en contient 4 de moins que le fichier A ». Le détail ligne par ligne reste disponible juste en dessous, avec ses onglets et l'export Excel.</li>
+        <li>Quand les deux fichiers sont identiques (ou sans aucun doublon), un message vert le dit explicitement.</li>
+        <li>Crédits affichés en bas de chaque page.</li>
+      </ul>
+    </div>
+
+    <div class="release old">
+      <div class="release-header">
+        <span class="release-tag">Version 1</span>
+        <span class="release-date">7 juillet 2026</span>
+      </div>
+      <p>Première version : comparaison de deux fichiers Excel (.xlsx, .xls, .csv, .htm) pour trouver les lignes présentes dans un fichier et absentes de l'autre, en mode simple (mêmes colonnes, automatique) ou avancé (choix des feuilles et association des colonnes). Résultats par onglets, export Excel, traitement 100 % local dans le navigateur — aucune donnée n'est envoyée sur le réseau.</p>
+    </div>
+
+    <div class="back-bar">
+      <a class="btn btn-secondary" href="../index.html">← Retour à l'accueil</a>
+    </div>
+  </div>
+</div>
+
+<div class="footer">XLDiff v2 — Jacques Rennie · Eurométropole de Strasbourg</div>
+
+</body>
+</html>
