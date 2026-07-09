@@ -10,6 +10,22 @@
 use tauri::webview::DownloadEvent;
 
 fn main() {
+    // Postes sans runtime WebView2 (certains Windows 10 / VDI) : message
+    // clair au lieu d'un échec silencieux au premier appel de la webview.
+    if tauri::webview_version().is_err() {
+        rfd::MessageDialog::new()
+            .set_level(rfd::MessageLevel::Error)
+            .set_title("XLDiff — composant Windows manquant")
+            .set_description(
+                "XLDiff a besoin du composant Windows « Microsoft Edge WebView2 Runtime », \
+                 introuvable sur ce poste.\n\nIl est normalement préinstallé avec Windows 10 et 11. \
+                 Demandez au support informatique d'installer le « WebView2 Runtime Evergreen » \
+                 de Microsoft, puis relancez XLDiff.",
+            )
+            .show();
+        std::process::exit(1);
+    }
+
     tauri::Builder::default()
         .setup(|app| {
             tauri::WebviewWindowBuilder::new(

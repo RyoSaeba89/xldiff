@@ -1,0 +1,5 @@
+# CRT liée en statique : l'exe ne dépend d'aucune DLL du redistribuable
+# Visual C++ (vcruntime140.dll…) ni de l'UCRT — indispensable pour les
+# postes Windows 10 / environnements virtualisés (MOCA) non maîtrisés.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

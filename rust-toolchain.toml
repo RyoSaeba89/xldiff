@@ -1,0 +1,6 @@
+# Toolchain imposée pour ce projet : MSVC obligatoirement.
+# Avec la toolchain GNU, les bindings WebView2 lient WebView2Loader.dll
+# dynamiquement et l'exe n'est plus autonome (DLL introuvable sur les
+# postes de diffusion). En MSVC, le chargeur WebView2 est lié en statique.
+[toolchain]
+channel = "stable-x86_64-pc-windows-msvc"
