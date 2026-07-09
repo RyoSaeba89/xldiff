@@ -1,5 +1,14 @@
 # XLDiff — Notes de version
 
+## Version 2.1 — 9 juillet 2026
+
+### Application de bureau
+
+- **XLDiff existe maintenant en application Windows** (`xldiff.exe`, environ 3,5 Mo) : la même application que le site, dans une fenêtre native. Un seul fichier, aucun droit administrateur, aucune installation — double-clic et ça marche.
+- **Aucune connexion réseau** : tout est embarqué dans l'exécutable, vos fichiers ne quittent jamais votre poste.
+- **Export amélioré** : le bouton « Exporter .xlsx » ouvre une fenêtre Windows « Enregistrer sous » pour choisir où enregistrer le résultat.
+- L'exécutable est signé numériquement (éditeur : Jacques Rennie, Eurométropole de Strasbourg).
+
 ## Version 2 — 9 juillet 2026
 
 ### Nouveautés
