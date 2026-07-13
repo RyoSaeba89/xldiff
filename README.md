@@ -24,7 +24,7 @@ Pour deux fichiers **différents**, en deux étapes :
 
 Dans les résultats, une case « Afficher toutes les colonnes » permet de basculer entre l'affichage des seules colonnes comparées et l'affichage complet.
 
-Une case « **Ignorer les doublons** » (décochée par défaut) change la règle de comparaison : cochée, une ligne dont la clé est présente dans les deux fichiers n'est jamais une différence, même si elle se répète un nombre de fois différent de chaque côté (ex. 3 fois dans A, 1 fois dans B) ; seules les clés absentes de l'autre fichier sont signalées, avec toutes leurs occurrences. Basculer la case après une comparaison relance automatiquement l'analyse.
+Une case « **Ignorer les lignes en double au sein d'un même fichier** » (décochée par défaut) change la règle de comparaison : cochée, une ligne dont la clé est présente dans les deux fichiers n'est jamais une différence, même si elle se répète un nombre de fois différent de chaque côté (ex. 3 fois dans A, 1 fois dans B) ; seules les clés absentes de l'autre fichier sont signalées, avec toutes leurs occurrences. Basculer la case après une comparaison relance automatiquement l'analyse.
 
 ## Recherche de doublons : deux modes
 
@@ -43,7 +43,7 @@ Les résultats commencent par un résumé en phrases simples (« Il y a N lignes
 
 ## Utilisation
 
-Aucune installation : ouvrir `index.html` dans un navigateur, ou héberger le dossier tel quel (GitLab Pages, serveur web statique…).
+Aucune installation : utiliser le site en ligne **https://ryosaeba89.github.io/xldiff/**, ouvrir `index.html` dans un navigateur, ou héberger le dossier tel quel (serveur web statique).
 
 1. Sur la page d'accueil, répondre à la question « Que recherchez-vous ? » (différences ou doublons), puis choisir le mode le cas échéant.
 2. Glisser-déposer les deux fichiers (sélection de feuille possible si le classeur en contient plusieurs).
@@ -73,7 +73,6 @@ XLDiff/
 │   │   └── advanced.js     Contrôleur des modes avancés (diff ou doublons via window.XLDIFF_MODE)
 │   └── vendor/
 │       └── xlsx.full.min.js  SheetJS 0.18.5 (embarqué, aucune dépendance réseau)
-├── .gitlab-ci.yml          Déploiement GitLab Pages (optionnel, supprimable)
 └── README.md
 ```
 
@@ -111,12 +110,12 @@ Import-Certificate -FilePath signing\xldiff-code-signing.cer -CertStoreLocation 
 
 Pour une confiance sur tout le parc, la voie propre reste un certificat émis par la CA interne de la collectivité ou un certificat de signature de code commercial (déployable par GPO).
 
-## Déploiement GitLab Pages
+## Site en ligne (GitHub Pages)
 
-Le fichier `.gitlab-ci.yml` publie automatiquement le site sur GitLab Pages à chaque push sur la branche par défaut. L'URL est visible dans *Deploy → Pages* du projet GitLab. Si vous ne souhaitez pas utiliser Pages, supprimez simplement ce fichier.
+Le site est publié automatiquement sur **https://ryosaeba89.github.io/xldiff/** à chaque push sur `main` (GitHub Pages sert le dépôt tel quel depuis la racine, aucun build n'est nécessaire). Le traitement reste 100 % local dans le navigateur : aucun fichier comparé n'est envoyé au serveur.
 
 ## Notes techniques
 
-- La comparaison est une différence de multi-ensembles : les répétitions sont prises en compte (si une clé apparaît 3 fois dans A et 1 fois dans B, 2 lignes sont signalées « uniquement A »). La case « Ignorer les doublons » du comparatif avancé bascule en différence d'ensembles : cette même clé n'est alors plus une différence. La recherche de doublons est l'opération inverse (intersection) : la même clé compte pour min(3, 1) = 1 correspondance.
+- La comparaison est une différence de multi-ensembles : les répétitions sont prises en compte (si une clé apparaît 3 fois dans A et 1 fois dans B, 2 lignes sont signalées « uniquement A »). La case « Ignorer les lignes en double au sein d'un même fichier » du comparatif avancé bascule en différence d'ensembles : cette même clé n'est alors plus une différence. La recherche de doublons est l'opération inverse (intersection) : la même clé compte pour min(3, 1) = 1 correspondance.
 - Le numéro de ligne affiché correspond à la ligne du fichier Excel d'origine (l'en-tête étant la ligne 1).
 - Le tableau de résultats est rendu par blocs de 500 lignes pour rester fluide sur de gros volumes.
