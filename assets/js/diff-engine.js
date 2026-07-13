@@ -4,8 +4,12 @@
 //  deux jeux de lignes, sur des listes de colonnes-clés qui
 //  peuvent différer entre A et B (mapping de colonnes).
 //
-//  API : XLDiffEngine.diff(dataA, dataB, colsA, colsB)
+//  API : XLDiffEngine.diff(dataA, dataB, colsA, colsB, opts)
 //        → { onlyA, onlyB, all }
+//        opts.ignoreDuplicates : une clé présente dans les DEUX
+//        fichiers n'est jamais une différence, quel que soit son
+//        nombre d'occurrences de chaque côté ; une clé absente de
+//        l'autre fichier remonte toutes ses occurrences.
 //        XLDiffEngine.common(dataA, dataB, colsA, colsB)
 //        → même forme { onlyA, onlyB, all }, mais onlyA/onlyB
 //        contiennent les lignes EN COMMUN vues côté A / côté B
@@ -40,17 +44,22 @@ const XLDiffEngine = (() => {
     return { count, rowsByKey };
   }
 
-  function diff(dataA, dataB, colsA, colsB) {
+  function diff(dataA, dataB, colsA, colsB, opts) {
+    const ignoreDuplicates = !!(opts && opts.ignoreDuplicates);
     const a = indexRows(dataA, colsA);
     const b = indexRows(dataB, colsB);
 
     const onlyA = [];
     const onlyB = [];
 
-    // Clés de A : si A en contient plus que B, l'excédent est « uniquement A »
+    // Clés de A : si A en contient plus que B, l'excédent est « uniquement A ».
+    // Avec ignoreDuplicates, seule l'absence totale côté B compte : la clé
+    // remonte alors avec toutes ses occurrences.
     for (const [k, cA] of a.count) {
       const cB = b.count.get(k) || 0;
-      if (cA > cB) {
+      if (ignoreDuplicates) {
+        if (cB === 0) for (const r of a.rowsByKey.get(k)) onlyA.push(r);
+      } else if (cA > cB) {
         const rows = a.rowsByKey.get(k);
         for (let i = 0; i < cA - cB; i++) onlyA.push(rows[i]);
       }
@@ -59,7 +68,9 @@ const XLDiffEngine = (() => {
     // Clés de B : si B en contient plus que A, l'excédent est « uniquement B »
     for (const [k, cB] of b.count) {
       const cA = a.count.get(k) || 0;
-      if (cB > cA) {
+      if (ignoreDuplicates) {
+        if (cA === 0) for (const r of b.rowsByKey.get(k)) onlyB.push(r);
+      } else if (cB > cA) {
         const rows = b.rowsByKey.get(k);
         for (let i = 0; i < cB - cA; i++) onlyB.push(rows[i]);
       }

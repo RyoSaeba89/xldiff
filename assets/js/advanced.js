@@ -46,6 +46,10 @@
   const progressBar = $('progressBar');
   const progressFill = $('progressFill');
   const showAllCols = $('showAllCols');
+  // Coche « Ignorer les doublons » : présente uniquement sur advanced.html
+  // (mode différences), absente des pages doublons
+  const ignoreDupes = $('ignoreDupes');
+  let hasCompared = false;
 
   function onSlotChange() {
     renderSheetPanel();
@@ -228,7 +232,10 @@
     const colsB = mappings.map(m => m.colB);
     const result = MODE === 'dupes'
       ? XLDiffEngine.common(slotA.data, slotB.data, colsA, colsB)
-      : XLDiffEngine.diff(slotA.data, slotB.data, colsA, colsB);
+      : XLDiffEngine.diff(slotA.data, slotB.data, colsA, colsB, {
+          ignoreDuplicates: !!(ignoreDupes && ignoreDupes.checked),
+        });
+    hasCompared = true;
 
     progressFill.style.width = '100%';
     setTimeout(() => { progressBar.classList.remove('visible'); progressFill.style.width = '0%'; }, 400);
@@ -249,6 +256,11 @@
   }
 
   btnCompare.addEventListener('click', compare);
+  if (ignoreDupes) {
+    // Basculer la coche après une comparaison relance l'analyse pour que
+    // les résultats affichés (et l'export) ne soient jamais périmés
+    ignoreDupes.addEventListener('change', () => { if (hasCompared) compare(); });
+  }
   btnExport.addEventListener('click', () => {
     XLDiffResults.exportResults();
     statusText.textContent = 'Export terminé ✓';

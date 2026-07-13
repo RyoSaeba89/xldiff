@@ -24,6 +24,8 @@ Pour deux fichiers **différents**, en deux étapes :
 
 Dans les résultats, une case « Afficher toutes les colonnes » permet de basculer entre l'affichage des seules colonnes comparées et l'affichage complet.
 
+Une case « **Ignorer les doublons** » (décochée par défaut) change la règle de comparaison : cochée, une ligne dont la clé est présente dans les deux fichiers n'est jamais une différence, même si elle se répète un nombre de fois différent de chaque côté (ex. 3 fois dans A, 1 fois dans B) ; seules les clés absentes de l'autre fichier sont signalées, avec toutes leurs occurrences. Basculer la case après une comparaison relance automatiquement l'analyse.
+
 ## Recherche de doublons : deux modes
 
 L'outil liste les lignes **communes aux deux fichiers**, c'est-à-dire l'inverse de la recherche de différences.
@@ -115,6 +117,6 @@ Le fichier `.gitlab-ci.yml` publie automatiquement le site sur GitLab Pages à c
 
 ## Notes techniques
 
-- La comparaison est une différence de multi-ensembles : les répétitions sont prises en compte (si une clé apparaît 3 fois dans A et 1 fois dans B, 2 lignes sont signalées « uniquement A »). La recherche de doublons est l'opération inverse (intersection) : la même clé compte pour min(3, 1) = 1 correspondance.
+- La comparaison est une différence de multi-ensembles : les répétitions sont prises en compte (si une clé apparaît 3 fois dans A et 1 fois dans B, 2 lignes sont signalées « uniquement A »). La case « Ignorer les doublons » du comparatif avancé bascule en différence d'ensembles : cette même clé n'est alors plus une différence. La recherche de doublons est l'opération inverse (intersection) : la même clé compte pour min(3, 1) = 1 correspondance.
 - Le numéro de ligne affiché correspond à la ligne du fichier Excel d'origine (l'en-tête étant la ligne 1).
 - Le tableau de résultats est rendu par blocs de 500 lignes pour rester fluide sur de gros volumes.
