@@ -198,6 +198,14 @@
   cursor: pointer;
 }
 .results-options label { cursor: pointer; user-select: none; }
+/* Descriptif affiché sous une case à cocher (aligné sur le libellé) */
+.action-bar .option-hint {
+  flex-basis: 100%;
+  margin: -8px 0 0 23px;
+  font-size: 12px;
+  color: var(--text-light);
+  line-height: 1.5;
+}
 
 /* ---------- RÉSUMÉ EN PHRASES SIMPLES ---------- */
 
