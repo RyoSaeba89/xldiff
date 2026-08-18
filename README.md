@@ -1,6 +1,6 @@
 # XLDiff — Comparateur de fichiers Excel
 
-**Version 2**
+**Version 2.4**
 
 Outil web 100 % local pour analyser deux fichiers Excel. Aucune donnée n'est envoyée sur le réseau : tout le traitement s'effectue dans le navigateur.
 
@@ -17,14 +17,19 @@ Chaque analyse propose ensuite la même question « **Vos deux fichiers ont-ils 
 Pour deux fichiers issus du **même export Excel** (mêmes colonnes). Les colonnes communes sont détectées automatiquement et la comparaison porte sur toutes les colonnes — aucun réglage nécessaire.
 
 ### Comparatif avancé
-Pour deux fichiers **différents**, en deux étapes :
+Pour deux ou trois fichiers **différents** (le **fichier C est facultatif**), en trois étapes :
 
 1. **Choix des feuilles** — si un fichier contient plusieurs feuilles (onglets Excel), un panneau permet de choisir la feuille à comparer pour chaque fichier (la feuille contenant le plus de données est pré-sélectionnée).
-2. **Association des colonnes** — l'utilisateur associe les colonnes à comparer (mapping colonne A ↔ colonne B, avec pré-association automatique des colonnes de même nom). Seules les colonnes associées servent de clé de comparaison.
+2. **Colonnes de rapprochement** — l'utilisateur associe les colonnes qui identifient une ligne (mapping colonne A ↔ B ↔ C, avec pré-association automatique des colonnes de même nom). Ces colonnes forment la clé : une ligne sans équivalent dans un autre fichier est signalée.
+3. **Colonnes à comparer** (facultatif) — une fois la ligne retrouvée dans chaque fichier, le contenu de ces colonnes est vérifié. Une ligne retrouvée dont une de ces colonnes diffère n'est pas une absence : elle remonte dans la catégorie **« Retrouvées mais différentes »**, avec la valeur de chaque fichier côte à côte (`3 rue Verte → 8 av. Bleue`). Sans aucune colonne ici, le comportement est celui des versions précédentes (seule la présence des lignes est vérifiée).
 
-Dans les résultats, une case « Afficher toutes les colonnes » permet de basculer entre l'affichage des seules colonnes comparées et l'affichage complet.
+Cas d'usage typique : rapprocher sur *nom + date de naissance*, puis comparer *adresse*.
 
-Une case « **Ignorer les lignes en double au sein d'un même fichier** » (décochée par défaut) change la règle de comparaison : cochée, une ligne dont la clé est présente dans les deux fichiers n'est jamais une différence, même si elle se répète un nombre de fois différent de chaque côté (ex. 3 fois dans A, 1 fois dans B) ; seules les clés absentes de l'autre fichier sont signalées, avec toutes leurs occurrences. Basculer la case après une comparaison relance automatiquement l'analyse.
+Avec trois fichiers, chaque fichier a son onglet de lignes absentes ailleurs et le tableau porte une colonne **« Présente dans »** (`A + B` = ligne absente de C).
+
+Dans les résultats, une case « Afficher toutes les colonnes » permet de basculer entre l'affichage des seules colonnes rapprochées et comparées et l'affichage complet.
+
+Une case « **Ignorer les lignes en double au sein d'un même fichier** » (décochée par défaut) change la règle de comparaison : cochée, une ligne dont la clé est présente dans tous les fichiers n'est jamais une différence, même si elle se répète un nombre de fois différent de l'un à l'autre (ex. 3 fois dans A, 1 fois dans B) ; seules les clés absentes d'au moins un fichier sont signalées, avec toutes leurs occurrences. Basculer la case après une comparaison relance automatiquement l'analyse.
 
 ## Recherche de doublons : deux modes
 
@@ -35,7 +40,9 @@ L'outil liste les lignes **communes aux deux fichiers**, c'est-à-dire l'inverse
 
 ## Résultats
 
-Les résultats commencent par un résumé en phrases simples (« Il y a N lignes identiques entre A et B », « Il y a X lignes uniquement dans A »…), suivi du détail ligne par ligne dans des onglets, d'un export `.xlsx` et d'un bouton **Recommencer** pour repartir d'une page vierge.
+Les résultats commencent par un résumé en phrases simples (« Il y a N lignes retrouvées dans les deux fichiers : X à l'identique, Y dont le contenu diffère », « Il y a X lignes uniquement dans A »…), suivi du détail ligne par ligne dans des onglets, d'un export `.xlsx` et d'un bouton **Recommencer** pour repartir d'une page vierge.
+
+L'export reprend les onglets de l'écran : une feuille pour toutes les absences, une feuille par fichier, et — si des colonnes sont comparées — une feuille « Retrouvées mais différentes » où chaque colonne comparée occupe une colonne par fichier (`Adresse (A)`, `Adresse (B)`), suivie de la liste des colonnes en écart.
 
 ## Formats supportés
 
@@ -67,7 +74,7 @@ XLDiff/
 │   │   └── compare.css     Styles des pages de comparaison
 │   ├── js/
 │   │   ├── file-loader.js  Lecture des fichiers + zones de dépôt (XLDiffFiles)
-│   │   ├── diff-engine.js  Moteur de comparaison (XLDiffEngine)
+│   │   ├── diff-engine.js  Moteur d'analyse 2 ou 3 fichiers (XLDiffEngine)
 │   │   ├── results-view.js Rendu des résultats + export (XLDiffResults)
 │   │   ├── simple.js       Contrôleur des modes simples (diff ou doublons via window.XLDIFF_MODE)
 │   │   └── advanced.js     Contrôleur des modes avancés (diff ou doublons via window.XLDIFF_MODE)
@@ -116,6 +123,8 @@ Le site est publié automatiquement sur **https://ryosaeba89.github.io/xldiff/**
 
 ## Notes techniques
 
-- La comparaison est une différence de multi-ensembles : les répétitions sont prises en compte (si une clé apparaît 3 fois dans A et 1 fois dans B, 2 lignes sont signalées « uniquement A »). La case « Ignorer les lignes en double au sein d'un même fichier » du comparatif avancé bascule en différence d'ensembles : cette même clé n'est alors plus une différence. La recherche de doublons est l'opération inverse (intersection) : la même clé compte pour min(3, 1) = 1 correspondance.
+- La comparaison est une différence de multi-ensembles : les répétitions sont prises en compte (si une clé apparaît 3 fois dans A et 1 fois dans B, 2 lignes sont signalées « uniquement A »). Avec trois fichiers, chaque fichier est comparé au **minimum** des occurrences de la clé sur l'ensemble des fichiers — la règle à deux fichiers en est le cas particulier. La case « Ignorer les lignes en double au sein d'un même fichier » du comparatif avancé bascule en différence d'ensembles : cette même clé n'est alors plus une différence. La recherche de doublons est l'opération inverse (intersection) : la même clé compte pour min(3, 1) = 1 correspondance.
+- **Rapprochement d'une clé non unique** : si la clé apparaît 2 fois dans A et 3 fois dans B, les occurrences sont appariées dans l'ordre du fichier (1re avec 1re, 2e avec 2e) et le surplus est signalé comme absence. Un homonyme parfait sur la clé est donc rapproché par ordre d'apparition — c'est le seul choix possible sans identifiant unique, et c'est aussi ce que fait le comptage multi-ensembles historique.
+- **Égalité des colonnes comparées** : espaces insécables ramenés à des espaces ordinaires, espaces multiples et de bordure supprimés, casse ignorée, dates normalisées au format `JJ/MM/AAAA` (une date lue dans un `.xlsx` arrive en objet `Date`, la même dans un `.csv` arrive en texte). Les colonnes de rapprochement, elles, restent comparées caractère par caractère.
 - Le numéro de ligne affiché correspond à la ligne du fichier Excel d'origine (l'en-tête étant la ligne 1).
 - Le tableau de résultats est rendu par blocs de 500 lignes pour rester fluide sur de gros volumes.

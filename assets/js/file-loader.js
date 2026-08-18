@@ -341,8 +341,8 @@ const XLDiffFiles = (() => {
       slot.sheetName = preferredSheet || wb.SheetNames[0];
       slot.fileName = file.name;
       slot.loaded = true;
-      dropEl.classList.remove('loaded-a', 'loaded-b');
-      dropEl.classList.add(side === 'A' ? 'loaded-a' : 'loaded-b');
+      dropEl.classList.remove('loaded-a', 'loaded-b', 'loaded-c');
+      dropEl.classList.add('loaded-' + side.toLowerCase());
       updateFileInfo();
       renderSheetSelector();
       parseSheetData();

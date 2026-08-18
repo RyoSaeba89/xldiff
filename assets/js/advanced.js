@@ -1,13 +1,22 @@
 // ============================================================
 //  XLDiff — advanced.js
 //  Flux « fichiers différents » : l'utilisateur associe les
-//  colonnes à analyser (mapping colonne A ↔ colonne B) ; seules
-//  ces associations servent de clé. Les colonnes de même nom
-//  sont pré-associées automatiquement.
+//  colonnes d'un fichier à l'autre (mapping colonne A ↔ B ↔ C).
+//  Les colonnes de même nom sont pré-associées automatiquement.
+//
+//  Deux rôles de colonnes, dans deux panneaux distincts :
+//    • colonnes de rapprochement (clé) — servent à retrouver la
+//      même ligne dans chaque fichier ;
+//    • colonnes à comparer (facultatif) — le contenu des lignes
+//      retrouvées est vérifié sur ces colonnes, ce qui fait
+//      remonter les lignes « retrouvées mais différentes ».
+//
+//  Un troisième fichier (C) est facultatif : la page le propose
+//  uniquement si elle contient la zone de dépôt #dropC.
 //
 //  Deux pages utilisent ce contrôleur, selon window.XLDIFF_MODE
 //  (défini par la page avant ce script) :
-//    'diff'  (défaut) — advanced.html        : différences A / B
+//    'diff'  (défaut) — advanced.html        : différences
 //    'dupes'          — doublons-avance.html : lignes communes
 // ============================================================
 
@@ -15,24 +24,27 @@
   const $ = id => document.getElementById(id);
   const MODE = window.XLDIFF_MODE === 'dupes' ? 'dupes' : 'diff';
 
-  let mappings = []; // [{ colA, colB }]
+  // Une association = un nom de colonne par fichier chargé : { A, B, C }
+  let mappings = [];    // colonnes de rapprochement (clé)
+  let compareCols = []; // colonnes dont le contenu est comparé
 
   XLDiffResults.init();
 
   // Le choix de feuille se fait dans le panneau « 1. Choix des feuilles »,
   // pas dans les zones de dépôt
-  const slotA = XLDiffFiles.createSlot({
-    side: 'A',
-    dropEl: $('dropA'), inputEl: $('fileA'), infoEl: $('infoA'),
-    sheetsEl: null, showSheetSelector: false,
-    onChange: onSlotChange,
-  });
-  const slotB = XLDiffFiles.createSlot({
-    side: 'B',
-    dropEl: $('dropB'), inputEl: $('fileB'), infoEl: $('infoB'),
-    sheetsEl: null, showSheetSelector: false,
-    onChange: onSlotChange,
-  });
+  function makeSlot(side) {
+    const dropEl = $('drop' + side);
+    if (!dropEl) return null; // fichier non proposé par cette page (C facultatif)
+    return XLDiffFiles.createSlot({
+      side,
+      dropEl, inputEl: $('file' + side), infoEl: $('info' + side),
+      sheetsEl: null, showSheetSelector: false,
+      onChange: onSlotChange,
+    });
+  }
+
+  const slots = ['A', 'B', 'C'].map(makeSlot).filter(Boolean);
+  const loaded = () => slots.filter(s => s.loaded);
 
   const sheetPanel = $('sheetPanel');
   const sheetChoiceList = $('sheetChoiceList');
@@ -40,6 +52,11 @@
   const mappingTitle = $('mappingTitle');
   const mapList = $('mapList');
   const btnAddMapping = $('btnAddMapping');
+  // Panneau « colonnes à comparer » : présent uniquement sur advanced.html
+  const comparePanel = $('comparePanel');
+  const compareTitle = $('compareTitle');
+  const compareList = $('compareList');
+  const btnAddCompare = $('btnAddCompare');
   const btnCompare = $('btnCompare');
   const btnExport = $('btnExport');
   const statusText = $('statusText');
@@ -59,16 +76,16 @@
   // ---------- Choix des feuilles (premier choix, avant les colonnes) ----------
 
   function renderSheetPanel() {
-    const multi = [slotA, slotB].filter(s => s.loaded && s.workbook.SheetNames.length > 1);
+    const multi = loaded().filter(s => s.workbook.SheetNames.length > 1);
     if (multi.length === 0) {
       sheetPanel.classList.remove('visible');
       sheetChoiceList.innerHTML = '';
-      mappingTitle.textContent = 'Association des colonnes à comparer';
+      setTitles(false);
       return;
     }
 
     sheetPanel.classList.add('visible');
-    mappingTitle.textContent = '2. Association des colonnes à comparer';
+    setTitles(true);
     sheetChoiceList.innerHTML = '';
 
     multi.forEach(slot => {
@@ -76,11 +93,11 @@
       row.className = 'sheet-choice-row';
 
       const label = document.createElement('span');
-      label.className = 'sheet-choice-label ' + (slot.side === 'A' ? 'label-a' : 'label-b');
+      label.className = 'sheet-choice-label label-' + slot.side.toLowerCase();
       label.textContent = `Fichier ${slot.side} — ${slot.fileName}`;
 
       const sel = document.createElement('select');
-      sel.className = 'map-select ' + (slot.side === 'A' ? 'side-a' : 'side-b');
+      sel.className = 'map-select side-' + slot.side.toLowerCase();
       slot.workbook.SheetNames.forEach(name => {
         const opt = document.createElement('option');
         opt.value = name;
@@ -98,58 +115,114 @@
     });
   }
 
-  // ---------- Mapping de colonnes ----------
-
-  function rebuildMappings() {
-    if (!slotA.loaded || !slotB.loaded) return;
-    // Pré-association automatique des colonnes de même nom
-    const setB = new Set(slotB.headers);
-    mappings = slotA.headers.filter(h => setB.has(h)).map(h => ({ colA: h, colB: h }));
-    mappingPanel.classList.add('visible');
-    renderMappings();
-    updateReady();
+  // Numérotation des panneaux : le choix des feuilles n'apparaît que si
+  // un classeur contient plusieurs feuilles
+  function setTitles(withSheets) {
+    const prefix = withSheets ? '2. ' : '';
+    mappingTitle.textContent = prefix + (MODE === 'dupes'
+      ? 'Association des colonnes'
+      : 'Colonnes de rapprochement');
+    if (compareTitle) {
+      compareTitle.textContent = (withSheets ? '3. ' : '') + 'Colonnes à comparer (facultatif)';
+    }
   }
 
-  function renderMappings() {
-    mapList.innerHTML = '';
+  // ---------- Mapping de colonnes ----------
 
-    if (mappings.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'map-empty';
-      empty.textContent = 'Aucune association — cliquez sur « Ajouter une association » pour en créer une.';
-      mapList.appendChild(empty);
+  // Conserve les associations encore valides, complète les fichiers
+  // nouvellement chargés, et pré-associe les colonnes de même nom
+  // quand il n'y a plus rien à conserver.
+  function rebuildMappings() {
+    const active = loaded();
+    if (active.length < 2) {
+      mappingPanel.classList.remove('visible');
+      if (comparePanel) comparePanel.classList.remove('visible');
+      updateReady();
       return;
     }
 
-    mappings.forEach((m, idx) => {
+    const keep = list => list.filter(m => active.every(s => !m[s.side] || s.headers.includes(m[s.side])));
+    mappings = keep(mappings);
+    compareCols = keep(compareCols);
+
+    if (mappings.length === 0) mappings = autoPair(active);
+    [mappings, compareCols].forEach(list => list.forEach(m => complete(m, active)));
+
+    mappingPanel.classList.add('visible');
+    if (comparePanel) comparePanel.classList.add('visible');
+    renderAll();
+    updateReady();
+  }
+
+  // Colonnes portant le même nom dans tous les fichiers chargés
+  function autoPair(active) {
+    const others = active.slice(1);
+    return active[0].headers
+      .filter(h => others.every(s => s.headers.includes(h)))
+      .map(h => {
+        const m = {};
+        active.forEach(s => { m[s.side] = h; });
+        return m;
+      });
+  }
+
+  // Complète une association pour un fichier qui vient d'être chargé :
+  // colonne de même nom si elle existe, sinon première colonne
+  function complete(m, active) {
+    active.forEach(s => {
+      if (m[s.side] && s.headers.includes(m[s.side])) return;
+      const twin = active.map(o => m[o.side]).find(name => name && s.headers.includes(name));
+      m[s.side] = twin || s.headers[0];
+    });
+  }
+
+  function renderAll() {
+    renderList(mappings, mapList, 'key');
+    if (compareList) renderList(compareCols, compareList, 'cmp');
+  }
+
+  function renderList(list, container, kind) {
+    const active = loaded();
+    container.innerHTML = '';
+
+    if (list.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'map-empty';
+      empty.textContent = kind === 'key'
+        ? 'Aucune association — cliquez sur « Ajouter une association » pour en créer une.'
+        : 'Aucune colonne comparée — seule la présence des lignes est vérifiée.';
+      container.appendChild(empty);
+      return;
+    }
+
+    list.forEach((m, idx) => {
       const row = document.createElement('div');
       row.className = 'map-row';
 
-      const selA = buildSelect(slotA.headers, m.colA, 'side-a');
-      selA.addEventListener('change', () => { m.colA = selA.value; });
-
-      const arrow = document.createElement('span');
-      arrow.className = 'map-arrow';
-      arrow.textContent = '↔';
-
-      const selB = buildSelect(slotB.headers, m.colB, 'side-b');
-      selB.addEventListener('change', () => { m.colB = selB.value; });
+      active.forEach((slot, i) => {
+        if (i > 0) {
+          const arrow = document.createElement('span');
+          arrow.className = 'map-arrow';
+          arrow.textContent = '↔';
+          row.appendChild(arrow);
+        }
+        const sel = buildSelect(slot.headers, m[slot.side], 'side-' + slot.side.toLowerCase());
+        sel.addEventListener('change', () => { m[slot.side] = sel.value; });
+        row.appendChild(sel);
+      });
 
       const remove = document.createElement('button');
       remove.className = 'map-remove';
       remove.title = 'Supprimer cette association';
       remove.textContent = '×';
       remove.addEventListener('click', () => {
-        mappings.splice(idx, 1);
-        renderMappings();
+        list.splice(idx, 1);
+        renderAll();
         updateReady();
       });
 
-      row.appendChild(selA);
-      row.appendChild(arrow);
-      row.appendChild(selB);
       row.appendChild(remove);
-      mapList.appendChild(row);
+      container.appendChild(row);
     });
   }
 
@@ -166,43 +239,80 @@
     return sel;
   }
 
-  btnAddMapping.addEventListener('click', () => {
-    if (!slotA.headers.length || !slotB.headers.length) return;
-    mappings.push({ colA: slotA.headers[0], colB: slotB.headers[0] });
-    renderMappings();
+  function addRow(list) {
+    const active = loaded();
+    if (active.length < 2) return;
+    const m = {};
+    active.forEach(s => { m[s.side] = s.headers[0]; });
+    list.push(m);
+    renderAll();
     updateReady();
-  });
+  }
+
+  btnAddMapping.addEventListener('click', () => addRow(mappings));
+  if (btnAddCompare) btnAddCompare.addEventListener('click', () => addRow(compareCols));
 
   function updateReady() {
-    btnCompare.disabled = mappings.length === 0;
+    const ready = loaded().length >= 2 && mappings.length > 0;
+    btnCompare.disabled = !ready;
     statusText.className = 'status-text';
-    const action = MODE === 'dupes' ? 'la recherche de doublons' : 'la comparaison';
-    statusText.textContent = mappings.length === 0
-      ? 'Ajoutez au moins une association de colonnes pour lancer l\'analyse.'
-      : `${mappings.length} association(s) de colonnes — ${action} portera uniquement sur ces colonnes.`;
+
+    if (loaded().length < 2) {
+      statusText.textContent = slots.length > 2
+        ? 'Chargez au moins deux fichiers — le fichier C est facultatif.'
+        : 'Chargez les deux fichiers à analyser.';
+      return;
+    }
+    if (mappings.length === 0) {
+      statusText.textContent = 'Ajoutez au moins une colonne de rapprochement pour lancer l\'analyse.';
+      return;
+    }
+    const action = MODE === 'dupes' ? 'la recherche de doublons' : 'le rapprochement';
+    let txt = `${mappings.length} colonne(s) de rapprochement — ${action} portera uniquement sur ces colonnes.`;
+    if (compareCols.length) {
+      txt += ` ${compareCols.length} colonne(s) comparée(s) : le contenu des lignes retrouvées sera vérifié.`;
+    }
+    statusText.textContent = txt;
   }
 
   // ---------- Colonnes affichées dans les résultats ----------
 
+  function labelFor(m, active) {
+    const names = active.map(s => m[s.side]);
+    return names.every(n => n === names[0]) ? names[0] : names.join(' ↔ ');
+  }
+
+  function toColumn(m, active, role) {
+    const cols = {};
+    active.forEach(s => { cols[s.side] = m[s.side]; });
+    return { label: labelFor(m, active), cols, role };
+  }
+
   function buildColumns(showAll) {
-    // Les paires associées d'abord
-    const columns = mappings.map(m => ({
-      label: m.colA === m.colB ? m.colA : `${m.colA} ↔ ${m.colB}`,
-      colA: m.colA,
-      colB: m.colB,
-    }));
+    const active = loaded();
+    // Colonnes de rapprochement d'abord, puis colonnes comparées
+    const columns = mappings.map(m => toColumn(m, active, 'key'))
+      .concat(compareCols.map(m => toColumn(m, active, 'cmp')));
 
     if (showAll) {
-      const mappedA = new Set(mappings.map(m => m.colA));
-      const mappedB = new Set(mappings.map(m => m.colB));
+      const used = {};
+      active.forEach(s => {
+        used[s.side] = new Set([...mappings, ...compareCols].map(m => m[s.side]));
+      });
       const seen = new Set();
-      for (const h of [...slotA.headers, ...slotB.headers]) {
-        if (seen.has(h)) continue;
-        seen.add(h);
-        const inA = slotA.headers.includes(h) && !mappedA.has(h);
-        const inB = slotB.headers.includes(h) && !mappedB.has(h);
-        if (!inA && !inB) continue;
-        columns.push({ label: h, colA: inA ? h : null, colB: inB ? h : null });
+      for (const slot of active) {
+        for (const h of slot.headers) {
+          if (seen.has(h)) continue;
+          seen.add(h);
+          const cols = {};
+          let any = false;
+          active.forEach(s => {
+            const present = s.headers.includes(h) && !used[s.side].has(h);
+            cols[s.side] = present ? h : null;
+            if (present) any = true;
+          });
+          if (any) columns.push({ label: h, cols, role: 'other' });
+        }
       }
     }
 
@@ -216,7 +326,7 @@
   // ---------- Comparaison ----------
 
   function compare() {
-    if (mappings.length === 0) return;
+    if (loaded().length < 2 || mappings.length === 0) return;
 
     progressBar.classList.add('visible');
     progressFill.style.width = '30%';
@@ -228,11 +338,16 @@
   }
 
   function runCompare() {
-    const colsA = mappings.map(m => m.colA);
-    const colsB = mappings.map(m => m.colB);
+    const active = loaded();
+    const sources = active.map(s => ({
+      side: s.side,
+      data: s.data,
+      cols: mappings.map(m => m[s.side]),
+    }));
+
     const result = MODE === 'dupes'
-      ? XLDiffEngine.common(slotA.data, slotB.data, colsA, colsB)
-      : XLDiffEngine.diff(slotA.data, slotB.data, colsA, colsB, {
+      ? XLDiffEngine.common(active[0].data, active[1].data, sources[0].cols, sources[1].cols)
+      : XLDiffEngine.analyze(sources, compareCols.map(m => toColumn(m, active, 'cmp')), {
           ignoreDuplicates: !!(ignoreDupes && ignoreDupes.checked),
         });
     hasCompared = true;
@@ -240,19 +355,27 @@
     progressFill.style.width = '100%';
     setTimeout(() => { progressBar.classList.remove('visible'); progressFill.style.width = '0%'; }, 400);
 
+    const totals = {};
+    active.forEach(s => { totals[s.side] = s.data.length; });
+
     XLDiffResults.show({
       diff: result,
       columns: buildColumns(showAllCols.checked),
-      totalA: slotA.data.length,
-      totalB: slotB.data.length,
+      totals,
       mode: MODE,
     });
 
     btnCompare.disabled = false;
     btnExport.disabled = false;
-    statusText.textContent = MODE === 'dupes'
-      ? `Terminé — ${result.onlyA.length.toLocaleString()} doublon(s) trouvé(s)`
-      : `Terminé — ${result.all.length.toLocaleString()} différence(s) trouvée(s)`;
+    if (MODE === 'dupes') {
+      statusText.textContent = `Terminé — ${result.onlyA.length.toLocaleString()} doublon(s) trouvé(s)`;
+    } else {
+      let txt = `Terminé — ${result.all.length.toLocaleString()} différence(s) trouvée(s)`;
+      if (result.compared) {
+        txt += ` et ${result.modified.length.toLocaleString()} ligne(s) retrouvée(s) mais différente(s)`;
+      }
+      statusText.textContent = txt;
+    }
   }
 
   btnCompare.addEventListener('click', compare);
@@ -265,4 +388,6 @@
     XLDiffResults.exportResults();
     statusText.textContent = 'Export terminé ✓';
   });
+
+  updateReady();
 })();

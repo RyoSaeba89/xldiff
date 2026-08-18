@@ -68,12 +68,19 @@
     const result = MODE === 'dupes'
       ? XLDiffEngine.common(slotA.data, slotB.data, commonHeaders, commonHeaders)
       : XLDiffEngine.diff(slotA.data, slotB.data, commonHeaders, commonHeaders);
-    const columns = commonHeaders.map(h => ({ label: h, colA: h, colB: h }));
+    // Mode simple : toutes les colonnes communes servent de clé, aucune
+    // colonne n'est comparée à part (cf. comparatif avancé)
+    const columns = commonHeaders.map(h => ({ label: h, cols: { A: h, B: h }, role: 'key' }));
 
     progressFill.style.width = '100%';
     setTimeout(() => { progressBar.classList.remove('visible'); progressFill.style.width = '0%'; }, 400);
 
-    XLDiffResults.show({ diff: result, columns, totalA: slotA.data.length, totalB: slotB.data.length, mode: MODE });
+    XLDiffResults.show({
+      diff: result,
+      columns,
+      totals: { A: slotA.data.length, B: slotB.data.length },
+      mode: MODE,
+    });
 
     btnCompare.disabled = false;
     btnExport.disabled = false;

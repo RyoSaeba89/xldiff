@@ -12,6 +12,8 @@
   gap: 16px;
   margin-bottom: 20px;
 }
+/* Comparatif avancé : trois fichiers, le troisième étant facultatif */
+.drop-row.three { grid-template-columns: 1fr 1fr 1fr; }
 .drop-zone {
   background: var(--white);
   border: 2px dashed var(--border);
@@ -25,6 +27,7 @@
 .drop-zone:hover, .drop-zone.drag-over { border-color: var(--g1); background: var(--gl2); }
 .drop-zone.loaded-a { border-style: solid; border-color: var(--g1); background: var(--gl); }
 .drop-zone.loaded-b { border-style: solid; border-color: var(--orange); background: var(--orange-l); }
+.drop-zone.loaded-c { border-style: solid; border-color: var(--blue); background: var(--blue-l); }
 .drop-zone input[type="file"] { display: none; }
 
 .drop-icon {
@@ -37,6 +40,7 @@
 }
 .drop-icon-a { background: var(--gl); color: var(--g1); }
 .drop-icon-b { background: var(--orange-l); color: var(--orange); }
+.drop-icon-c { background: var(--blue-l); color: var(--blue); }
 
 .drop-tag {
   display: inline-block;
@@ -50,6 +54,7 @@
 }
 .tag-a { background: var(--g1); color: #fff; }
 .tag-b { background: var(--orange); color: #fff; }
+.tag-c { background: var(--blue); color: #fff; }
 
 .drop-label { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
 .drop-sub { font-size: 12px; color: var(--text-light); }
@@ -118,6 +123,7 @@
 }
 .sheet-choice-label.label-a { background: var(--gl); color: var(--g2); }
 .sheet-choice-label.label-b { background: var(--orange-l); color: var(--orange); }
+.sheet-choice-label.label-c { background: var(--blue-l); color: var(--blue); }
 
 /* ---------- MAPPING DE COLONNES (mode avancé) ---------- */
 
@@ -138,6 +144,7 @@
 .map-select:focus { outline: none; border-color: var(--g1); }
 .map-select.side-a { border-left: 3px solid var(--g1); }
 .map-select.side-b { border-left: 3px solid var(--orange); }
+.map-select.side-c { border-left: 3px solid var(--blue); }
 .map-arrow { color: var(--text-light); font-weight: 700; font-size: 14px; }
 .map-remove {
   font-family: var(--font);
@@ -250,10 +257,12 @@
 .summary-lines li.sum-eq::before { background: var(--ga); }
 .summary-lines li.sum-a::before { background: var(--g1); }
 .summary-lines li.sum-b::before { background: var(--orange); }
+.summary-lines li.sum-c::before { background: var(--blue); }
 .summary-lines li strong { color: var(--text); font-weight: 700; }
 .summary-lines li.sum-eq strong { color: var(--ga); }
 .summary-lines li.sum-a strong { color: var(--g1); }
 .summary-lines li.sum-b strong { color: var(--orange); }
+.summary-lines li.sum-c strong { color: var(--blue); }
 
 /* ---------- BOUTON RECOMMENCER ---------- */
 
@@ -339,6 +348,9 @@ td {
 td.row-num { color: var(--text-light); font-weight: 600; }
 tr.row-a { background: var(--green-row); }
 tr.row-b { background: var(--orange-row); }
+tr.row-c { background: var(--blue-row); }
+tr.row-diff { background: var(--white); }
+td.presence { color: var(--text-sec); font-weight: 600; }
 tr:hover td { background: #f0f3f5; }
 
 .source-tag {
@@ -351,6 +363,15 @@ tr:hover td { background: #f0f3f5; }
 }
 .src-a { background: var(--g1); color: #fff; }
 .src-b { background: var(--orange); color: #fff; }
+.src-c { background: var(--blue); color: #fff; }
+
+/* Cellule dont le contenu diffère d'un fichier à l'autre : les valeurs
+   sont affichées à la suite, chacune dans la couleur de son fichier */
+td.cell-diff { background: var(--diff-row); white-space: normal; }
+td.cell-diff .v-a { color: var(--g1); font-weight: 600; }
+td.cell-diff .v-b { color: var(--orange); font-weight: 600; }
+td.cell-diff .v-c { color: var(--blue); font-weight: 600; }
+td.cell-diff .v-arrow { color: var(--text-light); }
 
 .empty-state {
   text-align: center;
@@ -360,6 +381,7 @@ tr:hover td { background: #f0f3f5; }
 }
 
 @media (max-width: 900px) {
-  .drop-row { grid-template-columns: 1fr; }
+  .drop-row, .drop-row.three { grid-template-columns: 1fr; }
+  .map-row { flex-wrap: wrap; }
   .map-select { min-width: 120px; }
 }

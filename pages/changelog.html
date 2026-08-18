@@ -63,6 +63,20 @@
 
     <div class="release">
       <div class="release-header">
+        <span class="release-tag">Version 2.4</span>
+        <span class="release-date">18 août 2026</span>
+      </div>
+
+      <h3>Comparatif avancé</h3>
+      <ul>
+        <li><strong>Vérifier le contenu d'une colonne, et plus seulement la présence des lignes</strong> : le comparatif avancé distingue maintenant deux sortes de colonnes. Les <em>colonnes de rapprochement</em> servent à retrouver la même ligne dans chaque fichier (par exemple le nom et la date de naissance) ; les <em>colonnes à comparer</em>, facultatives, sont vérifiées une fois la ligne retrouvée (par exemple l'adresse). Les lignes retrouvées dont l'adresse diffère apparaissent dans un nouvel onglet <strong>« Retrouvées mais différentes »</strong>, qui affiche côte à côte la valeur de chaque fichier (<em>3 rue Verte → 8 av. Bleue</em>), et dans une feuille dédiée de l'export Excel.</li>
+        <li><strong>Comparer trois fichiers</strong> : une troisième zone de dépôt, <strong>Fichier C</strong>, est proposée dans le comparatif avancé. Elle reste facultative — avec deux fichiers, rien ne change. Avec trois fichiers, chaque association de colonnes porte les trois fichiers, un onglet par fichier liste ses lignes absentes ailleurs, et une colonne <strong>« Présente dans »</strong> indique pour chaque ligne les fichiers où elle a été trouvée (par exemple « A + B », donc absente de C).</li>
+        <li><strong>Comparaison plus tolérante sur les colonnes vérifiées</strong> : les majuscules, les espaces en trop et les espaces insécables sont ignorés, et les dates sont comparées au format jour/mois/année même si un fichier est un Excel et l'autre un export texte. Les colonnes de rapprochement, elles, restent comparées à l'identique.</li>
+      </ul>
+    </div>
+
+    <div class="release old">
+      <div class="release-header">
         <span class="release-tag">Version 2.3</span>
         <span class="release-date">13 juillet 2026</span>
       </div>
@@ -123,7 +137,7 @@
   </div>
 </div>
 
-<div class="footer">XLDiff v2.3 — Jacques Rennie · Eurométropole de Strasbourg</div>
+<div class="footer">XLDiff v2.4 — Jacques Rennie · Eurométropole de Strasbourg</div>
 
 </body>
 </html>
