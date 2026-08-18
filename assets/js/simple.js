@@ -80,6 +80,10 @@
       columns,
       totals: { A: slotA.data.length, B: slotB.data.length },
       mode: MODE,
+      sources: {
+        A: { data: slotA.data, headers: slotA.headers, fileName: slotA.fileName },
+        B: { data: slotB.data, headers: slotB.headers, fileName: slotB.fileName },
+      },
     });
 
     btnCompare.disabled = false;

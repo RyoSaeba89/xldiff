@@ -63,6 +63,25 @@
 
     <div class="release">
       <div class="release-header">
+        <span class="release-tag">Version 2.5</span>
+        <span class="release-date">18 août 2026</span>
+      </div>
+
+      <h3>Gros fichiers</h3>
+      <ul>
+        <li><strong>Beaucoup moins de mémoire</strong> : sur trois fichiers de 200 000, 100 000 et 10 000 lignes, XLDiff consommait environ 11 Go et pouvait faire ramer le poste ; il en consomme désormais environ 1,5 Go. Le tableau de résultats n'affiche plus que les lignes réellement visibles à l'écran (le défilement, lui, reste complet), et les fichiers ne sont plus conservés deux fois en mémoire après leur lecture.</li>
+        <li><strong>Export beaucoup plus léger</strong> : le même résultat de 280 000 lignes produisait un fichier de 109 Mo, il fait maintenant 20 Mo. Le fichier est compressé, et les lignes ne sont plus écrites deux fois. <em>Conséquence visible</em> : l'export ne contient plus une feuille par fichier — tout est dans la feuille « Toutes les différences », où la colonne <strong>Source</strong> permet de filtrer.</li>
+        <li><strong>Barre de progression au chargement</strong> : chaque zone de dépôt affiche maintenant l'avancement (lecture du fichier, analyse du classeur, conversion des lignes). Sur un gros fichier, la page ne semble plus figée.</li>
+      </ul>
+
+      <h3>Comparatif avancé</h3>
+      <ul>
+        <li><strong>Nouveau bouton « Exporter le fichier A annoté »</strong> : au lieu de la seule liste des différences, XLDiff reprend votre fichier A tel quel — toutes ses lignes, toutes ses colonnes — et ajoute à droite le résultat de l'analyse : <em>Statut</em> (identique, écart de contenu, absente de B…), <em>Présente dans</em>, <em>Colonnes en écart</em>, la valeur de chaque autre fichier pour les colonnes comparées, et la ligne d'origine. Les lignes venues de B ou C et absentes de A sont ajoutées à la suite. Pratique pour retravailler directement dans son propre fichier.</li>
+      </ul>
+    </div>
+
+    <div class="release old">
+      <div class="release-header">
         <span class="release-tag">Version 2.4</span>
         <span class="release-date">18 août 2026</span>
       </div>
@@ -137,7 +156,7 @@
   </div>
 </div>
 
-<div class="footer">XLDiff v2.4 — Jacques Rennie · Eurométropole de Strasbourg</div>
+<div class="footer">XLDiff v2.5 — Jacques Rennie · Eurométropole de Strasbourg</div>
 
 </body>
 </html>

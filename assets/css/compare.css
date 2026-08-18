@@ -87,6 +87,26 @@
 
 .htm-picker { margin-top: 12px; }
 
+/* Progression pendant le chargement d un fichier (lecture, analyse,
+   conversion) : sans elle, la page semble figee sur les gros fichiers */
+.drop-progress { margin-top: 12px; }
+.drop-progress-label { font-size: 11px; color: var(--text-sec); margin-bottom: 5px; }
+.drop-progress-track {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.drop-progress-fill { height: 100%; width: 0; background: var(--g1); transition: width .15s linear; }
+.drop-progress-fill.indetermine {
+  background: linear-gradient(90deg, transparent, var(--g1), transparent);
+  animation: xld-glisse 1.1s linear infinite;
+}
+@keyframes xld-glisse {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
 /* ---------- PANNEAUX ---------- */
 
 .panel {
@@ -352,6 +372,9 @@ tr.row-c { background: var(--blue-row); }
 tr.row-diff { background: var(--white); }
 td.presence { color: var(--text-sec); font-weight: 600; }
 tr:hover td { background: #f0f3f5; }
+/* Cales de l'affichage virtualise : elles remplacent la hauteur des
+   lignes hors ecran, qui n'existent pas dans le DOM */
+tr.v-cale td, tr.v-cale:hover td { padding: 0; border: none; background: transparent; }
 
 .source-tag {
   display: inline-block;

@@ -1,6 +1,6 @@
 # XLDiff — Comparateur de fichiers Excel
 
-**Version 2.4**
+**Version 2.5**
 
 Outil web 100 % local pour analyser deux fichiers Excel. Aucune donnée n'est envoyée sur le réseau : tout le traitement s'effectue dans le navigateur.
 
@@ -29,6 +29,8 @@ Avec trois fichiers, chaque fichier a son onglet de lignes absentes ailleurs et 
 
 Dans les résultats, une case « Afficher toutes les colonnes » permet de basculer entre l'affichage des seules colonnes rapprochées et comparées et l'affichage complet.
 
+Un second bouton d'export, « **Exporter le fichier A annoté** », reprend le fichier A tel quel — toutes ses lignes et toutes ses colonnes — et ajoute à droite `Statut`, `Présente dans`, `Colonnes en écart`, la valeur de chaque autre fichier pour les colonnes comparées, et `Ligne d'origine`. Les lignes venues de B ou C et absentes de A sont ajoutées à la suite (seules leurs colonnes de rapprochement sont reportées, pour ne pas faire passer une valeur de B pour une valeur de A).
+
 Une case « **Ignorer les lignes en double au sein d'un même fichier** » (décochée par défaut) change la règle de comparaison : cochée, une ligne dont la clé est présente dans tous les fichiers n'est jamais une différence, même si elle se répète un nombre de fois différent de l'un à l'autre (ex. 3 fois dans A, 1 fois dans B) ; seules les clés absentes d'au moins un fichier sont signalées, avec toutes leurs occurrences. Basculer la case après une comparaison relance automatiquement l'analyse.
 
 ## Recherche de doublons : deux modes
@@ -42,7 +44,7 @@ L'outil liste les lignes **communes aux deux fichiers**, c'est-à-dire l'inverse
 
 Les résultats commencent par un résumé en phrases simples (« Il y a N lignes retrouvées dans les deux fichiers : X à l'identique, Y dont le contenu diffère », « Il y a X lignes uniquement dans A »…), suivi du détail ligne par ligne dans des onglets, d'un export `.xlsx` et d'un bouton **Recommencer** pour repartir d'une page vierge.
 
-L'export reprend les onglets de l'écran : une feuille pour toutes les absences, une feuille par fichier, et — si des colonnes sont comparées — une feuille « Retrouvées mais différentes » où chaque colonne comparée occupe une colonne par fichier (`Adresse (A)`, `Adresse (B)`), suivie de la liste des colonnes en écart.
+L'export tient en une feuille « Toutes les différences » (la colonne `Source` permet de filtrer) plus, si des colonnes sont comparées, une feuille « Retrouvées mais différentes » où chaque colonne comparée occupe une colonne par fichier (`Adresse (A)`, `Adresse (B)`), suivie de la liste des colonnes en écart. Le fichier est écrit compressé.
 
 ## Formats supportés
 
@@ -127,4 +129,23 @@ Le site est publié automatiquement sur **https://ryosaeba89.github.io/xldiff/**
 - **Rapprochement d'une clé non unique** : si la clé apparaît 2 fois dans A et 3 fois dans B, les occurrences sont appariées dans l'ordre du fichier (1re avec 1re, 2e avec 2e) et le surplus est signalé comme absence. Un homonyme parfait sur la clé est donc rapproché par ordre d'apparition — c'est le seul choix possible sans identifiant unique, et c'est aussi ce que fait le comptage multi-ensembles historique.
 - **Égalité des colonnes comparées** : espaces insécables ramenés à des espaces ordinaires, espaces multiples et de bordure supprimés, casse ignorée, dates normalisées au format `JJ/MM/AAAA` (une date lue dans un `.xlsx` arrive en objet `Date`, la même dans un `.csv` arrive en texte). Les colonnes de rapprochement, elles, restent comparées caractère par caractère.
 - Le numéro de ligne affiché correspond à la ligne du fichier Excel d'origine (l'en-tête étant la ligne 1).
+
+## Tenue en charge (v2.5)
+
+Mesuré sur trois fichiers de 200 000, 100 000 et 10 000 lignes à 8 colonnes (280 000 différences) :
+
+| | Avant | Après |
+|---|---|---|
+| Mémoire du navigateur, parcours complet | ~11 Go | ~1,5 Go |
+| Tableau de 200 000 lignes affiché | 5,1 Go | indépendant du volume |
+| Classeur SheetJS conservé, par fichier | 281 Mo | 0 |
+| Export `.xlsx` | 109 Mo | 20 Mo |
+
+Trois mécanismes y contribuent :
+
+1. **Affichage virtualisé** — seules les lignes visibles existent dans le DOM, encadrées par deux cales qui reproduisent la hauteur du reste (`results-view.js`). Le défilement reste complet, sans plafond d'affichage.
+2. **Classeur libéré après lecture** — le slot conserve l'objet `File` (poignée vers le disque, coût mémoire nul) et non le classeur SheetJS ; changer de feuille relit le fichier en ne matérialisant que la feuille voulue (`XLSX.read(…, { sheets: [nom] })`).
+3. **Export compressé et non redondant** — feuilles construites en tableaux (`aoa_to_sheet`) plutôt qu'en objets, écriture avec `{ compression: true }`, et plus de feuille par fichier qui répétait les mêmes lignes.
+
+L'index du moteur utilise un chaînage des occurrences dans un seul `Int32Array` plutôt qu'un tableau de lignes par clé, et trace pour chaque ligne son rapprochement et sa présence (`trace`, `tuples`) — c'est ce qui permet d'exporter le fichier A annoté sans réanalyser.
 - Le tableau de résultats est rendu par blocs de 500 lignes pour rester fluide sur de gros volumes.

@@ -59,6 +59,8 @@
   const btnAddCompare = $('btnAddCompare');
   const btnCompare = $('btnCompare');
   const btnExport = $('btnExport');
+  // Export du fichier A annote : present uniquement sur advanced.html
+  const btnExportAnnote = $('btnExportAnnote');
   const statusText = $('statusText');
   const progressBar = $('progressBar');
   const progressFill = $('progressFill');
@@ -76,7 +78,7 @@
   // ---------- Choix des feuilles (premier choix, avant les colonnes) ----------
 
   function renderSheetPanel() {
-    const multi = loaded().filter(s => s.workbook.SheetNames.length > 1);
+    const multi = loaded().filter(s => s.sheetNames.length > 1);
     if (multi.length === 0) {
       sheetPanel.classList.remove('visible');
       sheetChoiceList.innerHTML = '';
@@ -98,7 +100,7 @@
 
       const sel = document.createElement('select');
       sel.className = 'map-select side-' + slot.side.toLowerCase();
-      slot.workbook.SheetNames.forEach(name => {
+      slot.sheetNames.forEach(name => {
         const opt = document.createElement('option');
         opt.value = name;
         opt.textContent = name;
@@ -356,17 +358,23 @@
     setTimeout(() => { progressBar.classList.remove('visible'); progressFill.style.width = '0%'; }, 400);
 
     const totals = {};
-    active.forEach(s => { totals[s.side] = s.data.length; });
+    const donnees = {};
+    active.forEach(s => {
+      totals[s.side] = s.data.length;
+      donnees[s.side] = { data: s.data, headers: s.headers, fileName: s.fileName };
+    });
 
     XLDiffResults.show({
       diff: result,
       columns: buildColumns(showAllCols.checked),
       totals,
       mode: MODE,
+      sources: donnees,
     });
 
     btnCompare.disabled = false;
     btnExport.disabled = false;
+    if (btnExportAnnote) btnExportAnnote.disabled = false;
     if (MODE === 'dupes') {
       statusText.textContent = `Terminé — ${result.onlyA.length.toLocaleString()} doublon(s) trouvé(s)`;
     } else {
@@ -388,6 +396,12 @@
     XLDiffResults.exportResults();
     statusText.textContent = 'Export terminé ✓';
   });
+  if (btnExportAnnote) {
+    btnExportAnnote.addEventListener('click', () => {
+      XLDiffResults.exportAnnotated();
+      statusText.textContent = 'Export du fichier A annoté terminé ✓';
+    });
+  }
 
   updateReady();
 })();

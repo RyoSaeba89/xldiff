@@ -3,9 +3,14 @@
 //  Lecture des fichiers (.xlsx, .xls, .csv, .htm) avec stratégies
 //  de repli pour les exports HTML, et gestion des zones de dépôt.
 //
+//  Le classeur SheetJS n'est pas conservé après la lecture (il pèse
+//  ~280 Mo pour 200 000 lignes) : le slot garde l'objet File et relit
+//  le fichier si l'utilisateur change de feuille. Une barre de
+//  progression est affichée dans la zone de dépôt pendant la lecture.
+//
 //  API : XLDiffFiles.createSlot({ side, dropEl, inputEl, infoEl,
 //        sheetsEl, onChange }) → slot { loaded, data, headers,
-//        fileName, sheetName, workbook }
+//        fileName, sheetName, sheetNames, file }
 // ============================================================
 
 const XLDiffFiles = (() => {
@@ -24,7 +29,8 @@ const XLDiffFiles = (() => {
     let bestRows = 0;
     for (const name of wb.SheetNames) {
       const sheet = wb.Sheets[name];
-      if (!sheet['!ref']) continue;
+      // sheet peut être absent : la lecture ciblée ne matérialise qu'une feuille
+      if (!sheet || !sheet['!ref']) continue;
       const json = XLSX.utils.sheet_to_json(sheet, { defval: '', header: 1 });
       if (json.length >= 2) {
         const cols = Math.max(...json.slice(0, 5).map(r => (Array.isArray(r) ? r : Object.values(r)).filter(v => v !== '').length));
@@ -185,20 +191,58 @@ const XLDiffFiles = (() => {
 
     const slot = {
       side,
-      workbook: null,
+      // Le classeur SheetJS n'est PAS conservé : sur un fichier de
+      // 200 000 lignes il pèse ~280 Mo, alors que seules les lignes
+      // converties servent ensuite. On garde l'objet File (simple
+      // poignée vers le disque, coût mémoire nul) et on relit à la
+      // demande si l'utilisateur change de feuille.
+      file: null,
+      sheetNames: [],
       sheetName: null,
+      rowCount: 0,
+      colCount: 0,
       data: [],
       headers: [],
       fileName: '',
       loaded: false,
-      // Change la feuille active et relit les données (déclenche onChange)
+      // Change la feuille active : relit le fichier en ne matérialisant
+      // que cette feuille (déclenche onChange en fin de lecture)
       setSheet(name) {
-        if (!slot.workbook || !slot.workbook.SheetNames.includes(name)) return;
-        slot.sheetName = name;
-        updateFileInfo();
-        parseSheetData();
+        if (!slot.file || !slot.sheetNames.includes(name) || name === slot.sheetName) return;
+        loadFile(slot.file, name);
       },
     };
+
+    // ---------- Barre de progression de la zone de dépôt ----------
+
+    let barre = null;
+    function progression(phase, pct) {
+      if (!barre) {
+        barre = document.createElement('div');
+        barre.className = 'drop-progress';
+        barre.innerHTML = '<div class="drop-progress-label"></div>' +
+          '<div class="drop-progress-track"><div class="drop-progress-fill"></div></div>';
+        dropEl.appendChild(barre);
+      }
+      barre.querySelector('.drop-progress-label').textContent = phase;
+      const fill = barre.querySelector('.drop-progress-fill');
+      if (pct == null) {
+        // phase de durée inconnue (analyse du classeur) : bande animée
+        fill.classList.add('indetermine');
+        fill.style.width = '100%';
+      } else {
+        fill.classList.remove('indetermine');
+        fill.style.width = Math.max(2, Math.min(100, pct)) + '%';
+      }
+    }
+    function progressionFin() {
+      if (barre) { barre.remove(); barre = null; }
+    }
+    // Laisse le navigateur repeindre avant un traitement bloquant,
+    // sinon la barre ne s'affiche jamais
+    function respirer() {
+      return new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+    }
 
     dropEl.addEventListener('click', e => {
       // Ne pas ouvrir le sélecteur si le clic vise un élément interactif enfant
@@ -221,18 +265,31 @@ const XLDiffFiles = (() => {
       if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
     });
 
-    function loadFile(file) {
+    function loadFile(file, preferredSheet) {
+      slot.file = file;
       const reader = new FileReader();
-      reader.onload = e => {
+      progression('Lecture du fichier…', 0);
+      reader.onprogress = ev => {
+        if (ev.lengthComputable) progression('Lecture du fichier…', (ev.loaded / ev.total) * 100);
+      };
+      reader.onerror = () => {
+        progressionFin();
+        infoEl.innerHTML = '<strong class="error">⚠ Lecture impossible</strong>';
+      };
+      reader.onload = async e => {
         const data = new Uint8Array(e.target.result);
+        progression('Analyse du classeur…', null);
+        await respirer();
         const log = [];
         let wb = null;
         let bestSheet = null;
 
         // ── Stratégie 1 : SheetJS avec codepage windows-1252 ──
         try {
-          const wb1 = XLSX.read(data, { type: 'array', cellDates: true, codepage: 1252 });
-          const best = findBestSheet(wb1);
+          const lecture = { type: 'array', cellDates: true, codepage: 1252 };
+          if (preferredSheet) lecture.sheets = [preferredSheet];
+          const wb1 = XLSX.read(data, lecture);
+          const best = preferredSheet || findBestSheet(wb1);
           if (best) {
             log.push('✓ SheetJS (cp1252): feuille "' + best + '"');
             wb = wb1; bestSheet = best;
@@ -317,6 +374,7 @@ const XLDiffFiles = (() => {
               infoEl.innerHTML = `<strong class="warn">⚠ Frameset sans données intégrées</strong><br>
                 <span style="font-size:11px">Chargez <b>${esc(sheetPath)}</b> ou ré-enregistrez en <b>.xlsx</b>.</span>`;
               promptForHtmFile();
+              progressionFin();
               console.log('[XLDiff] ' + file.name + ':\n' + log.join('\n'));
               return;
             }
@@ -326,48 +384,54 @@ const XLDiffFiles = (() => {
         console.log('[XLDiff] ' + file.name + ':\n' + log.join('\n'));
 
         if (!wb) {
+          progressionFin();
           infoEl.innerHTML = `<strong class="error">⚠ Impossible de lire ce fichier</strong><br>
             <span style="font-size:11px">Console F12 pour le diagnostic. Ré-enregistrez en <b>.xlsx</b>.</span>`;
           return;
         }
 
+        progression('Conversion des lignes…', null);
+        await respirer();
         applyWorkbook(file, wb, bestSheet);
+        progressionFin();
       };
       reader.readAsArrayBuffer(file);
     }
 
     function applyWorkbook(file, wb, preferredSheet) {
-      slot.workbook = wb;
+      slot.sheetNames = wb.SheetNames.slice();
       slot.sheetName = preferredSheet || wb.SheetNames[0];
       slot.fileName = file.name;
       slot.loaded = true;
       dropEl.classList.remove('loaded-a', 'loaded-b', 'loaded-c');
       dropEl.classList.add('loaded-' + side.toLowerCase());
+
+      const sheet = wb.Sheets[slot.sheetName];
+      const range = XLSX.utils.decode_range(sheet ? (sheet['!ref'] || 'A1') : 'A1');
+      slot.rowCount = range.e.r;
+      slot.colCount = range.e.c + 1;
+
       updateFileInfo();
       renderSheetSelector();
-      parseSheetData();
+      parseSheetData(sheet);
+      // Le classeur a livré tout ce dont on a besoin : rien ne le retient,
+      // il part au ramasse-miettes (cf. commentaire sur slot.file)
     }
 
     function updateFileInfo() {
-      const sheet = slot.workbook.Sheets[slot.sheetName];
-      const ref = sheet ? (sheet['!ref'] || 'A1') : 'A1';
-      const range = XLSX.utils.decode_range(ref);
-      const rows = range.e.r;
-      const cols = range.e.c + 1;
-      infoEl.innerHTML = `<strong>${esc(slot.fileName)}</strong> — ${rows.toLocaleString()} lignes, ${cols} col., feuille : ${esc(slot.sheetName)}`;
+      infoEl.innerHTML = `<strong>${esc(slot.fileName)}</strong> — ${slot.rowCount.toLocaleString()} lignes, ${slot.colCount} col., feuille : ${esc(slot.sheetName)}`;
     }
 
     function renderSheetSelector() {
       if (!showSheetSelector || !sheetsEl) return;
-      const wb = slot.workbook;
-      if (wb.SheetNames.length <= 1) {
+      if (slot.sheetNames.length <= 1) {
         sheetsEl.classList.remove('visible');
         sheetsEl.innerHTML = '';
         return;
       }
       sheetsEl.innerHTML = '';
       sheetsEl.classList.add('visible');
-      wb.SheetNames.forEach(name => {
+      slot.sheetNames.forEach(name => {
         const btn = document.createElement('button');
         btn.className = 'sheet-btn' + (name === slot.sheetName ? ' active' : '');
         btn.textContent = name;
@@ -375,16 +439,14 @@ const XLDiffFiles = (() => {
           e.stopPropagation();
           sheetsEl.querySelectorAll('.sheet-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
-          slot.sheetName = name;
-          updateFileInfo();
-          parseSheetData();
+          slot.setSheet(name);
         });
         sheetsEl.appendChild(btn);
       });
     }
 
-    function parseSheetData() {
-      const json = XLSX.utils.sheet_to_json(slot.workbook.Sheets[slot.sheetName], { defval: '' });
+    function parseSheetData(sheet) {
+      const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
       slot.data = json;
       slot.headers = json.length ? Object.keys(json[0]) : [];
       if (onChange) onChange(slot);
