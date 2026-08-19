@@ -6,8 +6,9 @@ Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https:
 
 ### Une bulle à la fois, et rien d'autre
 
-- **L'application est figée tant qu'une bulle est affichée** : le reste de la page est assombri et ne réagit plus au clic — ni les tuiles derrière, ni les boutons. Seule la zone dont parle la bulle reste en lumière.
-- **La main revient dès que la bulle est masquée** : bouton, croix, clic à côté ou touche *Échap*. Un fichier glissé sur la fenêtre masque aussi la bulle, pour que le dépôt aboutisse.
+- **L'application est figée tant qu'une bulle est affichée** : tout le reste de la page est assombri et ne réagit plus au clic — ni les tuiles derrière, ni les boutons.
+- **Mais la zone dont parle la bulle reste utilisable** : on peut cliquer directement la carte, le bouton ou le menu expliqué, sans fermer la bulle d'abord. Sur tous les écrans.
+- **La main revient partout dès que la bulle est masquée** : bouton, croix, clic à côté ou touche *Échap*. Un fichier glissé sur la fenêtre masque aussi la bulle, pour que le dépôt aboutisse.
 
 ## Version 3.1 — 19 août 2026
 

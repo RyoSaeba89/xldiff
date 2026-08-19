@@ -78,7 +78,11 @@ La visite se déroule donc en deux temps :
 
    ![Une bulle sur le panneau des colonnes, qui vient d'apparaître après le dépôt des fichiers](assets/screenshots/visite-contextuelle.png)
 
-**Tant qu'une bulle est affichée, l'application est figée.** La page est assombrie, seule la zone désignée reste en lumière, et plus rien ne réagit au clic — ni les tuiles derrière, ni les boutons, ni le « ? ». `elementFromPoint` renvoie le voile en tout point de la page : c'est vérifié par une capture de contrôle, pas seulement par le CSS. L'usager reprend la main dès qu'il masque la bulle : bouton, croix, clic sur le voile, `Échap`, ou fichier glissé sur la fenêtre (ce dernier geste masque la bulle pour que le dépôt aboutisse).
+**Tant qu'une bulle est affichée, l'application est figée — sauf la zone dont elle parle.** Le voile n'est pas une nappe pleine mais un **cadre en quatre pièces** posé autour de la zone désignée : le reste de la page est assombri et n'accepte plus le moindre clic, tandis que la carte, le bouton ou le menu que la bulle explique reste utilisable, directement depuis la bulle. Le projecteur (`.xld-spot`) est en `pointer-events: none` pour ne pas boucher le trou.
+
+Vérifié dans un vrai navigateur plutôt que sur le seul CSS : `elementFromPoint` interrogé sur six points renvoie l'élément de l'application à l'intérieur de la zone désignée, et une pièce du cadre partout ailleurs (bouton *Comparer*, cases à cocher, bouton « ? »).
+
+L'usager reprend la main sur toute la page dès qu'il masque la bulle : bouton, croix, clic sur le cadre, `Échap`, ou fichier glissé sur la fenêtre (ce dernier geste masque la bulle pour que le dépôt aboutisse).
 
 Deux garde-fous complètent le dispositif : la visite ne s'ouvre d'elle-même qu'au **premier passage sur la page**, mémorisé dans `localStorage` (`xldiff.visite.<page>` = version de la visite, notée dès l'affichage de la première bulle) ; et elle s'abstient si l'usager a déjà cliqué, tapé ou déposé un fichier pendant le court délai d'attente, ou si le navigateur refuse le stockage (page ouverte en `file://` sur certains postes).
 

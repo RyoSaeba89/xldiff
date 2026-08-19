@@ -166,15 +166,22 @@ body.xld-fige { overflow: hidden; }
 
 /* ---------- VISITE GUIDÉE ---------- */
 
-/* Voile de la visite : transparent, mais il INTERCEPTE les clics —
-   l'application est figée tant qu'une bulle est affichée. La pénombre
-   vient de l'ombre portée du projecteur (.xld-spot). */
+/* Voile de la visite : un CADRE en quatre pièces posé AUTOUR de la zone
+   désignée, et non une nappe pleine. Tout ce qui est sous les pièces est
+   figé (elles interceptent les clics) ; la zone désignée, elle, reste
+   dans le trou du cadre, donc utilisable. La pénombre vient de l'ombre
+   portée du projecteur (.xld-spot). */
 .xld-visite-voile {
   position: fixed;
   inset: 0;
   display: none;
-  cursor: default;
+  pointer-events: none; /* les clics ne sont pris que par les pièces */
   z-index: 970;
+}
+.xld-voile-part {
+  position: fixed;
+  pointer-events: auto;
+  cursor: default;
 }
 .xld-visite-voile.visible { display: block; }
 /* Aucune zone à désigner : c'est le voile lui-même qui assombrit */

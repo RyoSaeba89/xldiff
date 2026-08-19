@@ -20,11 +20,14 @@
 //    2. PLUS TARD — les étapes suivantes attendent que leur zone
 //       apparaisse (fichiers déposés, résultats affichés).
 //
-//  TANT QU'UNE BULLE EST AFFICHÉE, L'APPLICATION EST FIGÉE : la
-//  page est assombrie, seule la zone désignée reste en lumière, et
-//  rien d'autre ne réagit au clic. L'usager reprend la main dès
-//  qu'il masque la bulle — bouton, croix, clic sur le voile, Échap
-//  ou fichier glissé sur la fenêtre.
+//  TANT QU'UNE BULLE EST AFFICHÉE, L'APPLICATION EST FIGÉE SAUF LA
+//  ZONE DÉSIGNÉE : le voile est un CADRE en quatre pièces posé
+//  autour d'elle, si bien que tout le reste de la page est assombri
+//  et n'accepte plus le moindre clic, tandis que la zone dont parle
+//  la bulle reste utilisable — on peut donc cliquer la carte, le
+//  bouton ou le menu que la bulle est en train d'expliquer.
+//  L'usager reprend la main partout dès qu'il masque la bulle —
+//  bouton, croix, clic sur le voile, Échap ou fichier glissé.
 //
 //  La page ne fournit qu'une variable, avant ce script :
 //      <script>window.XLDIFF_PAGE = 'advanced';</script>
@@ -507,8 +510,17 @@
   }
 
   function construireVisite() {
+    // Le voile est un cadre en quatre pièces : elles couvrent tout SAUF
+    // la zone désignée, qui reste donc cliquable au milieu du trou.
     const voile = document.createElement('div');
     voile.className = 'xld-visite-voile';
+    const pieces = {};
+    ['haut', 'bas', 'gauche', 'droite'].forEach(nom => {
+      const p = document.createElement('div');
+      p.className = 'xld-voile-part xld-voile-' + nom;
+      voile.appendChild(p);
+      pieces[nom] = p;
+    });
 
     const spot = document.createElement('div');
     spot.className = 'xld-spot';
@@ -542,7 +554,7 @@
     voile.addEventListener('click', () => passerAuSuivant(true));
     voile.addEventListener('dragenter', () => passerAuSuivant(true));
 
-    visiteDom = { voile, spot, bulle };
+    visiteDom = { voile, pieces, spot, bulle };
     return visiteDom;
   }
 
@@ -663,6 +675,37 @@
     rAF(() => placer(zone));
   }
 
+  // Découpe le voile en quatre pièces autour de la zone désignée : tout
+  // ce qu'elles couvrent est figé, ce qui reste dans le trou — la zone
+  // dont parle la bulle — demeure cliquable.
+  function decouperVoile(r) {
+    const { pieces } = visiteDom;
+    const vw = window.innerWidth || 1200;
+    const vh = window.innerHeight || 800;
+    const pose = (el, top, left, largeur, hauteur) => {
+      el.style.top = Math.max(0, top) + 'px';
+      el.style.left = Math.max(0, left) + 'px';
+      el.style.width = Math.max(0, largeur) + 'px';
+      el.style.height = Math.max(0, hauteur) + 'px';
+    };
+    if (!r) {
+      pose(pieces.haut, 0, 0, vw, vh);
+      pose(pieces.bas, 0, 0, 0, 0);
+      pose(pieces.gauche, 0, 0, 0, 0);
+      pose(pieces.droite, 0, 0, 0, 0);
+      return;
+    }
+    // Le trou reprend le contour du projecteur (6 px de marge)
+    const haut = r.top - 6;
+    const bas = r.bottom + 6;
+    const gauche = r.left - 6;
+    const droite = r.right + 6;
+    pose(pieces.haut, 0, 0, vw, haut);
+    pose(pieces.bas, bas, 0, vw, vh - bas);
+    pose(pieces.gauche, haut, 0, gauche, bas - haut);
+    pose(pieces.droite, haut, droite, vw - droite, bas - haut);
+  }
+
   // La page étant figée pendant l'affichage, tout est positionné en
   // coordonnées de fenêtre.
   function placer(zone) {
@@ -675,12 +718,14 @@
 
     if (!zone) {
       spot.style.display = 'none';
+      decouperVoile(null);
       bulle.style.top = Math.max(16, (vh - bulle.offsetHeight) / 2) + 'px';
       bulle.style.left = Math.max(16, (vw - bulle.offsetWidth) / 2) + 'px';
       return;
     }
 
     const r = zone.getBoundingClientRect();
+    decouperVoile(r);
     spot.style.display = 'block';
     spot.style.top = (r.top - 6) + 'px';
     spot.style.left = (r.left - 6) + 'px';
