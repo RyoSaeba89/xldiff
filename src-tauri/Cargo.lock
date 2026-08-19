@@ -4835,7 +4835,7 @@ dependencies = [
 
 [[package]]
 name = "xldiff"
-version = "2.5.0"
+version = "3.0.0"
 dependencies = [
  "rfd",
  "tauri",

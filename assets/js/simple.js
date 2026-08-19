@@ -66,7 +66,10 @@
 
   function runCompare() {
     const result = MODE === 'dupes'
-      ? XLDiffEngine.common(slotA.data, slotB.data, commonHeaders, commonHeaders)
+      ? XLDiffEngine.common([
+          { side: 'A', data: slotA.data, cols: commonHeaders },
+          { side: 'B', data: slotB.data, cols: commonHeaders },
+        ])
       : XLDiffEngine.diff(slotA.data, slotB.data, commonHeaders, commonHeaders);
     // Mode simple : toutes les colonnes communes servent de clé, aucune
     // colonne n'est comparée à part (cf. comparatif avancé)

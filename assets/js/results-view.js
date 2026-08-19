@@ -5,7 +5,8 @@
 //
 //  Deux modes d'affichage :
 //    'diff'  (défaut) — comparaison : différences entre fichiers
-//    'dupes'          — recherche de doublons : lignes communes
+//    'dupes'          — recherche de doublons : lignes communes à
+//                       deux fichiers, ou à au moins deux des trois
 //
 //  Deux natures de résultat en mode 'diff' :
 //    • écarts de présence — une ligne d'un fichier sans
@@ -116,15 +117,32 @@ const XLDiffResults = (() => {
     const lines = [];
 
     if (mode === 'dupes') {
-      const n = diff.onlyA.length; // nombre de correspondances A ↔ B
-      if (n === 0) {
-        headline = 'Aucun doublon : aucune ligne n\'est présente à la fois dans les deux fichiers.';
+      // À deux fichiers, une correspondance = une ligne de A et une ligne
+      // de B : on annonce le nombre de correspondances. À trois fichiers,
+      // une ligne peut être en double avec l'un, l'autre ou les deux :
+      // on annonce le nombre de lignes listées, tous fichiers confondus.
+      const nTotal = diff.all.length;
+      if (nTotal === 0) {
+        headline = three
+          ? 'Aucun doublon : aucune ligne n\'est présente dans plus d\'un fichier.'
+          : 'Aucun doublon : aucune ligne n\'est présente à la fois dans les deux fichiers.';
         headlineOk = true;
+      } else if (three) {
+        headline = `Il y a ${fmt(nTotal)} ligne${plur(nTotal)} en double, présente${plur(nTotal)} dans au moins deux des trois fichiers.`;
       } else {
+        const n = diff.onlyA.length; // nombre de correspondances A ↔ B
         headline = `Il y a ${fmt(n)} ligne${plur(n)} en double, présente${plur(n)} à la fois dans A et dans B.`;
       }
-      lines.push({ cls: 'sum-a', html: `Le fichier A contient ${fmt(totals.A)} ligne${plur(totals.A)}, dont ${fmt(totals.A - n)} sans équivalent dans B.` });
-      lines.push({ cls: 'sum-b', html: `Le fichier B contient ${fmt(totals.B)} ligne${plur(totals.B)}, dont ${fmt(totals.B - n)} sans équivalent dans A.` });
+      sides.forEach(sd => {
+        const n = diff.bySide[sd].length;
+        const t = totals[sd] || 0;
+        lines.push({
+          cls: 'sum-' + sd.toLowerCase(),
+          html: three
+            ? `Le fichier ${sd} contient ${fmt(t)} ligne${plur(t)}, dont ${fmt(n)} en double avec un autre fichier et ${fmt(t - n)} sans équivalent ailleurs.`
+            : `Le fichier ${sd} contient ${fmt(t)} ligne${plur(t)}, dont ${fmt(t - n)} sans équivalent dans ${sides.filter(o => o !== sd)[0]}.`,
+        });
+      });
     } else {
       const nAbs = diff.all.length;
       const nMod = diff.modified.length;
@@ -197,11 +215,11 @@ const XLDiffResults = (() => {
     const three = sides.length > 2;
 
     if (mode === 'dupes') {
-      return [
-        { id: 'all', label: 'Tous les doublons', count: diff.all.length },
-        { id: 'onlyA', label: 'Doublons côté A', count: diff.onlyA.length },
-        { id: 'onlyB', label: 'Doublons côté B', count: diff.onlyB.length },
-      ];
+      const tabs = [{ id: 'all', label: 'Tous les doublons', count: diff.all.length }];
+      sides.forEach(sd => {
+        tabs.push({ id: 'only' + sd, label: `Doublons côté ${sd}`, count: diff.bySide[sd].length });
+      });
+      return tabs;
     }
 
     const tabs = [{ id: 'all', label: 'Toutes les différences', count: diff.all.length }];

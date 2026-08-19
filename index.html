@@ -6,6 +6,7 @@
 <title>XLDiff — Comparateur de fichiers Excel</title>
 <link rel="stylesheet" href="assets/css/theme.css">
 <link rel="stylesheet" href="assets/css/home.css">
+<link rel="stylesheet" href="assets/css/help.css">
 </head>
 <body>
 
@@ -30,7 +31,7 @@
 <div class="container">
   <div class="hero">
     <h2>Que <span class="accent">recherchez-vous</span> ?</h2>
-    <p>XLDiff analyse deux fichiers Excel directement dans votre navigateur. Commencez par choisir le type d'analyse.</p>
+    <p>XLDiff analyse deux ou trois fichiers Excel directement dans votre navigateur. Commencez par choisir le type d'analyse.</p>
   </div>
 
   <div class="choice-grid">
@@ -144,10 +145,10 @@
           </svg>
         </div>
         <div class="mode-title">Non — doublons avancé</div>
-        <div class="mode-desc">Deux fichiers <strong>différents</strong>. Associez les colonnes à comparer : deux lignes sont en double si ces colonnes sont identiques.</div>
+        <div class="mode-desc">Deux ou trois fichiers <strong>différents</strong>. Associez les colonnes à comparer : deux lignes sont en double si ces colonnes sont identiques.</div>
         <ul class="mode-steps">
-          <li>Déposez deux fichiers quelconques</li>
-          <li>Associez les colonnes A ↔ B</li>
+          <li>Déposez deux fichiers (un troisième au besoin)</li>
+          <li>Associez les colonnes A ↔ B ↔ C</li>
           <li>Doublons sur les colonnes choisies</li>
         </ul>
         <span class="mode-cta">Commencer →</span>
@@ -164,7 +165,7 @@
   </div>
 </div>
 
-<div class="footer">XLDiff v2.5 — Jacques Rennie · Eurométropole de Strasbourg · <a href="pages/changelog.html">Nouveautés</a></div>
+<div class="footer">XLDiff v3.0 — Jacques Rennie · Eurométropole de Strasbourg · <a href="pages/changelog.html">Nouveautés</a></div>
 
 <script>
 (() => {
@@ -183,5 +184,7 @@
   });
 })();
 </script>
+<script>window.XLDIFF_PAGE = 'home';</script>
+<script src="assets/js/help.js"></script>
 </body>
 </html>

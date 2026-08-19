@@ -16,3 +16,7 @@ dist/
 src-tauri/target/
 scripts/icon-source.png
 src-tauri/gen/
+
+# Ancien guide utilisateur Word : remplacé par l'aide intégrée
+# (visite guidée + bouton « ? »), cf. README
+docs/

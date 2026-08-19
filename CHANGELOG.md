@@ -1,5 +1,44 @@
 # XLDiff — Notes de version
 
+Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https://ryosaeba89.github.io/xldiff/pages/changelog.html>
+
+## Version 3.0 — 19 août 2026
+
+### Doublons avancé
+
+- **Chercher les doublons sur trois fichiers** : comme le comparatif avancé, la recherche de doublons accepte un troisième fichier. La zone **Fichier C** reste facultative — avec deux fichiers, rien ne change. Avec trois fichiers, une ligne est en double dès qu'elle se retrouve dans **au moins un autre fichier**, la colonne **« Présente dans »** indique lesquels (« A + B », « B + C », « A + B + C »), et chaque fichier a son onglet de lignes en double.
+
+### Aide et prise en main
+
+- **Une présentation guidée au premier passage** : trois bulles (quatre dans le comparatif avancé) montrent où déposer les fichiers, ce qu'il y a à régler et comment lire le résultat. Un clic sur *Passer* suffit à l'écarter, et elle ne revient plus ensuite.
+- **Un bouton « ? » dans le bandeau vert**, sur chaque page : il ouvre l'aide complète de la page — étapes, options, lecture des résultats, questions fréquentes — et permet de **revoir la présentation** quand on le souhaite.
+- **Plus de guide Word à chercher** : l'aide vit désormais dans l'application, au plus près de l'écran concerné, et suit chaque évolution de l'outil. Le guide utilisateur diffusé jusqu'à la version 2.5 n'est plus mis à jour.
+
+## Version 2.5 — 18 août 2026
+
+### Gros fichiers
+
+- **Beaucoup moins de mémoire** : sur trois fichiers de 200 000, 100 000 et 10 000 lignes, XLDiff consommait environ 11 Go ; il en consomme désormais environ 1,5 Go. Le tableau de résultats n'affiche plus que les lignes réellement visibles à l'écran (le défilement reste complet) et les fichiers ne sont plus conservés deux fois en mémoire.
+- **Export beaucoup plus léger** : le même résultat de 280 000 lignes passe de 109 Mo à 20 Mo. *Conséquence visible* : l'export ne contient plus une feuille par fichier — tout est dans « Toutes les différences », où la colonne **Source** permet de filtrer.
+- **Barre de progression au chargement** de chaque fichier (lecture, analyse du classeur, conversion des lignes).
+
+### Comparatif avancé
+
+- **Nouveau bouton « Exporter le fichier A annoté »** : le fichier A tel quel, avec à droite *Statut*, *Présente dans*, *Colonnes en écart*, la valeur des autres fichiers pour les colonnes comparées et la ligne d'origine. Les lignes venues de B ou C et absentes de A sont ajoutées à la suite.
+
+## Version 2.4 — 18 août 2026
+
+### Comparatif avancé
+
+- **Vérifier le contenu d'une colonne, et plus seulement la présence des lignes** : les *colonnes de rapprochement* servent à retrouver la même ligne dans chaque fichier, les *colonnes à comparer* (facultatives) sont vérifiées ensuite. Les lignes retrouvées dont le contenu diffère apparaissent dans l'onglet **« Retrouvées mais différentes »**, valeur de chaque fichier côte à côte.
+- **Comparer trois fichiers** : la zone **Fichier C**, facultative, avec un onglet d'absences par fichier et la colonne **« Présente dans »**.
+- **Comparaison plus tolérante sur les colonnes vérifiées** : majuscules, espaces en trop et espaces insécables ignorés, dates comparées au format jour/mois/année. Les colonnes de rapprochement restent comparées à l'identique.
+
+## Version 2.3 — 13 juillet 2026
+
+- **Nouvelle case « Ignorer les lignes en double au sein d'un même fichier »** dans le comparatif avancé (décochée par défaut) : cochée, une ligne présente dans les deux fichiers n'est plus signalée même si elle s'y répète un nombre de fois différent ; seules les lignes absentes d'un fichier remontent. Basculer la case relance l'analyse.
+- Site publié sur GitHub Pages : <https://ryosaeba89.github.io/xldiff/>
+
 ## Version 2.1 — 9 juillet 2026
 
 ### Application de bureau

@@ -11,7 +11,12 @@ fs.mkdirSync(dist);
 
 fs.copyFileSync(path.join(root, 'index.html'), path.join(dist, 'index.html'));
 for (const dir of ['pages', 'assets']) {
-  fs.cpSync(path.join(root, dir), path.join(dist, dir), { recursive: true });
+  fs.cpSync(path.join(root, dir), path.join(dist, dir), {
+    recursive: true,
+    // assets/screenshots/ ne sert qu'au README : inutile de l'embarquer
+    // dans le binaire (~430 Ko de PNG).
+    filter: src => path.basename(src) !== 'screenshots',
+  });
 }
 
-console.log('dist/ prêt (index.html + pages/ + assets/)');
+console.log('dist/ prêt (index.html + pages/ + assets/, hors captures)');

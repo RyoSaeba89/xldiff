@@ -1,8 +1,8 @@
 # XLDiff — Comparateur de fichiers Excel
 
-**Version 2.5**
+**Version 3.0**
 
-Outil web 100 % local pour analyser deux fichiers Excel. Aucune donnée n'est envoyée sur le réseau : tout le traitement s'effectue dans le navigateur.
+Outil web 100 % local pour analyser deux ou trois fichiers Excel. Aucune donnée n'est envoyée sur le réseau : tout le traitement s'effectue dans le navigateur.
 
 La page d'accueil pose la question « **Que recherchez-vous ?** » :
 
@@ -10,6 +10,8 @@ La page d'accueil pose la question « **Que recherchez-vous ?** » :
 - **Les doublons entre deux fichiers** — les lignes présentes à la fois dans les deux fichiers.
 
 Chaque analyse propose ensuite la même question « **Vos deux fichiers ont-ils les mêmes colonnes ?** », qui mène au mode simple (colonnes identiques, tout est automatique) ou avancé (fichiers différents, association de colonnes).
+
+![Page d'accueil d'XLDiff : choix entre différences et doublons, puis entre mode simple et mode avancé](assets/screenshots/accueil.png)
 
 ## Recherche de différences : deux modes
 
@@ -25,7 +27,15 @@ Pour deux ou trois fichiers **différents** (le **fichier C est facultatif**), e
 
 Cas d'usage typique : rapprocher sur *nom + date de naissance*, puis comparer *adresse*.
 
+![Comparatif avancé : trois fichiers déposés, colonnes de rapprochement et colonnes à comparer](assets/screenshots/comparatif-avance.png)
+
 Avec trois fichiers, chaque fichier a son onglet de lignes absentes ailleurs et le tableau porte une colonne **« Présente dans »** (`A + B` = ligne absente de C).
+
+![Résultats : résumé en phrases simples, onglets et colonne « Présente dans »](assets/screenshots/resultats-differences.png)
+
+L'onglet **« Retrouvées mais différentes »** montre la valeur de chaque fichier côte à côte :
+
+![Onglet « Retrouvées mais différentes » : 8 avenue Bleue → 24 rue des Tilleuls → 8 avenue Bleue](assets/screenshots/retrouvees-differentes.png)
 
 Dans les résultats, une case « Afficher toutes les colonnes » permet de basculer entre l'affichage des seules colonnes rapprochées et comparées et l'affichage complet.
 
@@ -35,16 +45,36 @@ Une case « **Ignorer les lignes en double au sein d'un même fichier** » (déc
 
 ## Recherche de doublons : deux modes
 
-L'outil liste les lignes **communes aux deux fichiers**, c'est-à-dire l'inverse de la recherche de différences.
+L'outil liste les lignes **communes à plusieurs fichiers**, c'est-à-dire l'inverse de la recherche de différences.
 
 - **Doublons simple** — deux fichiers issus du même export (mêmes colonnes) : les colonnes communes sont détectées automatiquement, deux lignes sont en double si toutes leurs colonnes sont identiques.
-- **Doublons avancé** — deux fichiers différents : choix des feuilles puis association des colonnes A ↔ B, comme le comparatif avancé ; deux lignes sont en double si les colonnes associées sont identiques.
+- **Doublons avancé** — deux ou trois fichiers différents (le **fichier C est facultatif**) : choix des feuilles puis association des colonnes A ↔ B ↔ C, comme le comparatif avancé ; deux lignes sont en double si les colonnes associées sont identiques.
+
+Avec trois fichiers, une ligne est en double dès que sa clé existe dans **au moins un autre fichier** — l'inverse exact de la recherche de différences, où une ligne remonte dès qu'elle est absente d'au moins un fichier. La colonne **« Présente dans »** indique les fichiers concernés (`A + B`, `B + C`, `A + B + C`) et chaque fichier a son onglet de lignes en double. Le nombre d'occurrences retenues dans un fichier est plafonné au plus grand nombre d'occurrences trouvé dans les autres (3 fois dans A, 1 fois dans B, 2 fois dans C → 2 lignes remontées côté A).
+
+![Doublons sur trois fichiers : un onglet par fichier et la colonne « Présente dans »](assets/screenshots/doublons-trois-fichiers.png)
 
 ## Résultats
 
 Les résultats commencent par un résumé en phrases simples (« Il y a N lignes retrouvées dans les deux fichiers : X à l'identique, Y dont le contenu diffère », « Il y a X lignes uniquement dans A »…), suivi du détail ligne par ligne dans des onglets, d'un export `.xlsx` et d'un bouton **Recommencer** pour repartir d'une page vierge.
 
 L'export tient en une feuille « Toutes les différences » (la colonne `Source` permet de filtrer) plus, si des colonnes sont comparées, une feuille « Retrouvées mais différentes » où chaque colonne comparée occupe une colonne par fichier (`Adresse (A)`, `Adresse (B)`), suivie de la liste des colonnes en écart. Le fichier est écrit compressé.
+
+## Aide et prise en main
+
+Chaque page porte sa propre aide, en deux dispositifs volontairement légers (`assets/js/help.js`, `assets/css/help.css` — aucune dépendance, tout le balisage est injecté à l'exécution) :
+
+- **Visite guidée** — 3 bulles (4 sur le comparatif avancé) qui pointent tour à tour les zones de la page, avec *Passer*, *Précédent* et *Suivant*. Elle ne s'ouvre d'elle-même qu'au **premier passage sur la page**, mémorisé dans `localStorage` (`xldiff.visite.<page>` = version de la visite) : une évolution du contenu la rejoue une fois, jamais plus. Elle s'abstient aussi si l'usager a déjà cliqué, tapé ou déposé un fichier pendant le court délai d'attente, et si le navigateur refuse le stockage (page ouverte en `file://` sur certains postes) elle ne se déclenche pas automatiquement.
+
+  ![Visite guidée : une bulle désigne les zones de dépôt, étape 1 sur 4](assets/screenshots/visite-guidee.png)
+
+- **Bouton « ? »** dans l'en-tête de chaque page — ouvre un volet d'aide complet (étapes, options, lecture des résultats, questions fréquentes) et propose **« Revoir la présentation de la page »**, qui rejoue la visite guidée à la demande.
+
+  ![Volet d'aide du comparatif avancé, ouvert par le bouton « ? »](assets/screenshots/volet-aide.png)
+
+Une page déclare simplement `window.XLDIFF_PAGE = 'advanced'` avant le script ; tout le contenu (bulles, sections, FAQ) est centralisé dans `help.js`. `Échap` ferme le volet comme la visite.
+
+Cette aide intégrée **remplace le guide utilisateur Word** diffusé jusqu'à la v2.5 : la documentation vit désormais dans l'application, au plus près de l'écran concerné, et suit automatiquement chaque évolution de l'interface.
 
 ## Formats supportés
 
@@ -55,7 +85,7 @@ L'export tient en une feuille « Toutes les différences » (la colonne `Source`
 Aucune installation : utiliser le site en ligne **https://ryosaeba89.github.io/xldiff/**, ouvrir `index.html` dans un navigateur, ou héberger le dossier tel quel (serveur web statique).
 
 1. Sur la page d'accueil, répondre à la question « Que recherchez-vous ? » (différences ou doublons), puis choisir le mode le cas échéant.
-2. Glisser-déposer les deux fichiers (sélection de feuille possible si le classeur en contient plusieurs).
+2. Glisser-déposer les deux fichiers — un troisième au besoin dans les deux modes avancés (sélection de feuille possible si le classeur en contient plusieurs).
 3. Cliquer sur **Comparer** (ou **Rechercher les doublons**).
 4. Consulter le résumé puis le détail par onglets, et éventuellement **Exporter** le résultat en `.xlsx`.
 
@@ -73,13 +103,16 @@ XLDiff/
 │   ├── css/
 │   │   ├── theme.css       Variables, base, en-tête, boutons (commun)
 │   │   ├── home.css        Styles de la page d'accueil
-│   │   └── compare.css     Styles des pages de comparaison
+│   │   ├── compare.css     Styles des pages de comparaison
+│   │   └── help.css        Visite guidée et volet d'aide
 │   ├── js/
 │   │   ├── file-loader.js  Lecture des fichiers + zones de dépôt (XLDiffFiles)
 │   │   ├── diff-engine.js  Moteur d'analyse 2 ou 3 fichiers (XLDiffEngine)
 │   │   ├── results-view.js Rendu des résultats + export (XLDiffResults)
 │   │   ├── simple.js       Contrôleur des modes simples (diff ou doublons via window.XLDIFF_MODE)
-│   │   └── advanced.js     Contrôleur des modes avancés (diff ou doublons via window.XLDIFF_MODE)
+│   │   ├── advanced.js     Contrôleur des modes avancés (diff ou doublons via window.XLDIFF_MODE)
+│   │   └── help.js         Onboarding + aide de chaque page (XLDiffAide, via window.XLDIFF_PAGE)
+│   ├── screenshots/        Captures utilisées par ce README
 │   └── vendor/
 │       └── xlsx.full.min.js  SheetJS 0.18.5 (embarqué, aucune dépendance réseau)
 └── README.md
@@ -125,7 +158,7 @@ Le site est publié automatiquement sur **https://ryosaeba89.github.io/xldiff/**
 
 ## Notes techniques
 
-- La comparaison est une différence de multi-ensembles : les répétitions sont prises en compte (si une clé apparaît 3 fois dans A et 1 fois dans B, 2 lignes sont signalées « uniquement A »). Avec trois fichiers, chaque fichier est comparé au **minimum** des occurrences de la clé sur l'ensemble des fichiers — la règle à deux fichiers en est le cas particulier. La case « Ignorer les lignes en double au sein d'un même fichier » du comparatif avancé bascule en différence d'ensembles : cette même clé n'est alors plus une différence. La recherche de doublons est l'opération inverse (intersection) : la même clé compte pour min(3, 1) = 1 correspondance.
+- La comparaison est une différence de multi-ensembles : les répétitions sont prises en compte (si une clé apparaît 3 fois dans A et 1 fois dans B, 2 lignes sont signalées « uniquement A »). Avec trois fichiers, chaque fichier est comparé au **minimum** des occurrences de la clé sur l'ensemble des fichiers — la règle à deux fichiers en est le cas particulier. La case « Ignorer les lignes en double au sein d'un même fichier » du comparatif avancé bascule en différence d'ensembles : cette même clé n'est alors plus une différence. La recherche de doublons est l'opération inverse (intersection) : la même clé compte pour min(3, 1) = 1 correspondance. À trois fichiers, une clé est retenue dès qu'elle est présente dans au moins deux fichiers, et le nombre d'occurrences retenues d'un fichier vaut min(occurrences ici, **maximum** des occurrences ailleurs).
 - **Rapprochement d'une clé non unique** : si la clé apparaît 2 fois dans A et 3 fois dans B, les occurrences sont appariées dans l'ordre du fichier (1re avec 1re, 2e avec 2e) et le surplus est signalé comme absence. Un homonyme parfait sur la clé est donc rapproché par ordre d'apparition — c'est le seul choix possible sans identifiant unique, et c'est aussi ce que fait le comptage multi-ensembles historique.
 - **Égalité des colonnes comparées** : espaces insécables ramenés à des espaces ordinaires, espaces multiples et de bordure supprimés, casse ignorée, dates normalisées au format `JJ/MM/AAAA` (une date lue dans un `.xlsx` arrive en objet `Date`, la même dans un `.csv` arrive en texte). Les colonnes de rapprochement, elles, restent comparées caractère par caractère.
 - Le numéro de ligne affiché correspond à la ligne du fichier Excel d'origine (l'en-tête étant la ligne 1).

@@ -30,9 +30,11 @@
 //      → raccourci deux fichiers sans comparaison de contenu
 //        (forme historique : { onlyA, onlyB, all })
 //
-//    XLDiffEngine.common(dataA, dataB, colsA, colsB)
-//      → lignes EN COMMUN vues côté A / côté B (recherche de
-//        doublons entre deux fichiers), même forme de retour.
+//    XLDiffEngine.common(sources)
+//      → lignes EN COMMUN à plusieurs fichiers (recherche de
+//        doublons), même forme d'entrée et de retour que analyze().
+//        Avec trois fichiers, une ligne est en double dès que sa
+//        clé existe dans au moins un autre fichier.
 //
 //  Chaque ligne retournée porte __rowNum (n° de ligne Excel,
 //  l'en-tête étant la ligne 1), __source ('A', 'B' ou 'C') et
@@ -255,50 +257,84 @@ const XLDiffEngine = (() => {
     ], [], opts);
   }
 
-  // Lignes communes aux deux fichiers (doublons A ↔ B), en sémantique
-  // multi-ensemble : une clé présente 3 fois dans A et 1 fois dans B
-  // ne compte que pour 1 correspondance. Le résultat reprend la forme
-  // de analyze() pour être affiché par XLDiffResults sans adaptation :
-  // onlyA = correspondances vues côté A, onlyB = vues côté B
-  // (onlyA.length === onlyB.length === nombre de correspondances).
-  function common(dataA, dataB, colsA, colsB) {
-    const a = indexRows(dataA, colsA, 'A');
-    const b = indexRows(dataB, colsB, 'B');
+  // Lignes communes à plusieurs fichiers (recherche de doublons), en
+  // sémantique multi-ensemble : une clé présente 3 fois dans A et 1 fois
+  // dans B ne compte que pour 1 correspondance de chaque côté.
+  //
+  // Avec trois fichiers, une ligne est en double dès que sa clé existe
+  // dans AU MOINS un autre fichier — c'est l'inverse exact de la
+  // recherche de différences, et la colonne « Présente dans » indique
+  // lesquels (« A + B », « B + C », « A + B + C »). Le nombre
+  // d'occurrences retenues dans un fichier est plafonné au plus grand
+  // nombre d'occurrences trouvé dans les autres fichiers.
+  //
+  // Le résultat reprend la forme de analyze() pour être affiché par
+  // XLDiffResults sans adaptation : bySide[côté] = lignes en double
+  // vues depuis ce fichier. À deux fichiers, onlyA et onlyB ont donc
+  // la même longueur, égale au nombre de correspondances.
+  function common(sources) {
+    const sides = sources.map(s => s.side);
+    const nb = sides.length;
+    const idx = sources.map(s => indexRows(s.data, s.cols, s.side));
 
-    const inA = [];
-    const inB = [];
+    const bySide = {};
+    sides.forEach(sd => { bySide[sd] = []; });
 
-    for (const [k, ea] of a.keys) {
-      const eb = b.keys.get(k);
-      if (!eb) continue;
-      const n = Math.min(ea.c, eb.c);
-      let ia = ea.h;
-      let ib = eb.h;
-      for (let i = 0; i < n; i++) {
-        const ra = dataA[ia];
-        const rb = dataB[ib];
-        ra.__presence = 'A + B';
-        rb.__presence = 'A + B';
-        inA.push(ra);
-        inB.push(rb);
-        ia = a.next[ia];
-        ib = b.next[ib];
+    // Union des clés : celles du 1er fichier d'abord, puis les clés
+    // inédites du 2e, etc.
+    const keys = new Set();
+    for (const i of idx) for (const k of i.keys.keys()) keys.add(k);
+
+    const compte = new Int32Array(nb);
+    let matched = 0;
+
+    for (const k of keys) {
+      let presents = 0;
+      let masque = 0;
+      for (let j = 0; j < nb; j++) {
+        const e = idx[j].keys.get(k);
+        compte[j] = e ? e.c : 0;
+        if (compte[j] > 0) { presents++; masque |= (1 << j); }
       }
+      if (presents < 2) continue; // clé propre à un seul fichier
+      const presence = sides.filter((sd, j) => (masque >> j) & 1).join(' + ');
+
+      let retenues = 0;
+      for (let j = 0; j < nb; j++) {
+        if (!compte[j]) continue;
+        let maxAutres = 0;
+        for (let i = 0; i < nb; i++) {
+          if (i !== j && compte[i] > maxAutres) maxAutres = compte[i];
+        }
+        const n = Math.min(compte[j], maxAutres);
+        if (n > retenues) retenues = n;
+        let li = idx[j].keys.get(k).h;
+        for (let i = 0; i < n; i++) {
+          const row = sources[j].data[li];
+          row.__presence = presence;
+          bySide[sides[j]].push(row);
+          li = idx[j].next[li];
+        }
+      }
+      matched += retenues;
     }
 
-    inA.sort(byRowNum);
-    inB.sort(byRowNum);
+    const all = [];
+    for (const sd of sides) {
+      bySide[sd].sort(byRowNum);
+      for (const r of bySide[sd]) all.push(r);
+    }
 
     return {
-      sides: ['A', 'B'],
-      bySide: { A: inA, B: inB },
-      onlyA: inA,
-      onlyB: inB,
-      onlyC: [],
-      all: inA.concat(inB),
+      sides,
+      bySide,
+      onlyA: bySide.A || [],
+      onlyB: bySide.B || [],
+      onlyC: bySide.C || [],
+      all,
       modified: [],
-      matched: inA.length,
-      identical: inA.length,
+      matched,
+      identical: matched,
       compared: false,
     };
   }

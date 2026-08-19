@@ -18,6 +18,7 @@
 //  (défini par la page avant ce script) :
 //    'diff'  (défaut) — advanced.html        : différences
 //    'dupes'          — doublons-avance.html : lignes communes
+//  Les deux acceptent le troisième fichier.
 // ============================================================
 
 (() => {
@@ -265,12 +266,14 @@
         : 'Chargez les deux fichiers à analyser.';
       return;
     }
+    const uneColonne = MODE === 'dupes' ? 'colonne associée' : 'colonne de rapprochement';
+    const desColonnes = MODE === 'dupes' ? 'colonne(s) associée(s)' : 'colonne(s) de rapprochement';
     if (mappings.length === 0) {
-      statusText.textContent = 'Ajoutez au moins une colonne de rapprochement pour lancer l\'analyse.';
+      statusText.textContent = `Ajoutez au moins une ${uneColonne} pour lancer l'analyse.`;
       return;
     }
     const action = MODE === 'dupes' ? 'la recherche de doublons' : 'le rapprochement';
-    let txt = `${mappings.length} colonne(s) de rapprochement — ${action} portera uniquement sur ces colonnes.`;
+    let txt = `${mappings.length} ${desColonnes} — ${action} portera uniquement sur ces colonnes.`;
     if (compareCols.length) {
       txt += ` ${compareCols.length} colonne(s) comparée(s) : le contenu des lignes retrouvées sera vérifié.`;
     }
@@ -348,7 +351,7 @@
     }));
 
     const result = MODE === 'dupes'
-      ? XLDiffEngine.common(active[0].data, active[1].data, sources[0].cols, sources[1].cols)
+      ? XLDiffEngine.common(sources)
       : XLDiffEngine.analyze(sources, compareCols.map(m => toColumn(m, active, 'cmp')), {
           ignoreDuplicates: !!(ignoreDupes && ignoreDupes.checked),
         });
@@ -376,7 +379,10 @@
     btnExport.disabled = false;
     if (btnExportAnnote) btnExportAnnote.disabled = false;
     if (MODE === 'dupes') {
-      statusText.textContent = `Terminé — ${result.onlyA.length.toLocaleString()} doublon(s) trouvé(s)`;
+      // À trois fichiers, chaque fichier a ses propres lignes en double :
+      // le total du tableau est la somme, pas le seul côté A
+      const n = active.length > 2 ? result.all.length : result.onlyA.length;
+      statusText.textContent = `Terminé — ${n.toLocaleString()} doublon(s) trouvé(s)`;
     } else {
       let txt = `Terminé — ${result.all.length.toLocaleString()} différence(s) trouvée(s)`;
       if (result.compared) {
