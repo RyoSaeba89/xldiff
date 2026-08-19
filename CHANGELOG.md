@@ -2,6 +2,15 @@
 
 Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https://ryosaeba89.github.io/xldiff/pages/changelog.html>
 
+## Version 3.1 — 19 août 2026
+
+### La présentation suit ce que vous voyez
+
+- **Fini les explications en avance** : la présentation ne commente plus une zone qui n'est pas encore à l'écran. À l'ouverture, elle ne montre que ce qui est affiché — les zones de dépôt. Les explications sur les colonnes ou sur les résultats arrivent **au moment où le panneau concerné apparaît**.
+- **Une bulle discrète, qui ne coupe pas le travail en cours** : ces explications-là ne noircissent plus la page et ne bloquent rien ; la bulle s'efface dès que l'on clique ailleurs.
+- **Sur l'accueil**, la présentation attend le choix (les différences ou les doublons) avant d'expliquer la question suivante, celle des colonnes.
+- **Les étapes sans objet sont passées** : si aucun classeur n'a plusieurs onglets, la bulle sur le choix des feuilles ne s'affiche pas.
+
 ## Version 3.0 — 19 août 2026
 
 ### Doublons avancé

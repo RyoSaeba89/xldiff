@@ -1,6 +1,6 @@
 # XLDiff — Comparateur de fichiers Excel
 
-**Version 3.0**
+**Version 3.1**
 
 Outil web 100 % local pour analyser deux ou trois fichiers Excel. Aucune donnée n'est envoyée sur le réseau : tout le traitement s'effectue dans le navigateur.
 
@@ -62,17 +62,35 @@ L'export tient en une feuille « Toutes les différences » (la colonne `Source`
 
 ## Aide et prise en main
 
-Chaque page porte sa propre aide, en deux dispositifs volontairement légers (`assets/js/help.js`, `assets/css/help.css` — aucune dépendance, tout le balisage est injecté à l'exécution) :
+Chaque page porte sa propre aide, en deux dispositifs volontairement légers (`assets/js/help.js`, `assets/css/help.css` — aucune dépendance, tout le balisage est injecté à l'exécution).
 
-- **Visite guidée** — 3 bulles (4 sur le comparatif avancé) qui pointent tour à tour les zones de la page, avec *Passer*, *Précédent* et *Suivant*. Elle ne s'ouvre d'elle-même qu'au **premier passage sur la page**, mémorisé dans `localStorage` (`xldiff.visite.<page>` = version de la visite) : une évolution du contenu la rejoue une fois, jamais plus. Elle s'abstient aussi si l'usager a déjà cliqué, tapé ou déposé un fichier pendant le court délai d'attente, et si le navigateur refuse le stockage (page ouverte en `file://` sur certains postes) elle ne se déclenche pas automatiquement.
+### La visite suit l'usager
 
-  ![Visite guidée : une bulle désigne les zones de dépôt, étape 1 sur 4](assets/screenshots/visite-guidee.png)
+**Une bulle ne parle jamais d'une zone qui n'est pas à l'écran.** Chaque étape porte le sélecteur de sa zone, et ce sélecteur décrit aussi l'état attendu de l'interface (`#mappingPanel.visible`, `#btnCompare:not([disabled])`, `#results.visible`). Une étape dont la zone n'existe pas encore patiente ; une étape dont la zone n'apparaîtra jamais (le panneau « Choix des feuilles » quand tous les classeurs n'ont qu'un onglet) est enjambée.
 
-- **Bouton « ? »** dans l'en-tête de chaque page — ouvre un volet d'aide complet (étapes, options, lecture des résultats, questions fréquentes) et propose **« Revoir la présentation de la page »**, qui rejoue la visite guidée à la demande.
+La visite se déroule donc en deux temps :
 
-  ![Volet d'aide du comparatif avancé, ouvert par le bouton « ? »](assets/screenshots/volet-aide.png)
+1. **À l'ouverture** — les étapes dont la zone est déjà affichée s'enchaînent, page assombrie, avec *Passer*, *Précédent* et *Suivant*. Sur une page de comparaison vide, cela se réduit à une seule bulle : les zones de dépôt. Le bouton de droite annonce ce qui suit — *Suivant ›* si l'étape d'après est à l'écran, sinon *J'ai compris*, jamais un « Suivant » qui ne mènerait nulle part.
 
-Une page déclare simplement `window.XLDIFF_PAGE = 'advanced'` avant le script ; tout le contenu (bulles, sections, FAQ) est centralisé dans `help.js`. `Échap` ferme le volet comme la visite.
+   ![Visite guidée : une bulle désigne les zones de dépôt](assets/screenshots/visite-guidee.png)
+
+2. **Plus tard** — les étapes suivantes attendent que leur zone apparaisse (fichiers déposés, résultats affichés) et se montrent alors en **bulle discrète** : pas de voile, rien n'est bloqué, la page reste utilisable et la bulle s'efface dès que l'usager fait autre chose. Elle est ancrée à sa zone et suit le défilement.
+
+   ![Bulle discrète : le panneau des colonnes vient d'apparaître, la page reste utilisable](assets/screenshots/visite-contextuelle.png)
+
+Sur l'accueil, où c'est le choix « différences ou doublons » qui commande l'affichage de la suite, la première bulle n'a pas de bouton *Suivant* : elle invite à cliquer sur une carte (le voile laisse passer ce clic) et la visite enchaîne sur la question qui vient d'apparaître.
+
+Deux garde-fous complètent le dispositif : la visite ne s'ouvre d'elle-même qu'au **premier passage sur la page**, mémorisé dans `localStorage` (`xldiff.visite.<page>` = version de la visite, notée dès l'affichage de la première bulle) ; et elle s'abstient si l'usager a déjà cliqué, tapé ou déposé un fichier pendant le court délai d'attente, ou si le navigateur refuse le stockage (page ouverte en `file://` sur certains postes).
+
+Techniquement, l'apparition des zones est détectée par un `MutationObserver` (classes `visible`, attribut `disabled`), sans que les autres scripts aient à prévenir l'aide de quoi que ce soit.
+
+### Le bouton « ? »
+
+Dans l'en-tête de chaque page, il ouvre un volet d'aide complet (étapes, options, lecture des résultats, questions fréquentes) et propose **« Revoir la présentation de la page »**, qui rejoue la visite à la demande — en repartant, là encore, de ce qui est réellement affiché.
+
+![Volet d'aide du comparatif avancé, ouvert par le bouton « ? »](assets/screenshots/volet-aide.png)
+
+Une page déclare simplement `window.XLDIFF_PAGE = 'advanced'` avant le script ; tout le contenu (bulles, sections, FAQ) est centralisé dans `help.js`. `Échap` ferme le volet, et écarte la bulle courante sans renoncer à la suite.
 
 Cette aide intégrée **remplace le guide utilisateur Word** diffusé jusqu'à la v2.5 : la documentation vit désormais dans l'application, au plus près de l'écran concerné, et suit automatiquement chaque évolution de l'interface.
 

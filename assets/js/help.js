@@ -3,14 +3,28 @@
 //  Onboarding et aide, mutualisés pour toutes les pages.
 //
 //  Deux dispositifs complémentaires, volontairement légers :
-//    • la VISITE GUIDÉE — 3 ou 4 bulles qui pointent tour à tour
-//      les zones de la page. Elle ne se déclenche qu'au premier
-//      passage sur CETTE page (mémorisé dans localStorage) et se
-//      passe d'un clic ;
+//    • la VISITE GUIDÉE — des bulles qui désignent les zones de
+//      la page. Elle ne s'ouvre d'elle-même qu'au premier passage
+//      sur CETTE page (mémorisé dans localStorage) ;
 //    • le VOLET D'AIDE — ouvert par le bouton « ? » de l'en-tête,
-//      il donne l'aide complète de la page (étapes, options,
-//      lecture des résultats, questions fréquentes) et permet de
-//      rejouer la visite guidée à tout moment.
+//      il donne l'aide complète de la page et permet de rejouer
+//      la visite à tout moment.
+//
+//  LA VISITE SUIT L'USAGER. Une bulle ne parle jamais d'une zone
+//  qui n'est pas à l'écran : chaque étape porte le sélecteur de
+//  sa zone, et l'état de l'interface est lu dans ce sélecteur
+//  (« #mappingPanel.visible », « #btnCompare:not([disabled]) »).
+//  D'où deux temps :
+//    1. À L'OUVERTURE — les étapes dont la zone est déjà affichée
+//       s'enchaînent, page assombrie, comme une visite classique.
+//    2. PLUS TARD — les étapes suivantes attendent que leur zone
+//       apparaisse (fichiers déposés, résultats affichés). Elles
+//       se montrent alors en BULLE DISCRÈTE : pas de voile, rien
+//       n'est bloqué, et la bulle s'efface dès que l'usager fait
+//       autre chose.
+//  Une étape peut aussi attendre une action (`attendClic`) quand
+//  c'est le clic de l'usager qui fait apparaître la suite — le
+//  cas de l'accueil, où le type d'analyse commande l'affichage.
 //
 //  La page ne fournit qu'une variable, avant ce script :
 //      <script>window.XLDIFF_PAGE = 'advanced';</script>
@@ -23,13 +37,14 @@
 (() => {
   // Bump uniquement quand le CONTENU d'une visite change : les
   // usagers qui l'ont déjà vue la reverront alors une fois.
-  const VERSION_VISITE = '3.0';
+  const VERSION_VISITE = '3.1';
 
   // ---------- Contenu, par page ----------
-  //   visite   : bulles successives { cible, titre, texte }
+  //   visite   : étapes { cible, titre, texte, attendClic }
   //              cible = sélecteur (ou liste : la 1re zone visible
-  //              gagne) ; si rien n'est visible, la bulle s'affiche
-  //              au centre, sans flèche.
+  //              gagne). Le sélecteur décrit AUSSI l'état attendu
+  //              de l'interface : tant qu'il ne désigne rien de
+  //              visible, l'étape patiente.
   //   sections : aide détaillée du volet
   //   faq      : questions fréquentes (repliées)
 
@@ -39,18 +54,14 @@
       visite: [
         {
           cible: '.choice-grid',
+          attendClic: true,
           titre: 'Commencez par le type d\'analyse',
-          texte: 'Les <strong>différences</strong>, ce sont les lignes présentes dans un fichier et absentes de l\'autre. Les <strong>doublons</strong>, ce sont les lignes que l\'on retrouve dans plusieurs fichiers. Cliquez sur la carte qui correspond à votre besoin.',
+          texte: 'Les <strong>différences</strong>, ce sont les lignes présentes dans un fichier et absentes de l\'autre. Les <strong>doublons</strong>, ce sont les lignes que l\'on retrouve dans plusieurs fichiers. <strong>Cliquez sur la carte</strong> qui correspond à votre besoin : la suite s\'affichera juste en dessous.',
         },
         {
-          cible: ['#modeSectionDiff.visible', '#modeSectionDupes.visible', '.choice-grid'],
-          titre: 'Puis dites si vos fichiers se ressemblent',
-          texte: 'Une seconde question apparaît : <strong>vos fichiers ont-ils les mêmes colonnes ?</strong> Si oui, le mode <strong>simple</strong> fait tout automatiquement. Sinon, le mode <strong>avancé</strong> vous laisse associer vous-même les colonnes — et accepte un troisième fichier.',
-        },
-        {
-          cible: '.privacy-note',
-          titre: 'Vos fichiers restent sur votre poste',
-          texte: 'Tout est calculé dans votre navigateur : aucun fichier n\'est envoyé sur le réseau. Cette présentation ne s\'affiche qu\'une fois — le bouton <strong>?</strong> en haut à droite la rouvre quand vous voulez.',
+          cible: ['#modeSectionDiff.visible', '#modeSectionDupes.visible'],
+          titre: 'Vos fichiers se ressemblent-ils ?',
+          texte: 'Si vos fichiers viennent du <strong>même export Excel</strong>, prenez le mode <strong>simple</strong> : tout est automatique. S\'ils viennent d\'outils différents, prenez le mode <strong>avancé</strong> : vous y associez vous-même les colonnes, et vous pouvez ajouter un troisième fichier.',
         },
       ],
       sections: [
@@ -95,17 +106,17 @@
         {
           cible: '.drop-row',
           titre: 'Déposez vos deux fichiers',
-          texte: 'Glissez-déposez un fichier dans chaque zone, ou cliquez pour le choisir. Formats acceptés : <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>, <code>.htm</code>. Si le classeur contient plusieurs feuilles, un menu vous laisse choisir laquelle analyser.',
+          texte: 'Glissez-déposez un fichier dans chaque zone, ou cliquez pour le choisir. Formats acceptés : <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>, <code>.htm</code>. Si le classeur contient plusieurs feuilles, un menu vous laissera choisir laquelle analyser.',
         },
         {
-          cible: ['#btnCompare', '.action-bar'],
-          titre: 'Lancez la comparaison',
-          texte: 'Les colonnes communes aux deux fichiers sont détectées toutes seules : vous n\'avez rien à régler. La comparaison porte sur <strong>toutes</strong> ces colonnes — deux lignes sont identiques si toutes leurs valeurs le sont.',
+          cible: '#btnCompare:not([disabled])',
+          titre: 'Vos fichiers sont prêts',
+          texte: 'Les colonnes communes aux deux fichiers ont été détectées toutes seules : vous n\'avez rien à régler. La comparaison porte sur <strong>toutes</strong> ces colonnes — deux lignes sont identiques si toutes leurs valeurs le sont. Cliquez sur <strong>Comparer</strong>.',
         },
         {
-          cible: ['#results.visible', '.action-bar'],
+          cible: '#results.visible',
           titre: 'Lisez le résultat',
-          texte: 'Le résultat commence par un <strong>résumé en phrases simples</strong>, suivi du détail ligne par ligne dans des onglets. Le bouton <strong>Exporter .xlsx</strong> enregistre tout dans un fichier Excel, et <strong>Recommencer</strong> repart d\'une page vierge.',
+          texte: 'Le résultat commence par un <strong>résumé en phrases simples</strong>, suivi du détail ligne par ligne dans des onglets. <strong>Exporter .xlsx</strong> enregistre tout dans un fichier Excel, et <strong>Recommencer</strong> repart d\'une page vierge.',
         },
       ],
       sections: [
@@ -152,17 +163,17 @@
         {
           cible: '.drop-row',
           titre: 'Déposez vos deux fichiers',
-          texte: 'Glissez-déposez un fichier dans chaque zone, ou cliquez pour le choisir. Formats acceptés : <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>, <code>.htm</code>. Si le classeur contient plusieurs feuilles, un menu vous laisse choisir laquelle analyser.',
+          texte: 'Glissez-déposez un fichier dans chaque zone, ou cliquez pour le choisir. Formats acceptés : <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>, <code>.htm</code>. Si le classeur contient plusieurs feuilles, un menu vous laissera choisir laquelle analyser.',
         },
         {
-          cible: ['#btnCompare', '.action-bar'],
-          titre: 'Lancez la recherche',
-          texte: 'Les colonnes communes aux deux fichiers sont détectées toutes seules. Deux lignes sont <strong>en double</strong> si toutes leurs colonnes sont identiques — c\'est l\'inverse exact de la recherche de différences.',
+          cible: '#btnCompare:not([disabled])',
+          titre: 'Vos fichiers sont prêts',
+          texte: 'Les colonnes communes ont été détectées toutes seules. Deux lignes sont <strong>en double</strong> si toutes leurs colonnes sont identiques — c\'est l\'inverse exact de la recherche de différences. Cliquez sur <strong>Rechercher les doublons</strong>.',
         },
         {
-          cible: ['#results.visible', '.action-bar'],
+          cible: '#results.visible',
           titre: 'Lisez le résultat',
-          texte: 'Un <strong>résumé en phrases simples</strong>, puis le détail : les lignes en double vues côté A, puis côté B. Le bouton <strong>Exporter .xlsx</strong> enregistre la liste dans un fichier Excel.',
+          texte: 'Un <strong>résumé en phrases simples</strong>, puis le détail : les lignes en double vues côté A, puis côté B, avec leur numéro de ligne d\'origine. <strong>Exporter .xlsx</strong> enregistre la liste dans un fichier Excel.',
         },
       ],
       sections: [
@@ -208,22 +219,27 @@
         {
           cible: '.drop-row',
           titre: 'Déposez vos fichiers',
-          texte: 'Deux fichiers suffisent ; le <strong>fichier C est facultatif</strong> et permet de comparer trois fichiers d\'un coup. Ils peuvent venir d\'outils différents et n\'ont pas besoin d\'avoir les mêmes colonnes.',
+          texte: 'Deux fichiers suffisent ; le <strong>fichier C est facultatif</strong> et permet de comparer trois fichiers d\'un coup. Ils peuvent venir d\'outils différents et n\'ont pas besoin d\'avoir les mêmes colonnes. Les réglages apparaîtront ici même une fois les fichiers chargés.',
         },
         {
-          cible: ['#mappingPanel.visible', '#mappingPanel', '.drop-row'],
+          cible: '#sheetPanel.visible',
+          titre: 'Choisissez la feuille',
+          texte: 'Un de vos classeurs contient plusieurs feuilles (onglets Excel). XLDiff a pré-sélectionné la plus fournie : changez-la ici si ce n\'est pas la bonne.',
+        },
+        {
+          cible: '#mappingPanel.visible',
           titre: 'Colonnes de rapprochement',
-          texte: 'Ce sont les colonnes qui <strong>identifient une même ligne</strong> d\'un fichier à l\'autre — par exemple le nom et la date de naissance. Une ligne sans équivalent dans un autre fichier est signalée comme différence. Les colonnes de même nom sont pré-associées.',
+          texte: 'Ce sont les colonnes qui <strong>identifient une même ligne</strong> d\'un fichier à l\'autre — par exemple le nom et la date de naissance. Une ligne sans équivalent dans un autre fichier est signalée comme différence. Les colonnes de même nom sont déjà associées.',
         },
         {
-          cible: ['#comparePanel.visible', '#comparePanel', '.drop-row'],
+          cible: '#comparePanel.visible',
           titre: 'Colonnes à comparer (facultatif)',
-          texte: 'Une fois la ligne retrouvée, XLDiff vérifie le contenu de ces colonnes — l\'adresse, par exemple. Les lignes retrouvées dont une valeur diffère ne sont pas des absences : elles remontent dans l\'onglet <strong>Retrouvées mais différentes</strong>.',
+          texte: 'Une fois la ligne retrouvée, XLDiff peut vérifier le contenu de ces colonnes — l\'adresse, par exemple. Les lignes retrouvées dont une valeur diffère ne sont pas des absences : elles remontent dans l\'onglet <strong>Retrouvées mais différentes</strong>.',
         },
         {
-          cible: '.action-bar',
-          titre: 'Comparez, puis exportez',
-          texte: 'Deux exports vous attendent : <strong>Exporter .xlsx</strong> pour la liste des différences, et <strong>Exporter le fichier A annoté</strong> pour reprendre votre fichier A tel quel avec le verdict de l\'analyse ajouté à droite.',
+          cible: '#results.visible',
+          titre: 'Lisez le résultat, puis exportez',
+          texte: 'Un résumé en phrases simples, puis le détail par onglets — avec trois fichiers, la colonne <strong>Présente dans</strong> dit où chaque ligne se trouve. Deux exports : <strong>Exporter .xlsx</strong> pour la liste, et <strong>Exporter le fichier A annoté</strong> pour reprendre votre fichier A avec le verdict ajouté à droite.',
         },
       ],
       sections: [
@@ -289,17 +305,22 @@
         {
           cible: '.drop-row',
           titre: 'Déposez vos fichiers',
-          texte: 'Deux fichiers suffisent ; le <strong>fichier C est facultatif</strong> et permet de chercher les doublons sur trois fichiers. Ils peuvent venir d\'outils différents et n\'ont pas besoin d\'avoir les mêmes colonnes.',
+          texte: 'Deux fichiers suffisent ; le <strong>fichier C est facultatif</strong> et permet de chercher les doublons sur trois fichiers. Ils peuvent venir d\'outils différents et n\'ont pas besoin d\'avoir les mêmes colonnes. Les réglages apparaîtront ici même une fois les fichiers chargés.',
         },
         {
-          cible: ['#mappingPanel.visible', '#mappingPanel', '.drop-row'],
+          cible: '#sheetPanel.visible',
+          titre: 'Choisissez la feuille',
+          texte: 'Un de vos classeurs contient plusieurs feuilles (onglets Excel). XLDiff a pré-sélectionné la plus fournie : changez-la ici si ce n\'est pas la bonne.',
+        },
+        {
+          cible: '#mappingPanel.visible',
           titre: 'Associez les colonnes',
-          texte: 'Indiquez quelles colonnes se correspondent d\'un fichier à l\'autre — par exemple <em>Nom</em> dans A et <em>Raison sociale</em> dans B. Deux lignes sont <strong>en double</strong> si toutes les colonnes associées sont identiques. Les colonnes de même nom sont pré-associées.',
+          texte: 'Indiquez quelles colonnes se correspondent d\'un fichier à l\'autre — par exemple <em>Nom</em> dans A et <em>Raison sociale</em> dans B. Deux lignes sont <strong>en double</strong> si toutes les colonnes associées sont identiques. Les colonnes de même nom sont déjà associées.',
         },
         {
-          cible: '.action-bar',
-          titre: 'Cherchez, puis exportez',
-          texte: 'Le résultat s\'ouvre sur un résumé en phrases simples, puis le détail par fichier. Avec trois fichiers, une ligne est en double dès qu\'elle se retrouve dans <strong>au moins un autre fichier</strong> : la colonne <strong>Présente dans</strong> dit lesquels.',
+          cible: '#results.visible',
+          titre: 'Lisez le résultat',
+          texte: 'Un résumé en phrases simples, puis le détail par fichier. Avec trois fichiers, une ligne est en double dès qu\'elle se retrouve dans <strong>au moins un autre fichier</strong> : la colonne <strong>Présente dans</strong> dit lesquels.',
         },
       ],
       sections: [
@@ -344,6 +365,7 @@
   const PAGE = window.XLDIFF_PAGE;
   const contenu = AIDE[PAGE];
   if (!contenu) return; // page sans aide (changelog…)
+  const PAS = contenu.visite || [];
 
   const rAF = window.requestAnimationFrame
     ? window.requestAnimationFrame.bind(window)
@@ -383,6 +405,10 @@
 
   let panneau = null;
   let voilePanneau = null;
+
+  function panneauOuvert() {
+    return !!panneau && panneau.classList.contains('visible');
+  }
 
   function construirePanneau() {
     voilePanneau = document.createElement('div');
@@ -426,6 +452,8 @@
 
   function ouvrirPanneau() {
     if (!panneau) construirePanneau();
+    // Une bulle discrète en attente ne doit pas se superposer au volet
+    masquerBulle();
     voilePanneau.classList.add('visible');
     panneau.classList.add('visible');
     document.body.classList.add('xld-fige');
@@ -437,25 +465,43 @@
     voilePanneau.classList.remove('visible');
     panneau.classList.remove('visible');
     document.body.classList.remove('xld-fige');
+    // La visite reprend la main si elle attendait une zone
+    verifier();
   }
 
   // ---------- Visite guidée ----------
 
   let visiteDom = null;
-  let etape = 0;
+  let etape = -1;
+  // 'inactive' | 'ouverture' (bulles modales enchaînées) | 'differee'
+  // (bulles discrètes, déclenchées par l'apparition de leur zone)
+  let phase = 'inactive';
+  let observateur = null;
+  let minuteur = null;
+  // Étapes dont la zone était déjà à l'écran quand la bulle courante a
+  // été affichée : elles ne sont pas « nouvelles » et ne doivent donc
+  // pas chasser la bulle en cours (les deux panneaux de colonnes
+  // apparaissent ensemble — on ne veut qu'une bulle, pas deux).
+  let dejaLa = new Set();
+  // Étapes réellement affichées, pour que « Précédent » revienne à la
+  // bulle précédente et non à l'étape i-1, qui a pu être enjambée.
+  let historique = [];
 
   function estVisible(el) {
     if (!el || !el.getBoundingClientRect) return false;
     const r = el.getBoundingClientRect();
-    return r.width > 0 && r.height > 0;
+    return r.width > 0 || r.height > 0;
   }
 
-  // Première zone visible parmi les sélecteurs proposés ; null si
-  // aucune (la bulle s'affiche alors au centre, sans flèche).
-  function trouverCible(cible) {
-    const liste = Array.isArray(cible) ? cible : [cible];
+  // Première zone visible parmi les sélecteurs proposés. Le sélecteur
+  // porte l'état attendu (« .visible », « :not([disabled]) ») : tant
+  // qu'il ne désigne rien, l'étape n'a pas lieu d'être.
+  function zoneDe(pas) {
+    if (!pas) return null;
+    const liste = Array.isArray(pas.cible) ? pas.cible : [pas.cible];
     for (const sel of liste) {
-      const el = document.querySelector(sel);
+      let el = null;
+      try { el = document.querySelector(sel); } catch (e) { el = null; }
       if (estVisible(el)) return el;
     }
     return null;
@@ -472,7 +518,7 @@
     bulle.className = 'xld-bulle';
     bulle.setAttribute('role', 'dialog');
     bulle.innerHTML =
-      `<button type="button" class="xld-bulle-fermer" aria-label="Fermer la présentation">✕</button>
+      `<button type="button" class="xld-bulle-fermer" aria-label="Fermer">✕</button>
        <div class="xld-bulle-etape"></div>
        <div class="xld-bulle-titre"></div>
        <div class="xld-bulle-texte"></div>
@@ -488,67 +534,174 @@
     document.body.appendChild(bulle);
 
     bulle.querySelector('.xld-passer').addEventListener('click', finirVisite);
-    bulle.querySelector('.xld-bulle-fermer').addEventListener('click', finirVisite);
-    bulle.querySelector('.xld-prec').addEventListener('click', () => allerA(etape - 1));
-    bulle.querySelector('.xld-suiv').addEventListener('click', () => allerA(etape + 1));
+    bulle.querySelector('.xld-bulle-fermer').addEventListener('click', () => passerAuSuivant(true));
+    bulle.querySelector('.xld-prec').addEventListener('click', retour);
+    bulle.querySelector('.xld-suiv').addEventListener('click', () => suite());
+    // Cliquer le voile met fin à la visite ; entrer avec un fichier
+    // glissé la referme aussi, pour ne pas gêner le dépôt.
     voile.addEventListener('click', finirVisite);
+    voile.addEventListener('dragenter', finirVisite);
 
     visiteDom = { voile, spot, bulle };
     return visiteDom;
   }
 
   function demarrerVisite() {
-    if (!contenu.visite || !contenu.visite.length) return;
+    if (!PAS.length) return;
     if (!visiteDom) construireVisite();
-    document.body.classList.add('xld-fige');
-    visiteDom.voile.classList.add('visible');
-    visiteDom.bulle.classList.add('visible');
+    // Vue une fois : elle ne se relancera plus d'elle-même, même si
+    // l'usager quitte la page avant la fin du parcours.
+    ecrire(CLE, VERSION_VISITE);
+    document.removeEventListener('keydown', touche);
     document.addEventListener('keydown', touche);
-    allerA(0);
+    phase = 'ouverture';
+    etape = -1;
+    historique = [];
+    afficherOuAttendre(0);
   }
 
-  function allerA(n) {
-    const pas = contenu.visite;
-    if (n < 0) return;
-    if (n >= pas.length) { finirVisite(); return; }
-    etape = n;
-    const { bulle, spot } = visiteDom;
-    const p = pas[n];
+  // Première étape, à partir de `depuis`, dont la zone est à l'écran.
+  // Les étapes dont la zone n'existe pas encore sont enjambées : le
+  // panneau « Choix des feuilles » n'apparaît que si un classeur a
+  // plusieurs onglets, et la visite ne doit pas rester bloquée dessus.
+  function prochaineVisible(depuis) {
+    for (let i = Math.max(0, depuis); i < PAS.length; i++) {
+      const zone = zoneDe(PAS[i]);
+      if (zone) return { i, zone };
+    }
+    return null;
+  }
 
-    bulle.querySelector('.xld-bulle-etape').textContent = `Étape ${n + 1} sur ${pas.length}`;
+  // Affiche la prochaine étape affichable, sinon se met en attente.
+  function afficherOuAttendre(depuis) {
+    if (depuis >= PAS.length) { finirVisite(); return; }
+    const trouve = prochaineVisible(depuis);
+    if (trouve) { afficher(trouve.i, trouve.zone); return; }
+    etape = depuis;
+    phase = 'differee';
+    masquerBulle();
+    armerObservateur();
+  }
+
+  // Passer à la suite.
+  //   implicite = l'usager n'a pas demandé la suite, il s'est remis au
+  //   travail (clic ailleurs, Échap, croix). On n'enchaîne alors pas
+  //   sur une zone déjà à l'écran : on attend le prochain écran.
+  function passerAuSuivant(implicite) {
+    let i = etape + 1;
+    if (implicite) {
+      while (i < PAS.length && zoneDe(PAS[i])) i++;
+      if (i >= PAS.length) { finirVisite(); return; }
+      etape = i;
+      phase = 'differee';
+      masquerBulle();
+      armerObservateur();
+      return;
+    }
+    afficherOuAttendre(i);
+  }
+
+  function suite() {
+    if (phase === 'ouverture' && etape >= 0) historique.push(etape);
+    passerAuSuivant(false);
+  }
+
+  // Revient à la bulle précédemment affichée (enchaînement d'ouverture)
+  function retour() {
+    const j = historique.pop();
+    if (j == null) return;
+    const zone = zoneDe(PAS[j]);
+    if (zone) afficher(j, zone);
+  }
+
+  function afficher(i, zone) {
+    etape = i;
+    const p = PAS[i];
+    const discret = phase !== 'ouverture';
+    const { bulle, spot, voile } = visiteDom;
+
+    dejaLa = new Set();
+    for (let j = 0; j < PAS.length; j++) if (zoneDe(PAS[j])) dejaLa.add(j);
+
+    bulle.querySelector('.xld-bulle-etape').textContent = `Étape ${i + 1} sur ${PAS.length}`;
     bulle.querySelector('.xld-bulle-titre').textContent = p.titre;
     bulle.querySelector('.xld-bulle-texte').innerHTML = p.texte;
-    bulle.querySelector('.xld-prec').style.display = n === 0 ? 'none' : '';
-    bulle.querySelector('.xld-suiv').textContent = n === pas.length - 1 ? 'Terminer' : 'Suivant ›';
 
-    const cible = trouverCible(p.cible);
-    if (cible && typeof cible.scrollIntoView === 'function') {
-      try { cible.scrollIntoView({ block: 'center' }); } catch (e) { /* navigateur ancien */ }
+    const prec = bulle.querySelector('.xld-prec');
+    const suiv = bulle.querySelector('.xld-suiv');
+    // « Précédent » n'a de sens que dans l'enchaînement d'ouverture
+    prec.style.display = (!discret && historique.length) ? '' : 'none';
+
+    if (p.attendClic) {
+      // C'est l'action de l'usager qui fait apparaître la suite
+      suiv.style.display = 'none';
+    } else if (i + 1 >= PAS.length) {
+      suiv.style.display = '';
+      suiv.textContent = 'Terminer';
+    } else if (prochaineVisible(i + 1)) {
+      suiv.style.display = '';
+      suiv.textContent = 'Suivant ›';
+    } else {
+      // La suite viendra quand sa zone s'affichera : on ne promet pas
+      // un « Suivant » qui ne mènerait nulle part.
+      suiv.style.display = '';
+      suiv.textContent = 'J\'ai compris';
     }
-    spot.style.display = cible ? 'block' : 'none';
-    // Le placement se fait après le rendu : la bulle doit avoir sa
-    // taille définitive, et le défilement doit être terminé.
-    rAF(() => placer(cible));
+
+    bulle.classList.toggle('discret', discret);
+    bulle.classList.add('visible');
+    voile.classList.toggle('visible', !discret);
+    // Une étape qui attend un clic ne doit pas bloquer ce clic
+    voile.classList.toggle('traversant', !!p.attendClic);
+    spot.classList.toggle('discret', discret);
+    document.body.classList.toggle('xld-fige', !discret);
+
+    if (discret) {
+      // La page reste utilisable : la bulle s'efface dès que
+      // l'usager fait autre chose.
+      document.addEventListener('pointerdown', clicAilleurs, true);
+      // Si la zone est hors écran, on l'amène doucement à la vue
+      const r = zone.getBoundingClientRect();
+      const h = window.innerHeight || 800;
+      if ((r.bottom < 0 || r.top > h) && typeof zone.scrollIntoView === 'function') {
+        try { zone.scrollIntoView({ block: 'center' }); } catch (e) { /* navigateur ancien */ }
+      }
+    } else if (typeof zone.scrollIntoView === 'function') {
+      try { zone.scrollIntoView({ block: 'center' }); } catch (e) { /* navigateur ancien */ }
+    }
+
+    // Une étape qui attend un clic doit surveiller l'apparition de la suite
+    if (p.attendClic) armerObservateur();
+
+    rAF(() => placer(zone, discret));
   }
 
-  function placer(cible) {
-    const { bulle, spot, voile } = visiteDom;
+  // Positionnement : en ouverture la bulle est fixe (la page est
+  // figée) ; en mode discret elle est ancrée dans le document, pour
+  // rester collée à sa zone quand l'usager fait défiler la page.
+  function placer(zone, discret) {
+    const { bulle, spot } = visiteDom;
     const marge = 16;
     const vw = window.innerWidth || 1200;
     const vh = window.innerHeight || 800;
-    bulle.classList.remove('fleche-haut', 'fleche-bas');
+    const dx = discret ? (window.scrollX || 0) : 0;
+    const dy = discret ? (window.scrollY || 0) : 0;
 
-    if (!cible) {
-      voile.classList.add('sombre');
-      bulle.style.top = Math.max(16, (vh - bulle.offsetHeight) / 2) + 'px';
-      bulle.style.left = Math.max(16, (vw - bulle.offsetWidth) / 2) + 'px';
+    bulle.classList.remove('fleche-haut', 'fleche-bas');
+    bulle.classList.toggle('ancree', discret);
+    spot.classList.toggle('ancree', discret);
+
+    if (!zone) {
+      spot.style.display = 'none';
+      bulle.style.top = (Math.max(16, (vh - bulle.offsetHeight) / 2) + dy) + 'px';
+      bulle.style.left = (Math.max(16, (vw - bulle.offsetWidth) / 2) + dx) + 'px';
       return;
     }
-    voile.classList.remove('sombre');
 
-    const r = cible.getBoundingClientRect();
-    spot.style.top = (r.top - 6) + 'px';
-    spot.style.left = (r.left - 6) + 'px';
+    const r = zone.getBoundingClientRect();
+    spot.style.display = 'block';
+    spot.style.top = (r.top - 6 + dy) + 'px';
+    spot.style.left = (r.left - 6 + dx) + 'px';
     spot.style.width = (r.width + 12) + 'px';
     spot.style.height = (r.height + 12) + 'px';
 
@@ -566,37 +719,106 @@
     }
     let left = r.left + r.width / 2 - bw / 2;
     left = Math.min(Math.max(12, left), Math.max(12, vw - bw - 12));
-    bulle.style.top = top + 'px';
-    bulle.style.left = left + 'px';
+    bulle.style.top = (top + dy) + 'px';
+    bulle.style.left = (left + dx) + 'px';
     const fleche = Math.min(Math.max(24, r.left + r.width / 2 - left), bw - 24);
     bulle.style.setProperty('--fleche-x', fleche + 'px');
   }
 
-  function finirVisite() {
+  function masquerBulle() {
     if (!visiteDom) return;
-    visiteDom.voile.classList.remove('visible');
     visiteDom.bulle.classList.remove('visible');
+    visiteDom.voile.classList.remove('visible', 'traversant');
     visiteDom.spot.style.display = 'none';
     document.body.classList.remove('xld-fige');
+    document.removeEventListener('pointerdown', clicAilleurs, true);
+  }
+
+  // L'usager reprend son travail : la bulle discrète s'efface et
+  // l'étape suivante se met en attente de sa zone.
+  function clicAilleurs(e) {
+    if (!visiteDom || !visiteDom.bulle.classList.contains('visible')) return;
+    if (visiteDom.bulle.contains(e.target)) return;
+    passerAuSuivant(true);
+  }
+
+  function finirVisite() {
+    phase = 'inactive';
+    etape = -1;
+    historique = [];
+    masquerBulle();
     document.removeEventListener('keydown', touche);
+    if (observateur) { observateur.disconnect(); observateur = null; }
+    if (minuteur) { clearTimeout(minuteur); minuteur = null; }
     ecrire(CLE, VERSION_VISITE);
   }
 
   function touche(e) {
-    if (e.key === 'Escape') finirVisite();
-    else if (e.key === 'ArrowRight') allerA(etape + 1);
-    else if (e.key === 'ArrowLeft') allerA(etape - 1);
+    if (phase === 'inactive') return;
+    if (e.key === 'Escape') {
+      // Échap ferme la visite d'ouverture ; en mode discret, il écarte
+      // simplement la bulle et laisse venir le prochain écran.
+      if (phase === 'ouverture') finirVisite();
+      else passerAuSuivant(true);
+    } else if (phase === 'ouverture' && visiteDom.bulle.classList.contains('visible')) {
+      if (e.key === 'ArrowRight') suite();
+      else if (e.key === 'ArrowLeft') retour();
+    }
   }
 
-  // Échap ferme aussi le volet d'aide
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && panneau && panneau.classList.contains('visible')) fermerPanneau();
-  });
+  // ---------- Surveillance des zones qui apparaissent ----------
+
+  // Les panneaux et les résultats s'affichent en gagnant la classe
+  // « visible », le bouton Comparer en perdant « disabled » : un
+  // observateur de mutations suffit à savoir quand une étape devient
+  // pertinente, sans que les autres scripts aient à prévenir.
+  function armerObservateur() {
+    if (observateur || !window.MutationObserver) return;
+    observateur = new window.MutationObserver(() => {
+      if (minuteur) return;
+      minuteur = setTimeout(() => { minuteur = null; verifier(); }, 150);
+    });
+    observateur.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['class', 'disabled'],
+    });
+  }
+
+  function verifier() {
+    if (phase === 'inactive' || !visiteDom) return;
+    if (panneauOuvert()) return; // on ne se superpose pas au volet d'aide
+    // En attente d'un clic : c'est l'étape suivante que l'on guette
+    if (visiteDom.bulle.classList.contains('visible')) {
+      // Une bulle est à l'écran : seule une zone qui vient VRAIMENT
+      // d'apparaître, et plus loin dans le parcours, prend sa place.
+      for (let j = etape + 1; j < PAS.length; j++) {
+        if (dejaLa.has(j)) continue;
+        const zone = zoneDe(PAS[j]);
+        if (!zone) continue;
+        phase = 'differee';
+        afficher(j, zone);
+        return;
+      }
+      return;
+    }
+    if (etape < 0 || etape >= PAS.length) return;
+    const trouve = prochaineVisible(etape);
+    if (!trouve) return;
+    phase = 'differee'; // tout ce qui arrive après l'ouverture est discret
+    afficher(trouve.i, trouve.zone);
+  }
 
   window.addEventListener('resize', () => {
     if (visiteDom && visiteDom.bulle.classList.contains('visible')) {
-      placer(trouverCible(contenu.visite[etape].cible));
+      placer(zoneDe(PAS[etape]), visiteDom.bulle.classList.contains('discret'));
     }
+  });
+
+  // Échap ferme aussi le volet d'aide
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && panneauOuvert()) fermerPanneau();
   });
 
   // ---------- Démarrage ----------
@@ -621,5 +843,10 @@
   }
 
   // Utile aux captures d'écran et aux tests
-  window.XLDiffAide = { visite: demarrerVisite, ouvrir: ouvrirPanneau, fermer: fermerPanneau };
+  window.XLDiffAide = {
+    visite: demarrerVisite,
+    ouvrir: ouvrirPanneau,
+    fermer: fermerPanneau,
+    etat: () => ({ phase, etape }),
+  };
 })();
