@@ -202,6 +202,9 @@ body.xld-fige { overflow: hidden; }
   position: fixed;
   width: 350px;
   max-width: calc(100vw - 24px);
+  /* Écran très court : la bulle défile plutôt que de déborder */
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
   background: var(--white);
   border-radius: var(--rl);
   box-shadow: 0 10px 32px rgba(0, 0, 0, .28);

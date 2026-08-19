@@ -2,6 +2,13 @@
 
 Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https://ryosaeba89.github.io/xldiff/pages/changelog.html>
 
+## Version 3.2.1 — 19 août 2026
+
+### Correctif d'affichage sur les petits écrans
+
+- **La bulle ne masque plus ce dont elle parle** : sur un écran peu haut, faute de place au-dessus comme en dessous, elle se plaçait au milieu — donc pile sur les tuiles qu'elle décrivait. Elle se range désormais du côté le plus dégagé, en débordant le moins possible, et la page ne se recentre plus sur la zone (ce qui réduisait justement la place disponible).
+- Sur un écran vraiment court, la bulle défile à l'intérieur plutôt que de dépasser de la fenêtre.
+
 ## Version 3.2 — 19 août 2026
 
 ### Une bulle à la fois, et rien d'autre

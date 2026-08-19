@@ -1,6 +1,6 @@
 # XLDiff — Comparateur de fichiers Excel
 
-**Version 3.2**
+**Version 3.2.1**
 
 Outil web 100 % local pour analyser deux ou trois fichiers Excel. Aucune donnée n'est envoyée sur le réseau : tout le traitement s'effectue dans le navigateur.
 
@@ -83,6 +83,8 @@ La visite se déroule donc en deux temps :
 Vérifié dans un vrai navigateur plutôt que sur le seul CSS : `elementFromPoint` interrogé sur six points renvoie l'élément de l'application à l'intérieur de la zone désignée, et une pièce du cadre partout ailleurs (bouton *Comparer*, cases à cocher, bouton « ? »).
 
 L'usager reprend la main sur toute la page dès qu'il masque la bulle : bouton, croix, clic sur le cadre, `Échap`, ou fichier glissé sur la fenêtre (ce dernier geste masque la bulle pour que le dépôt aboutisse).
+
+**Placement sur un écran court** : la bulle se pose sous la zone si la place suffit, sinon au-dessus. Quand ni l'un ni l'autre ne tient, elle se colle du côté le plus dégagé pour déborder le moins possible — jamais centrée, ce qui reviendrait à masquer justement ce qu'elle décrit. Le défilement vers la zone se fait en `block: 'nearest'` (et non `'center'`, qui réduisait la place disponible des deux côtés), et la bulle défile à l'intérieur d'elle-même si la fenêtre est vraiment basse.
 
 Deux garde-fous complètent le dispositif : la visite ne s'ouvre d'elle-même qu'au **premier passage sur la page**, mémorisé dans `localStorage` (`xldiff.visite.<page>` = version de la visite, notée dès l'affichage de la première bulle) ; et elle s'abstient si l'usager a déjà cliqué, tapé ou déposé un fichier pendant le court délai d'attente, ou si le navigateur refuse le stockage (page ouverte en `file://` sur certains postes).
 

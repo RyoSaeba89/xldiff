@@ -1,6 +1,6 @@
 [package]
 name = "xldiff"
-version = "3.2.0"
+version = "3.2.1"
 description = "XLDiff — comparateur de fichiers Excel"
 authors = ["Jacques Rennie"]
 edition = "2021"

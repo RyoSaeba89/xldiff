@@ -665,7 +665,10 @@
     document.body.classList.add('xld-fige');
 
     if (typeof zone.scrollIntoView === 'function') {
-      try { zone.scrollIntoView({ block: 'center' }); } catch (e) { /* navigateur ancien */ }
+      // « nearest » : on ne fait défiler que si la zone n'est pas déjà
+      // visible. La centrer laisserait trop peu de place au-dessus comme
+      // en dessous sur un écran court, et la bulle finirait par la couvrir.
+      try { zone.scrollIntoView({ block: 'nearest' }); } catch (e) { /* navigateur ancien */ }
     }
 
     // Une zone peut encore apparaître pendant l'affichage (lecture de
@@ -734,15 +737,24 @@
 
     const bw = bulle.offsetWidth;
     const bh = bulle.offsetHeight;
+    const sous = vh - (r.bottom + marge);  // hauteur libre sous la zone
+    const dessus = r.top - marge;          // hauteur libre au-dessus
     let top;
-    if (r.bottom + marge + bh <= vh - 12) {
+    if (bh <= sous - 12) {
       top = r.bottom + marge;
       bulle.classList.add('fleche-haut'); // flèche sur le dessus de la bulle
-    } else if (r.top - marge - bh >= 12) {
+    } else if (bh <= dessus - 12) {
       top = r.top - marge - bh;
       bulle.classList.add('fleche-bas');
     } else {
-      top = Math.max(12, (vh - bh) / 2);
+      // Écran trop court : la bulle ne tient ni dessous ni dessus. On la
+      // colle du côté le plus dégagé pour qu'elle déborde le MOINS
+      // possible sur la zone — la centrer masquerait justement ce dont
+      // elle parle (cas des tuiles sur un petit écran).
+      top = sous >= dessus
+        ? Math.min(vh - bh - 12, Math.max(12, r.bottom + marge))
+        : Math.max(12, Math.min(r.top - marge - bh, vh - bh - 12));
+      // pas de flèche : elle pointerait dans le vide
     }
     let left = r.left + r.width / 2 - bw / 2;
     left = Math.min(Math.max(12, left), Math.max(12, vw - bw - 12));
