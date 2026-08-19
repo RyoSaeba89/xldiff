@@ -63,14 +63,16 @@
 
     <div class="release">
       <div class="release-header">
-        <span class="release-tag">Version 3.2.1</span>
+        <span class="release-tag">Version 3.3</span>
         <span class="release-date">19 août 2026</span>
       </div>
 
-      <h3>Correctif d'affichage sur les petits écrans</h3>
+      <h3>La présentation s'adapte à toutes les tailles d'écran</h3>
       <ul>
-        <li><strong>La bulle ne masque plus ce dont elle parle</strong> : sur un écran peu haut, faute de place au-dessus comme en dessous, elle se plaçait au milieu — donc pile sur les tuiles qu'elle décrivait. Elle se range désormais du côté le plus dégagé, en débordant le moins possible.</li>
-        <li>Sur un écran vraiment court, la bulle défile à l'intérieur plutôt que de dépasser de la fenêtre.</li>
+        <li><strong>La bulle ne masque plus ce dont elle parle</strong> : sur un écran peu haut, faute de place au-dessus comme en dessous, elle se plaçait au milieu — donc pile sur les tuiles qu'elle décrivait. Elle cherche maintenant sa place dans l'ordre dessous, dessus, à droite, à gauche, et si vraiment rien ne tient, elle se range contre le bord qui gêne le moins, en laissant voir le titre et les premiers champs.</li>
+        <li><strong>La page se positionne pour lui faire de la place</strong> avant qu'elle ne s'affiche, au lieu de subir le défilement en cours.</li>
+        <li><strong>Sur petit écran</strong>, la bulle s'élargit en bandeau, s'allège et défile à l'intérieur plutôt que de dépasser de la fenêtre.</li>
+        <li>Correction d'un défaut d'affichage sur la page d'accueil : le défilement animé qui suit le choix du type d'analyse pouvait décaler la page sous la bulle.</li>
       </ul>
     </div>
 
@@ -217,7 +219,7 @@
   </div>
 </div>
 
-<div class="footer">XLDiff v3.2.1 — Jacques Rennie · Eurométropole de Strasbourg</div>
+<div class="footer">XLDiff v3.3 — Jacques Rennie · Eurométropole de Strasbourg</div>
 
 </body>
 </html>

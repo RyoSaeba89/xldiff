@@ -369,10 +369,6 @@
   if (!contenu) return; // page sans aide (changelog…)
   const PAS = contenu.visite || [];
 
-  const rAF = window.requestAnimationFrame
-    ? window.requestAnimationFrame.bind(window)
-    : cb => setTimeout(cb, 16);
-
   // ---------- Mémorisation « déjà vu » ----------
 
   let stockageOk = true;
@@ -662,20 +658,29 @@
     // aux clics, page non défilable, seule la zone désignée en lumière.
     bulle.classList.add('visible');
     voile.classList.add('visible');
-    document.body.classList.add('xld-fige');
-
-    if (typeof zone.scrollIntoView === 'function') {
-      // « nearest » : on ne fait défiler que si la zone n'est pas déjà
-      // visible. La centrer laisserait trop peu de place au-dessus comme
-      // en dessous sur un écran court, et la bulle finirait par la couvrir.
-      try { zone.scrollIntoView({ block: 'nearest' }); } catch (e) { /* navigateur ancien */ }
-    }
 
     // Une zone peut encore apparaître pendant l'affichage (lecture de
     // fichier qui s'achève) : on continue de surveiller.
     armerObservateur();
 
-    rAF(() => placer(zone));
+    // Placement SYNCHRONE : la bulle est affichée, donc `offsetHeight`
+    // force la mise en page et donne sa vraie hauteur ; `scrollBy` est
+    // appliqué immédiatement, si bien que les rectangles lus juste après
+    // sont à jour. Ne rien confier à requestAnimationFrame ici : il ne
+    // se déclenche pas dans un onglet en arrière-plan (ni sous temps
+    // virtuel), et la bulle resterait alors sans position.
+    degeler(); // le verrou empêcherait le défilement de repositionnement
+    if (document.documentElement && document.documentElement.style) {
+      document.documentElement.style.scrollBehavior = 'auto';
+    }
+    faireDeLaPlace(zone, bulle.offsetHeight);
+    figer();
+    placer(zone);
+    // Reprise après une mise en page tardive (polices, images) — un
+    // simple délai, toujours honoré, contrairement à rAF.
+    setTimeout(() => {
+      if (etape === i && bulle.classList.contains('visible')) placer(zone);
+    }, 60);
   }
 
   // Découpe le voile en quatre pièces autour de la zone désignée : tout
@@ -709,25 +714,89 @@
     pose(pieces.droite, haut, droite, vw - droite, bas - haut);
   }
 
-  // La page étant figée pendant l'affichage, tout est positionné en
-  // coordonnées de fenêtre.
+  // ---------- Moteur de placement ----------
+  //
+  //  Une seule règle pour toutes les pages et toutes les tailles d'écran :
+  //    1. FAIRE DE LA PLACE — si zone + bulle peuvent tenir ensemble, on
+  //       fait défiler la page pour amener le haut de la zone en haut de
+  //       la fenêtre ; sinon on montre au moins le début de la zone.
+  //    2. ÉCRÊTER — une zone plus haute que la fenêtre est traitée par sa
+  //       partie visible.
+  //    3. CHOISIR — dessous, dessus, à droite, à gauche : le premier
+  //       placement qui tient ENTIÈREMENT dans la fenêtre gagne.
+  //    4. ACCOSTER — si aucun ne tient, la bulle se range contre le bord
+  //       qui recouvre le moins la zone (à égalité : le bas, pour laisser
+  //       voir le titre et les premiers champs).
+  //  Aucun cas particulier par écran : c'est la géométrie qui décide.
+
+  const MARGE = 16; // écart entre la bulle et la zone
+  const BORD = 12;  // marge minimale avec le bord de la fenêtre
+
+  function borne(v, mini, maxi) { return Math.min(Math.max(v, mini), Math.max(mini, maxi)); }
+  function fenetre() {
+    return { vw: window.innerWidth || 1200, vh: window.innerHeight || 800 };
+  }
+
+  // Rectangle de la zone, écrêté à la fenêtre
+  function rectVisible(zone) {
+    const { vw, vh } = fenetre();
+    const r = zone.getBoundingClientRect();
+    const haut = borne(r.top, 0, vh);
+    const bas = borne(r.bottom, 0, vh);
+    const gauche = borne(r.left, 0, vw);
+    const droite = borne(r.right, 0, vw);
+    return { top: haut, bottom: bas, left: gauche, right: droite, width: droite - gauche, height: bas - haut };
+  }
+
+  // Étape 1 : amener la zone là où la bulle aura de la place. À faire
+  // AVANT de figer la page (overflow:hidden empêcherait le défilement).
+  function faireDeLaPlace(zone, bh) {
+    if (!zone || typeof zone.getBoundingClientRect !== 'function') return;
+    const { vh } = fenetre();
+    const r = zone.getBoundingClientRect();
+    const besoin = bh + MARGE + BORD;
+    let delta = 0;
+    if (r.height + besoin <= vh - BORD) {
+      // Tout peut tenir : haut de la zone en haut de l'écran, la bulle
+      // se posera dessous.
+      delta = r.top - BORD;
+    } else if (r.top < BORD || r.top > vh * 0.4) {
+      // Zone plus haute que la place disponible : montrer son début.
+      delta = r.top - BORD;
+    }
+    if (Math.abs(delta) <= 2 || typeof window.scrollTo !== 'function') return;
+    // Cible ABSOLUE et bornée : un scrollBy relatif s'ajouterait à un
+    // défilement fluide en cours (l'accueil en déclenche un au clic sur
+    // une carte) et pourrait sortir du document — la page se retrouvait
+    // au-dessus de son propre haut, avec une bande blanche.
+    const doc = document.documentElement;
+    const maxY = Math.max(0, (doc.scrollHeight || 0) - vh);
+    const y = window.scrollY || window.pageYOffset || 0;
+    const cible = Math.min(maxY, Math.max(0, y + delta));
+    try { window.scrollTo(0, cible); } catch (e) { /* jsdom */ }
+  }
+
+  // Aire commune à deux rectangles (0 si disjoints)
+  function recouvrement(a, b) {
+    const l = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+    const h = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+    return l * h;
+  }
+
   function placer(zone) {
     const { bulle, spot } = visiteDom;
-    const marge = 16;
-    const vw = window.innerWidth || 1200;
-    const vh = window.innerHeight || 800;
-
-    bulle.classList.remove('fleche-haut', 'fleche-bas');
+    const { vw, vh } = fenetre();
+    bulle.classList.remove('fleche-haut', 'fleche-bas', 'accoste');
 
     if (!zone) {
       spot.style.display = 'none';
       decouperVoile(null);
-      bulle.style.top = Math.max(16, (vh - bulle.offsetHeight) / 2) + 'px';
-      bulle.style.left = Math.max(16, (vw - bulle.offsetWidth) / 2) + 'px';
+      bulle.style.top = borne((vh - bulle.offsetHeight) / 2, BORD, vh) + 'px';
+      bulle.style.left = borne((vw - bulle.offsetWidth) / 2, BORD, vw) + 'px';
       return;
     }
 
-    const r = zone.getBoundingClientRect();
+    const r = rectVisible(zone);
     decouperVoile(r);
     spot.style.display = 'block';
     spot.style.top = (r.top - 6) + 'px';
@@ -737,31 +806,89 @@
 
     const bw = bulle.offsetWidth;
     const bh = bulle.offsetHeight;
-    const sous = vh - (r.bottom + marge);  // hauteur libre sous la zone
-    const dessus = r.top - marge;          // hauteur libre au-dessus
-    let top;
-    if (bh <= sous - 12) {
-      top = r.bottom + marge;
-      bulle.classList.add('fleche-haut'); // flèche sur le dessus de la bulle
-    } else if (bh <= dessus - 12) {
-      top = r.top - marge - bh;
-      bulle.classList.add('fleche-bas');
-    } else {
-      // Écran trop court : la bulle ne tient ni dessous ni dessus. On la
-      // colle du côté le plus dégagé pour qu'elle déborde le MOINS
-      // possible sur la zone — la centrer masquerait justement ce dont
-      // elle parle (cas des tuiles sur un petit écran).
-      top = sous >= dessus
-        ? Math.min(vh - bh - 12, Math.max(12, r.bottom + marge))
-        : Math.max(12, Math.min(r.top - marge - bh, vh - bh - 12));
-      // pas de flèche : elle pointerait dans le vide
+    const surX = borne(r.left + r.width / 2 - bw / 2, BORD, vw - bw - BORD);
+    const surY = borne(r.top + r.height / 2 - bh / 2, BORD, vh - bh - BORD);
+
+    // Étape 3 : le premier placement qui tient entièrement
+    const candidats = [
+      { nom: 'dessous', top: r.bottom + MARGE, left: surX, fleche: 'fleche-haut', tient: r.bottom + MARGE + bh <= vh - BORD },
+      { nom: 'dessus', top: r.top - MARGE - bh, left: surX, fleche: 'fleche-bas', tient: r.top - MARGE - bh >= BORD },
+      { nom: 'droite', top: surY, left: r.right + MARGE, tient: r.right + MARGE + bw <= vw - BORD },
+      { nom: 'gauche', top: surY, left: r.left - MARGE - bw, tient: r.left - MARGE - bw >= BORD },
+    ];
+    let choix = null;
+    for (const c of candidats) { if (c.tient) { choix = c; break; } }
+
+    // Étape 4 : rien ne tient — on accoste le bord le moins gênant
+    if (!choix) {
+      const bords = [
+        { nom: 'bord-bas', top: vh - bh - BORD, left: surX },  // le bas d'abord :
+        { nom: 'bord-haut', top: BORD, left: surX },           // préserve le titre
+        { nom: 'bord-droite', top: surY, left: vw - bw - BORD },
+        { nom: 'bord-gauche', top: surY, left: BORD },
+      ];
+      for (const b of bords) {
+        b.recouvre = recouvrement({ top: b.top, left: b.left, right: b.left + bw, bottom: b.top + bh }, r);
+      }
+      bords.sort((a, b) => a.recouvre - b.recouvre); // tri stable : le bas gagne à égalité
+      choix = bords[0];
+      choix.accoste = true;
     }
-    let left = r.left + r.width / 2 - bw / 2;
-    left = Math.min(Math.max(12, left), Math.max(12, vw - bw - 12));
-    bulle.style.top = top + 'px';
-    bulle.style.left = left + 'px';
-    const fleche = Math.min(Math.max(24, r.left + r.width / 2 - left), bw - 24);
-    bulle.style.setProperty('--fleche-x', fleche + 'px');
+
+    bulle.style.top = Math.round(choix.top) + 'px';
+    bulle.style.left = Math.round(choix.left) + 'px';
+    bulle.setAttribute('data-pose', choix.nom); // décision du moteur, lisible en test
+    if (choix.accoste) {
+      bulle.classList.add('accoste');
+    } else if (choix.fleche) {
+      bulle.classList.add(choix.fleche);
+      const fleche = borne(r.left + r.width / 2 - choix.left, 24, bw - 24);
+      bulle.style.setProperty('--fleche-x', fleche + 'px');
+    }
+  }
+
+  // ---------- Gel de la page ----------
+  //
+  //  Pas d'`overflow: hidden` : la page se déplacerait si un défilement
+  //  fluide était en cours (l'accueil en déclenche un au clic sur une
+  //  carte), et la mise en page sauterait. On verrouille la POSITION :
+  //  toute tentative de défilement ramène la page où elle était.
+
+  let posGel = null;
+
+  function reposer() { if (posGel !== null) window.scrollTo(0, posGel); }
+  function bloquerGeste(e) { if (posGel !== null && e.cancelable) e.preventDefault(); }
+
+  let defilementInitial = null;
+
+  function figer() {
+    if (posGel !== null) return;
+    // Neutralise le défilement fluide de la page : l'accueil en déclenche
+    // un au clic sur une carte, et il continuerait sous la bulle.
+    const racine = document.documentElement;
+    if (racine && racine.style) {
+      defilementInitial = racine.style.scrollBehavior;
+      racine.style.scrollBehavior = 'auto';
+    }
+    posGel = window.scrollY || window.pageYOffset || 0;
+    window.addEventListener('scroll', reposer);
+    window.addEventListener('wheel', bloquerGeste, { passive: false });
+    window.addEventListener('touchmove', bloquerGeste, { passive: false });
+    document.body.classList.add('xld-fige');
+  }
+
+  function degeler() {
+    if (posGel === null) return;
+    window.removeEventListener('scroll', reposer);
+    window.removeEventListener('wheel', bloquerGeste);
+    window.removeEventListener('touchmove', bloquerGeste);
+    posGel = null;
+    const racine = document.documentElement;
+    if (racine && racine.style && defilementInitial !== null) {
+      racine.style.scrollBehavior = defilementInitial;
+      defilementInitial = null;
+    }
+    document.body.classList.remove('xld-fige');
   }
 
   // Rend la main à l'usager : plus de bulle, plus de voile, plus de gel
@@ -770,7 +897,7 @@
     visiteDom.bulle.classList.remove('visible');
     visiteDom.voile.classList.remove('visible');
     visiteDom.spot.style.display = 'none';
-    document.body.classList.remove('xld-fige');
+    degeler();
   }
 
   function finirVisite() {

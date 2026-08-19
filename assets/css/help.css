@@ -28,7 +28,10 @@
    porte la marge automatique : le lien se contente de le suivre. */
 .header-help + .header-home { margin-left: 8px; }
 
-body.xld-fige { overflow: hidden; }
+/* Le gel de la page est fait en JS (verrou de la position de défilement),
+   pas par overflow:hidden — qui déplacerait la mise en page si un
+   défilement fluide était en cours. La classe reste pour le curseur. */
+body.xld-fige { cursor: default; }
 
 /* ---------- VOLET D'AIDE ---------- */
 
@@ -317,7 +320,18 @@ body.xld-fige { overflow: hidden; }
 }
 .xld-btn-pri:hover { background: var(--g2); }
 
+/* Bulle accostée à un bord : elle ne pointe rien, donc pas de flèche */
+.xld-bulle.accoste::before { display: none; }
+
 @media (max-width: 900px) {
   .xld-panneau { width: 100vw; max-width: 100vw; }
+}
+/* Petit écran : la bulle devient un bandeau pleine largeur */
+@media (max-width: 560px) {
   .xld-bulle { width: calc(100vw - 24px); }
+}
+/* Écran bas : moins de rembourrage, et la bulle défile à l'intérieur */
+@media (max-height: 480px) {
+  .xld-bulle { padding: 14px 16px 10px; }
+  .xld-bulle-texte { font-size: 12.5px; line-height: 1.5; }
 }
