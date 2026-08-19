@@ -2,6 +2,14 @@
 
 Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https://ryosaeba89.github.io/xldiff/pages/changelog.html>
 
+## Version 3.4 — 19 août 2026
+
+### La présentation revient à chaque visite — ou plus jamais, à votre main
+
+- **Elle se lance à chaque venue sur le site et à chaque ouverture de l'application**, et non plus une seule fois pour toutes. Une seule fois par page et par visite : passer d'un écran à l'autre ne la rejoue pas (trace de portée session).
+- **Nouveau bouton « Je sais utiliser l'application »** sur la première bulle : il coupe la présentation **définitivement et sur toutes les pages** (trace durable). À ne pas confondre avec *Passer*, qui l'écarte seulement pour cette visite.
+- En cas de changement d'avis, le bouton **« ? »** propose de **réafficher la présentation à chaque visite**.
+
 ## Version 3.3.1 — 19 août 2026
 
 ### La présentation se lance dans plus de situations

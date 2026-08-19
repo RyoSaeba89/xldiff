@@ -113,6 +113,22 @@ body.xld-fige { cursor: default; }
 }
 .xld-revoir:hover { background: var(--gl); border-color: var(--g1); }
 
+.xld-reprendre {
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-sec);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 9px 14px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  margin: -12px 0 20px;
+}
+.xld-reprendre:hover { border-color: var(--g1); color: var(--text); }
+
 .xld-section { margin-bottom: 22px; }
 .xld-section h3 {
   font-size: 13px;
@@ -285,9 +301,13 @@ body.xld-fige { cursor: default; }
 .xld-bulle-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 16px;
 }
+/* « Je sais utiliser l'application » : proposé sur la première bulle
+   seulement, et volontairement discret — c'est un renoncement. */
+.xld-jamais { font-weight: 500; }
 .xld-bulle-espace { flex: 1; }
 .xld-bulle-actions button {
   font-family: var(--font);

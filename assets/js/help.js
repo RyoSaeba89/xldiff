@@ -369,17 +369,25 @@
   if (!contenu) return; // page sans aide (changelog…)
   const PAS = contenu.visite || [];
 
-  // ---------- Mémorisation « déjà vu » ----------
+  // ---------- Mémoire : la visite, et le renoncement ----------
   //
-  //  On mémorise dans cet ordre : localStorage (durable), à défaut
-  //  sessionStorage (l'onglet en cours), à défaut une simple variable.
-  //  Un navigateur qui refuse le stockage — InPrivate, stratégie
-  //  d'entreprise, certains postes en file:// — ne doit pas priver
-  //  l'usager de la présentation : il la verra une fois par session
-  //  plutôt que jamais.
+  //  Deux mémoires, deux portées :
+  //    • LA VISITE DE CETTE PAGE — mémorisée pour la SESSION seulement
+  //      (sessionStorage). La présentation se relance donc à chaque
+  //      visite du site ou ouverture de l'application, mais pas à
+  //      chaque aller-retour entre les pages d'une même visite.
+  //    • LE RENONCEMENT — « Je sais utiliser l'application » —
+  //      mémorisé DURABLEMENT (localStorage) et valable pour TOUTES
+  //      les pages : plus aucune présentation ne s'ouvrira d'elle-même.
+  //
+  //  Si le navigateur refuse le stockage (navigation privée, stratégie
+  //  d'entreprise, certains postes en file://), on retombe sur une
+  //  simple variable : la présentation reste vue une fois, et le
+  //  renoncement tient au moins pour la page en cours.
 
-  const CLE = 'xldiff.visite.' + PAGE;
-  let memoireVive = null;
+  const CLE = 'xldiff.visite.' + PAGE;   // portée session
+  const CLE_JAMAIS = 'xldiff.aide.jamais'; // portée durable, toutes pages
+  const memoireVive = {};
 
   function coffre(nom) {
     try {
@@ -392,18 +400,35 @@
     } catch (e) { return null; }
   }
 
-  const stockage = coffre('localStorage') || coffre('sessionStorage');
-  const stockageOk = !!stockage;
+  const durable = coffre('localStorage');
+  const session = coffre('sessionStorage') || durable;
+  const stockageOk = !!(durable || session);
 
-  function lire(cle) {
-    if (!stockage) return memoireVive;
-    try { return stockage.getItem(cle); } catch (e) { return memoireVive; }
+  function lire(cle, coffreVoulu) {
+    const c = coffreVoulu || session;
+    if (!c) return memoireVive[cle] || null;
+    try { return c.getItem(cle); } catch (e) { return memoireVive[cle] || null; }
   }
-  function ecrire(cle, valeur) {
-    memoireVive = valeur;
-    if (!stockage) return;
-    try { stockage.setItem(cle, valeur); } catch (e) { /* quota, mode privé */ }
+  function ecrire(cle, valeur, coffreVoulu) {
+    memoireVive[cle] = valeur;
+    const c = coffreVoulu || session;
+    if (!c) return;
+    try { c.setItem(cle, valeur); } catch (e) { /* quota, mode privé */ }
   }
+  function effacer(cle, coffreVoulu) {
+    delete memoireVive[cle];
+    const c = coffreVoulu || session;
+    if (!c) return;
+    try { c.removeItem(cle); } catch (e) { /* rien */ }
+  }
+
+  // « Je sais utiliser l'application » : renoncement durable et global
+  function renonce() { return lire(CLE_JAMAIS, durable) === 'oui'; }
+  function renoncer() {
+    ecrire(CLE_JAMAIS, 'oui', durable);
+    finirVisite();
+  }
+  function reprendre() { effacer(CLE_JAMAIS, durable); }
 
   // ---------- Bouton « ? » de l'en-tête ----------
 
@@ -455,6 +480,7 @@
        </div>
        <div class="xld-panneau-corps">
          <button type="button" class="xld-revoir">▸ Revoir la présentation de la page</button>
+         <button type="button" class="xld-reprendre">↻ Réafficher la présentation à chaque visite</button>
          ${sections}
          <section class="xld-section"><h3>Questions fréquentes</h3>${faq}</section>
          <p class="xld-panneau-pied">
@@ -467,6 +493,14 @@
       fermerPanneau();
       demarrerVisite();
     });
+    // Proposé seulement à qui a dit « Je sais utiliser l'application »
+    panneau.querySelector('.xld-reprendre').addEventListener('click', e => {
+      reprendre();
+      effacer(CLE);
+      e.target.style.display = 'none';
+      fermerPanneau();
+      demarrerVisite();
+    });
 
     document.body.appendChild(voilePanneau);
     document.body.appendChild(panneau);
@@ -474,6 +508,7 @@
 
   function ouvrirPanneau() {
     if (!panneau) construirePanneau();
+    panneau.querySelector('.xld-reprendre').style.display = renonce() ? '' : 'none';
     // Une bulle discrète en attente ne doit pas se superposer au volet
     masquerBulle();
     voilePanneau.classList.add('visible');
@@ -555,6 +590,7 @@
        <div class="xld-bulle-texte"></div>
        <div class="xld-bulle-actions">
          <button type="button" class="xld-lien xld-passer">Passer</button>
+         <button type="button" class="xld-lien xld-jamais">Je sais utiliser l'application</button>
          <span class="xld-bulle-espace"></span>
          <button type="button" class="xld-btn-sec xld-prec">‹ Précédent</button>
          <button type="button" class="xld-btn-pri xld-suiv">Suivant ›</button>
@@ -565,6 +601,7 @@
     document.body.appendChild(bulle);
 
     bulle.querySelector('.xld-passer').addEventListener('click', finirVisite);
+    bulle.querySelector('.xld-jamais').addEventListener('click', renoncer);
     bulle.querySelector('.xld-bulle-fermer').addEventListener('click', () => passerAuSuivant(true));
     bulle.querySelector('.xld-prec').addEventListener('click', retour);
     bulle.querySelector('.xld-suiv').addEventListener('click', () => suite());
@@ -662,6 +699,8 @@
 
     const prec = bulle.querySelector('.xld-prec');
     const suiv = bulle.querySelector('.xld-suiv');
+    // Le renoncement ne se propose qu'une fois, sur la première bulle
+    bulle.querySelector('.xld-jamais').style.display = (i === 0) ? '' : 'none';
     // « Précédent » n'a de sens que dans l'enchaînement d'ouverture
     prec.style.display = (enchaine && historique.length) ? '' : 'none';
 
@@ -1022,9 +1061,11 @@
     document.addEventListener(ev, marquer, true);
   });
 
-  // Premier passage seulement : la visite ne s'impose jamais deux fois.
-  const dejaVue = lire(CLE);
-  const aVoir = dejaVue !== VERSION_VISITE;
+  // Une fois par visite : la présentation se relance à chaque venue sur
+  // le site ou ouverture de l'application, mais pas d'une page à l'autre
+  // au sein d'une même visite. Sauf renoncement, qui vaut pour toujours
+  // et pour toutes les pages.
+  const aVoir = !renonce() && lire(CLE) !== VERSION_VISITE;
   if (aVoir) {
     setTimeout(() => { if (!interagi) demarrerVisite(); }, 450);
   }
@@ -1035,14 +1076,14 @@
     visite: demarrerVisite,
     ouvrir: ouvrirPanneau,
     fermer: fermerPanneau,
-    oublier: () => { // pour rejouer la présentation depuis zéro
-      try { if (stockage) stockage.removeItem(CLE); } catch (e) { /* rien */ }
-      memoireVive = null;
-    },
+    oublier: () => { effacer(CLE); reprendre(); }, // tout rejouer
+    renoncer,
+    reprendre,
     etat: () => ({
-      page: PAGE, phase, etape,
-      version: VERSION_VISITE, dejaVue: lire(CLE),
-      stockage: stockageOk ? (stockage === window.localStorage ? 'local' : 'session') : 'aucun',
+      page: PAGE, phase, etape, version: VERSION_VISITE,
+      vueCetteVisite: lire(CLE) === VERSION_VISITE,
+      renonce: renonce(),
+      stockage: stockageOk ? (durable ? 'local+session' : 'session') : 'aucun',
       interagi,
     }),
   };

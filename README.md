@@ -1,6 +1,6 @@
 # XLDiff — Comparateur de fichiers Excel
 
-**Version 3.3.1**
+**Version 3.4**
 
 Outil web 100 % local pour analyser deux ou trois fichiers Excel. Aucune donnée n'est envoyée sur le réseau : tout le traitement s'effectue dans le navigateur.
 
@@ -101,7 +101,15 @@ Côté format : largeur `min(350 px, 100vw − 24)`, bandeau pleine largeur sous
 
 **Vérification en matrice** : un pilote parcourt toutes les étapes de chaque page à plusieurs tailles de fenêtre (1366×655, 1280×600, 1024×500, 900×420) et produit un tableau — placement retenu, bulle entièrement à l'écran, part de la zone recouverte. Le critère : aucune bulle hors écran, et recouvrement nul dès qu'un placement tient.
 
-Deux garde-fous complètent le dispositif : la visite ne s'ouvre d'elle-même qu'au **premier passage sur la page**, mémorisé dans `localStorage` (`xldiff.visite.<page>` = version de la visite, notée dès l'affichage de la première bulle) ; et elle s'abstient si l'usager a déjà cliqué, tapé ou déposé un fichier pendant le court délai d'attente, ou si le navigateur refuse le stockage (page ouverte en `file://` sur certains postes).
+### Quand la visite s'ouvre d'elle-même
+
+**À chaque visite du site ou ouverture de l'application** — mais une seule fois par page et par visite : la trace est de portée *session* (`sessionStorage`, clé `xldiff.visite.<page>`), si bien qu'un aller-retour entre les pages ne la rejoue pas, alors qu'une nouvelle venue si.
+
+La première bulle porte un bouton **« Je sais utiliser l'application »** : il inscrit un renoncement **durable et global** (`localStorage`, clé `xldiff.aide.jamais`) et plus aucune présentation ne s'ouvrira d'elle-même, sur aucune page. Le volet du « ? » propose alors, et alors seulement, de **réafficher la présentation à chaque visite**. À distinguer de *Passer*, qui n'écarte la visite que pour cette visite-ci.
+
+Deux garde-fous : la visite s'abstient si l'usager s'est **déjà mis au travail** pendant le court délai d'attente (dépôt de fichier, frappe, ou clic sur un élément actif — un clic dans le décor ne compte pas) ; et si le navigateur refuse le stockage (navigation privée, stratégie d'entreprise, certains postes en `file://`), tout retombe sur une mémoire vive plutôt que de priver l'usager de la présentation.
+
+`XLDiffAide.etat()` renvoie l'état complet (page, version, vue pendant cette visite, renoncement, type de stockage, interaction détectée) — de quoi diagnostiquer en une ligne pourquoi la présentation ne s'est pas lancée.
 
 Techniquement, l'apparition des zones est détectée par un `MutationObserver` (classes `visible`, attribut `disabled`), sans que les autres scripts aient à prévenir l'aide de quoi que ce soit.
 
