@@ -1,6 +1,6 @@
 # XLDiff — Comparateur de fichiers Excel
 
-**Version 3.3**
+**Version 3.3.1**
 
 Outil web 100 % local pour analyser deux ou trois fichiers Excel. Aucune donnée n'est envoyée sur le réseau : tout le traitement s'effectue dans le navigateur.
 

@@ -2,6 +2,14 @@
 
 Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https://ryosaeba89.github.io/xldiff/pages/changelog.html>
 
+## Version 3.3.1 — 19 août 2026
+
+### La présentation se lance dans plus de situations
+
+- **Navigateur qui refuse la mémorisation** (navigation privée, stratégie d'entreprise) : la présentation ne se lançait jamais. Repli sur la mémoire de session, puis sur la mémoire vive — elle se lance au moins une fois par session.
+- **Un clic dans le décor ne l'annule plus** : seuls un dépôt de fichier, une frappe ou un clic sur un élément actif comptent comme « déjà au travail ».
+- `XLDiffAide.etat()` dit désormais pourquoi la présentation ne s'est pas lancée (déjà vue, stockage refusé, usager actif) et `XLDiffAide.oublier()` permet de la rejouer depuis zéro.
+
 ## Version 3.3 — 19 août 2026
 
 ### La présentation s'adapte à toutes les tailles d'écran

@@ -40,7 +40,7 @@
 (() => {
   // Bump uniquement quand le CONTENU d'une visite change : les
   // usagers qui l'ont déjà vue la reverront alors une fois.
-  const VERSION_VISITE = '3.2';
+  const VERSION_VISITE = '3.3';
 
   // ---------- Contenu, par page ----------
   //   visite   : étapes { cible, titre, texte }
@@ -370,15 +370,39 @@
   const PAS = contenu.visite || [];
 
   // ---------- Mémorisation « déjà vu » ----------
+  //
+  //  On mémorise dans cet ordre : localStorage (durable), à défaut
+  //  sessionStorage (l'onglet en cours), à défaut une simple variable.
+  //  Un navigateur qui refuse le stockage — InPrivate, stratégie
+  //  d'entreprise, certains postes en file:// — ne doit pas priver
+  //  l'usager de la présentation : il la verra une fois par session
+  //  plutôt que jamais.
 
-  let stockageOk = true;
   const CLE = 'xldiff.visite.' + PAGE;
+  let memoireVive = null;
+
+  function coffre(nom) {
+    try {
+      const c = window[nom];
+      if (!c) return null;
+      const test = '__xldiff__';
+      c.setItem(test, '1');
+      c.removeItem(test);
+      return c;
+    } catch (e) { return null; }
+  }
+
+  const stockage = coffre('localStorage') || coffre('sessionStorage');
+  const stockageOk = !!stockage;
 
   function lire(cle) {
-    try { return window.localStorage.getItem(cle); } catch (e) { stockageOk = false; return null; }
+    if (!stockage) return memoireVive;
+    try { return stockage.getItem(cle); } catch (e) { return memoireVive; }
   }
   function ecrire(cle, valeur) {
-    try { window.localStorage.setItem(cle, valeur); } catch (e) { stockageOk = false; }
+    memoireVive = valeur;
+    if (!stockage) return;
+    try { stockage.setItem(cle, valeur); } catch (e) { /* quota, mode privé */ }
   }
 
   // ---------- Bouton « ? » de l'en-tête ----------
@@ -982,27 +1006,44 @@
   injecterBouton();
 
   // La visite ne doit jamais couper l'herbe sous le pied : si l'usager
-  // a déjà cliqué, tapé ou déposé un fichier pendant le court délai
-  // d'attente, elle ne s'ouvre pas d'elle-même (le bouton « ? » reste là).
+  // s'est DÉJÀ MIS AU TRAVAIL pendant le court délai d'attente, elle ne
+  // s'ouvre pas d'elle-même (le bouton « ? » reste là). Un clic dans le
+  // vide ou sur un décor ne compte pas : seuls comptent le dépôt d'un
+  // fichier, une frappe, et un clic sur un élément actif de la page.
   let interagi = false;
-  const marquer = () => { interagi = true; };
+  const ACTIFS = 'a, button, input, select, textarea, label, .choice-card, .drop-zone, .mode-card';
+
+  function marquer(e) {
+    if (e.type === 'drop' || e.type === 'change' || e.type === 'keydown') { interagi = true; return; }
+    const cible = e.target;
+    if (cible && cible.closest && cible.closest(ACTIFS)) interagi = true;
+  }
   ['pointerdown', 'keydown', 'drop', 'change'].forEach(ev => {
     document.addEventListener(ev, marquer, true);
   });
 
   // Premier passage seulement : la visite ne s'impose jamais deux fois.
-  // Si le navigateur refuse le stockage (page ouverte en file:// sur
-  // certains postes), on s'abstient plutôt que de la rejouer sans fin.
   const dejaVue = lire(CLE);
-  if (stockageOk && dejaVue !== VERSION_VISITE) {
+  const aVoir = dejaVue !== VERSION_VISITE;
+  if (aVoir) {
     setTimeout(() => { if (!interagi) demarrerVisite(); }, 450);
   }
 
-  // Utile aux captures d'écran et aux tests
+  // `etat()` sert aux tests et au diagnostic : si la visite ne se lance
+  // pas, il dit pourquoi (déjà vue, stockage refusé, usager déjà actif).
   window.XLDiffAide = {
     visite: demarrerVisite,
     ouvrir: ouvrirPanneau,
     fermer: fermerPanneau,
-    etat: () => ({ phase, etape }),
+    oublier: () => { // pour rejouer la présentation depuis zéro
+      try { if (stockage) stockage.removeItem(CLE); } catch (e) { /* rien */ }
+      memoireVive = null;
+    },
+    etat: () => ({
+      page: PAGE, phase, etape,
+      version: VERSION_VISITE, dejaVue: lire(CLE),
+      stockage: stockageOk ? (stockage === window.localStorage ? 'local' : 'session') : 'aucun',
+      interagi,
+    }),
   };
 })();
