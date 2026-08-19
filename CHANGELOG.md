@@ -2,6 +2,13 @@
 
 Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https://ryosaeba89.github.io/xldiff/pages/changelog.html>
 
+## Version 3.2 — 19 août 2026
+
+### Une bulle à la fois, et rien d'autre
+
+- **L'application est figée tant qu'une bulle est affichée** : le reste de la page est assombri et ne réagit plus au clic — ni les tuiles derrière, ni les boutons. Seule la zone dont parle la bulle reste en lumière.
+- **La main revient dès que la bulle est masquée** : bouton, croix, clic à côté ou touche *Échap*. Un fichier glissé sur la fenêtre masque aussi la bulle, pour que le dépôt aboutisse.
+
 ## Version 3.1 — 19 août 2026
 
 ### La présentation suit ce que vous voyez

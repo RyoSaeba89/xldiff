@@ -166,20 +166,19 @@ body.xld-fige { overflow: hidden; }
 
 /* ---------- VISITE GUIDÉE ---------- */
 
-/* Voile transparent : il bloque les clics pendant la visite, la
-   pénombre venant de l'ombre portée du projecteur (.xld-spot). */
+/* Voile de la visite : transparent, mais il INTERCEPTE les clics —
+   l'application est figée tant qu'une bulle est affichée. La pénombre
+   vient de l'ombre portée du projecteur (.xld-spot). */
 .xld-visite-voile {
   position: fixed;
   inset: 0;
   display: none;
+  cursor: default;
   z-index: 970;
 }
 .xld-visite-voile.visible { display: block; }
 /* Aucune zone à désigner : c'est le voile lui-même qui assombrit */
 .xld-visite-voile.sombre { background: rgba(15, 23, 32, .55); }
-/* Étape qui attend un clic de l'usager : le voile ne doit pas
-   intercepter ce clic (il ne sert plus qu'à assombrir). */
-.xld-visite-voile.traversant { pointer-events: none; }
 
 .xld-spot {
   position: fixed;
@@ -191,12 +190,6 @@ body.xld-fige { overflow: hidden; }
   transition: top .18s, left .18s, width .18s, height .18s;
   z-index: 971;
 }
-/* Bulle discrète : la zone est simplement soulignée, la page reste
-   claire et utilisable. Ancrée dans le document, elle suit la page
-   quand l'usager fait défiler. */
-.xld-spot.discret { box-shadow: none; }
-.xld-spot.ancree,
-.xld-bulle.ancree { position: absolute; }
 
 .xld-bulle {
   position: fixed;
@@ -210,12 +203,6 @@ body.xld-fige { overflow: hidden; }
   z-index: 972;
 }
 .xld-bulle.visible { display: block; }
-/* En mode discret, la bulle est un conseil posé à côté de la zone :
-   elle se distingue par un liseré vert plutôt que par la pénombre. */
-.xld-bulle.discret {
-  border-left: 3px solid var(--ga);
-  box-shadow: 0 6px 22px rgba(0, 0, 0, .18);
-}
 
 /* Flèche : « fleche-haut » = la bulle est SOUS la zone désignée,
    la pointe est donc sur son bord supérieur. */

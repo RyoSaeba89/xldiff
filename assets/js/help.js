@@ -16,15 +16,15 @@
 //  (« #mappingPanel.visible », « #btnCompare:not([disabled]) »).
 //  D'où deux temps :
 //    1. À L'OUVERTURE — les étapes dont la zone est déjà affichée
-//       s'enchaînent, page assombrie, comme une visite classique.
+//       s'enchaînent.
 //    2. PLUS TARD — les étapes suivantes attendent que leur zone
-//       apparaisse (fichiers déposés, résultats affichés). Elles
-//       se montrent alors en BULLE DISCRÈTE : pas de voile, rien
-//       n'est bloqué, et la bulle s'efface dès que l'usager fait
-//       autre chose.
-//  Une étape peut aussi attendre une action (`attendClic`) quand
-//  c'est le clic de l'usager qui fait apparaître la suite — le
-//  cas de l'accueil, où le type d'analyse commande l'affichage.
+//       apparaisse (fichiers déposés, résultats affichés).
+//
+//  TANT QU'UNE BULLE EST AFFICHÉE, L'APPLICATION EST FIGÉE : la
+//  page est assombrie, seule la zone désignée reste en lumière, et
+//  rien d'autre ne réagit au clic. L'usager reprend la main dès
+//  qu'il masque la bulle — bouton, croix, clic sur le voile, Échap
+//  ou fichier glissé sur la fenêtre.
 //
 //  La page ne fournit qu'une variable, avant ce script :
 //      <script>window.XLDIFF_PAGE = 'advanced';</script>
@@ -37,10 +37,10 @@
 (() => {
   // Bump uniquement quand le CONTENU d'une visite change : les
   // usagers qui l'ont déjà vue la reverront alors une fois.
-  const VERSION_VISITE = '3.1';
+  const VERSION_VISITE = '3.2';
 
   // ---------- Contenu, par page ----------
-  //   visite   : étapes { cible, titre, texte, attendClic }
+  //   visite   : étapes { cible, titre, texte }
   //              cible = sélecteur (ou liste : la 1re zone visible
   //              gagne). Le sélecteur décrit AUSSI l'état attendu
   //              de l'interface : tant qu'il ne désigne rien de
@@ -54,9 +54,8 @@
       visite: [
         {
           cible: '.choice-grid',
-          attendClic: true,
           titre: 'Commencez par le type d\'analyse',
-          texte: 'Les <strong>différences</strong>, ce sont les lignes présentes dans un fichier et absentes de l\'autre. Les <strong>doublons</strong>, ce sont les lignes que l\'on retrouve dans plusieurs fichiers. <strong>Cliquez sur la carte</strong> qui correspond à votre besoin : la suite s\'affichera juste en dessous.',
+          texte: 'Les <strong>différences</strong>, ce sont les lignes présentes dans un fichier et absentes de l\'autre. Les <strong>doublons</strong>, ce sont les lignes que l\'on retrouve dans plusieurs fichiers. <strong>Choisissez la carte</strong> qui correspond à votre besoin : la suite s\'affichera juste en dessous.',
         },
         {
           cible: ['#modeSectionDiff.visible', '#modeSectionDupes.visible'],
@@ -537,10 +536,11 @@
     bulle.querySelector('.xld-bulle-fermer').addEventListener('click', () => passerAuSuivant(true));
     bulle.querySelector('.xld-prec').addEventListener('click', retour);
     bulle.querySelector('.xld-suiv').addEventListener('click', () => suite());
-    // Cliquer le voile met fin à la visite ; entrer avec un fichier
-    // glissé la referme aussi, pour ne pas gêner le dépôt.
-    voile.addEventListener('click', finirVisite);
-    voile.addEventListener('dragenter', finirVisite);
+    // Cliquer à côté masque la bulle (et rend la main) ; entrer dans la
+    // fenêtre avec un fichier glissé la masque aussi, pour que le dépôt
+    // ne soit pas avalé par le voile.
+    voile.addEventListener('click', () => passerAuSuivant(true));
+    voile.addEventListener('dragenter', () => passerAuSuivant(true));
 
     visiteDom = { voile, spot, bulle };
     return visiteDom;
@@ -617,7 +617,8 @@
   function afficher(i, zone) {
     etape = i;
     const p = PAS[i];
-    const discret = phase !== 'ouverture';
+    // « Précédent » n'a de sens que dans l'enchaînement d'ouverture
+    const enchaine = phase === 'ouverture';
     const { bulle, spot, voile } = visiteDom;
 
     dejaLa = new Set();
@@ -630,12 +631,9 @@
     const prec = bulle.querySelector('.xld-prec');
     const suiv = bulle.querySelector('.xld-suiv');
     // « Précédent » n'a de sens que dans l'enchaînement d'ouverture
-    prec.style.display = (!discret && historique.length) ? '' : 'none';
+    prec.style.display = (enchaine && historique.length) ? '' : 'none';
 
-    if (p.attendClic) {
-      // C'est l'action de l'usager qui fait apparaître la suite
-      suiv.style.display = 'none';
-    } else if (i + 1 >= PAS.length) {
+    if (i + 1 >= PAS.length) {
       suiv.style.display = '';
       suiv.textContent = 'Terminer';
     } else if (prochaineVisible(i + 1)) {
@@ -648,60 +646,44 @@
       suiv.textContent = 'J\'ai compris';
     }
 
-    bulle.classList.toggle('discret', discret);
+    // L'application est figée tant que la bulle est là : voile opaque
+    // aux clics, page non défilable, seule la zone désignée en lumière.
     bulle.classList.add('visible');
-    voile.classList.toggle('visible', !discret);
-    // Une étape qui attend un clic ne doit pas bloquer ce clic
-    voile.classList.toggle('traversant', !!p.attendClic);
-    spot.classList.toggle('discret', discret);
-    document.body.classList.toggle('xld-fige', !discret);
+    voile.classList.add('visible');
+    document.body.classList.add('xld-fige');
 
-    if (discret) {
-      // La page reste utilisable : la bulle s'efface dès que
-      // l'usager fait autre chose.
-      document.addEventListener('pointerdown', clicAilleurs, true);
-      // Si la zone est hors écran, on l'amène doucement à la vue
-      const r = zone.getBoundingClientRect();
-      const h = window.innerHeight || 800;
-      if ((r.bottom < 0 || r.top > h) && typeof zone.scrollIntoView === 'function') {
-        try { zone.scrollIntoView({ block: 'center' }); } catch (e) { /* navigateur ancien */ }
-      }
-    } else if (typeof zone.scrollIntoView === 'function') {
+    if (typeof zone.scrollIntoView === 'function') {
       try { zone.scrollIntoView({ block: 'center' }); } catch (e) { /* navigateur ancien */ }
     }
 
-    // Une étape qui attend un clic doit surveiller l'apparition de la suite
-    if (p.attendClic) armerObservateur();
+    // Une zone peut encore apparaître pendant l'affichage (lecture de
+    // fichier qui s'achève) : on continue de surveiller.
+    armerObservateur();
 
-    rAF(() => placer(zone, discret));
+    rAF(() => placer(zone));
   }
 
-  // Positionnement : en ouverture la bulle est fixe (la page est
-  // figée) ; en mode discret elle est ancrée dans le document, pour
-  // rester collée à sa zone quand l'usager fait défiler la page.
-  function placer(zone, discret) {
+  // La page étant figée pendant l'affichage, tout est positionné en
+  // coordonnées de fenêtre.
+  function placer(zone) {
     const { bulle, spot } = visiteDom;
     const marge = 16;
     const vw = window.innerWidth || 1200;
     const vh = window.innerHeight || 800;
-    const dx = discret ? (window.scrollX || 0) : 0;
-    const dy = discret ? (window.scrollY || 0) : 0;
 
     bulle.classList.remove('fleche-haut', 'fleche-bas');
-    bulle.classList.toggle('ancree', discret);
-    spot.classList.toggle('ancree', discret);
 
     if (!zone) {
       spot.style.display = 'none';
-      bulle.style.top = (Math.max(16, (vh - bulle.offsetHeight) / 2) + dy) + 'px';
-      bulle.style.left = (Math.max(16, (vw - bulle.offsetWidth) / 2) + dx) + 'px';
+      bulle.style.top = Math.max(16, (vh - bulle.offsetHeight) / 2) + 'px';
+      bulle.style.left = Math.max(16, (vw - bulle.offsetWidth) / 2) + 'px';
       return;
     }
 
     const r = zone.getBoundingClientRect();
     spot.style.display = 'block';
-    spot.style.top = (r.top - 6 + dy) + 'px';
-    spot.style.left = (r.left - 6 + dx) + 'px';
+    spot.style.top = (r.top - 6) + 'px';
+    spot.style.left = (r.left - 6) + 'px';
     spot.style.width = (r.width + 12) + 'px';
     spot.style.height = (r.height + 12) + 'px';
 
@@ -719,27 +701,19 @@
     }
     let left = r.left + r.width / 2 - bw / 2;
     left = Math.min(Math.max(12, left), Math.max(12, vw - bw - 12));
-    bulle.style.top = (top + dy) + 'px';
-    bulle.style.left = (left + dx) + 'px';
+    bulle.style.top = top + 'px';
+    bulle.style.left = left + 'px';
     const fleche = Math.min(Math.max(24, r.left + r.width / 2 - left), bw - 24);
     bulle.style.setProperty('--fleche-x', fleche + 'px');
   }
 
+  // Rend la main à l'usager : plus de bulle, plus de voile, plus de gel
   function masquerBulle() {
     if (!visiteDom) return;
     visiteDom.bulle.classList.remove('visible');
-    visiteDom.voile.classList.remove('visible', 'traversant');
+    visiteDom.voile.classList.remove('visible');
     visiteDom.spot.style.display = 'none';
     document.body.classList.remove('xld-fige');
-    document.removeEventListener('pointerdown', clicAilleurs, true);
-  }
-
-  // L'usager reprend son travail : la bulle discrète s'efface et
-  // l'étape suivante se met en attente de sa zone.
-  function clicAilleurs(e) {
-    if (!visiteDom || !visiteDom.bulle.classList.contains('visible')) return;
-    if (visiteDom.bulle.contains(e.target)) return;
-    passerAuSuivant(true);
   }
 
   function finirVisite() {
@@ -756,10 +730,8 @@
   function touche(e) {
     if (phase === 'inactive') return;
     if (e.key === 'Escape') {
-      // Échap ferme la visite d'ouverture ; en mode discret, il écarte
-      // simplement la bulle et laisse venir le prochain écran.
-      if (phase === 'ouverture') finirVisite();
-      else passerAuSuivant(true);
+      // Échap masque la bulle et rend la main, sans renoncer à la suite
+      passerAuSuivant(true);
     } else if (phase === 'ouverture' && visiteDom.bulle.classList.contains('visible')) {
       if (e.key === 'ArrowRight') suite();
       else if (e.key === 'ArrowLeft') retour();
@@ -806,13 +778,13 @@
     if (etape < 0 || etape >= PAS.length) return;
     const trouve = prochaineVisible(etape);
     if (!trouve) return;
-    phase = 'differee'; // tout ce qui arrive après l'ouverture est discret
+    phase = 'differee'; // on n'est plus dans l'enchaînement d'ouverture
     afficher(trouve.i, trouve.zone);
   }
 
   window.addEventListener('resize', () => {
     if (visiteDom && visiteDom.bulle.classList.contains('visible')) {
-      placer(zoneDe(PAS[etape]), visiteDom.bulle.classList.contains('discret'));
+      placer(zoneDe(PAS[etape]));
     }
   });
 
