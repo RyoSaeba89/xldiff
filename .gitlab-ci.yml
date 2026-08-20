@@ -1,0 +1,30 @@
+# ==========================================================================
+#  Déploiement de l'application web sur GitLab Pages.
+#
+#  XLDiff est une application 100 % statique qui tourne dans le navigateur
+#  (aucun build) : le job copie l'app — index.html + pages/ + assets/ — dans
+#  public/, que GitLab Pages sert. La version bureau (Tauri, src-tauri/) et
+#  ses artefacts de compilation ne sont pas concernés.
+#
+#  Aucun fichier de données n'est versionné : les classeurs comparés sont
+#  lus côté navigateur et ne quittent jamais le poste.
+#
+#  Prérequis : un runner CI actif sur l'instance, capable de tirer l'image
+#  alpine. Aucun secret ni PAT nécessaire.
+# ==========================================================================
+
+stages:
+  - deploy
+
+pages:
+  stage: deploy
+  image: alpine:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  script:
+    - mkdir -p public
+    - cp index.html public/
+    - cp -r assets pages public/
+  artifacts:
+    paths:
+      - public
