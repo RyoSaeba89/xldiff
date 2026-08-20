@@ -11,6 +11,11 @@ Desktop.ini
 *.log
 node_modules/
 
+# Captures d'écran déposées à la racine par l'outil de capture, nommées
+# « AAAA-MM-JJ hh_mm_ss-.png ». Ce ne sont jamais des éléments du projet :
+# les copies d'écran publiées vivent dans assets/screenshots/, qui reste suivi.
+/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] [0-9][0-9]_[0-9][0-9]_[0-9][0-9]*.png
+
 # Build de l'exe Tauri
 dist/
 src-tauri/target/
