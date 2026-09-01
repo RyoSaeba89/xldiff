@@ -168,9 +168,24 @@ const XLDiffResults = (() => {
           : 'Aucune différence : les deux fichiers contiennent exactement les mêmes lignes.';
         headlineOk = true;
       } else if (nAbs === 0) {
-        headline = `Il y a ${fmt(nMod)} ligne${plur(nMod)} retrouvée${plur(nMod)} dans tous les fichiers mais dont le contenu diffère.`;
+        headline = `Il y a ${fmt(nMod)} ligne${plur(nMod)} retrouvée${plur(nMod)} ${three ? "dans les trois fichiers" : "des deux côtés"} mais dont le contenu diffère.`;
       } else {
-        headline = `Il y a ${fmt(nAbs)} différence${plur(nAbs)} entre les fichiers.`;
+        // Les deux natures d'écart sont annoncées côte à côte, sans total :
+        // les additionner mêlerait des lignes absentes et des lignes
+        // présentes mais divergentes. L'ancienne phrase ne citait que les
+        // écarts de présence et taisait les écarts de contenu, ce qui
+        // faisait passer un résultat de 263 lignes pour 124.
+        const absentes = three
+          ? `${fmt(nAbs)} ligne${plur(nAbs)} absente${plur(nAbs)} d'au moins un fichier`
+          : `${fmt(nAbs)} ligne${plur(nAbs)} présente${plur(nAbs)} d'un seul côté`;
+        if (nMod === 0) {
+          headline = `Il y a ${absentes}.`;
+        } else {
+          const retrouvees = three
+            ? `retrouvée${plur(nMod)} dans les trois fichiers`
+            : `retrouvée${plur(nMod)} des deux côtés`;
+          headline = `Il y a ${absentes}, et ${fmt(nMod)} ligne${plur(nMod)} ${retrouvees} dont le contenu diffère.`;
+        }
       }
 
       // Lignes retrouvées dans tous les fichiers
@@ -237,7 +252,15 @@ const XLDiffResults = (() => {
       return tabs;
     }
 
-    const tabs = [{ id: 'all', label: 'Toutes les différences', count: diff.all.length }];
+    // Cet onglet ne contient QUE les écarts de présence — jamais les
+    // lignes retrouvées dont le contenu diffère, qui ont le leur. Il
+    // s'appelait « Toutes les différences », ce qui le faisait lire
+    // comme un total qu'il n'a jamais été.
+    const tabs = [{
+      id: 'all',
+      label: three ? "Absentes d'au moins un fichier" : "Présentes d'un seul côté",
+      count: diff.all.length,
+    }];
     if (diff.compared) {
       tabs.push({ id: 'modified', label: 'Retrouvées mais différentes', count: diff.modified.length });
     }

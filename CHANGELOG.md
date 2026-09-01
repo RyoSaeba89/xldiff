@@ -2,6 +2,14 @@
 
 Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https://ryosaeba89.github.io/xldiff/pages/changelog.html>
 
+## Version 3.6 — 1er septembre 2026
+
+### Un onglet qui portait un nom trompeur
+
+- **L'onglet « Toutes les différences » s'appelle maintenant « Présentes d'un seul côté »** (« Absentes d'au moins un fichier » quand vous comparez trois fichiers). Son nom promettait un total qu'il n'a jamais contenu : il ne liste **que** les lignes sans équivalent dans l'autre fichier, jamais celles qui ont été retrouvées avec un contenu différent. Lire « 124 » sur cet onglet et « 139 » sur « Retrouvées mais différentes » n'a donc rien de contradictoire — ce sont deux natures d'écart distinctes, qui ne se recouvrent jamais.
+- **Le résumé annonce désormais les deux nombres.** Il disait « Il y a 124 différences entre les fichiers » en passant les écarts de contenu sous silence ; il dit maintenant « Il y a 124 lignes présentes d'un seul côté, et 139 lignes retrouvées des deux côtés dont le contenu diffère ».
+- La feuille correspondante de l'export `.xlsx` suit le nouveau nom, comme toujours.
+
 ## Version 3.5 — 1er septembre 2026
 
 ### Ce que vous voyez à l'écran est exactement ce que vous exportez

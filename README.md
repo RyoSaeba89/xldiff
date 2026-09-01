@@ -58,7 +58,9 @@ Avec trois fichiers, une ligne est en double dès que sa clé existe dans **au m
 
 Les résultats commencent par un résumé en phrases simples (« Il y a N lignes retrouvées dans les deux fichiers : X à l'identique, Y dont le contenu diffère », « Il y a X lignes uniquement dans A »…), suivi du détail ligne par ligne dans des onglets, d'un export `.xlsx` et d'un bouton **Recommencer** pour repartir d'une page vierge.
 
-L'export reprend **un à un les onglets affichés** : même libellé, même contenu, même ordre. À deux fichiers on obtient « Toutes les différences », « Retrouvées mais différentes » (si des colonnes sont comparées), « Uniquement dans A » et « Uniquement dans B » ; à trois fichiers, « A, absentes ailleurs », « B, absentes ailleurs », « C, absentes ailleurs ». Un onglet sans ligne donne une feuille réduite à son en-tête, pour qu'on la retrouve dans le classeur comme on la voit à l'écran. Dans la feuille « Retrouvées mais différentes », chaque colonne comparée occupe une colonne par fichier (`Adresse (A)`, `Adresse (B)`), suivie de la liste des colonnes en écart. Le fichier est écrit compressé.
+L'export reprend **un à un les onglets affichés** : même libellé, même contenu, même ordre. À deux fichiers on obtient « Présentes d'un seul côté », « Retrouvées mais différentes » (si des colonnes sont comparées), « Uniquement dans A » et « Uniquement dans B » ; à trois fichiers, « Absentes d'au moins un fichier », puis « A, absentes ailleurs », « B, absentes ailleurs », « C, absentes ailleurs ».
+
+Les deux natures d'écart sont **comptées séparément et ne se recouvrent jamais** : une ligne est soit sans équivalent dans l'autre fichier, soit retrouvée avec un contenu qui diverge. Le premier onglet ne contient donc que la première nature — il s'appelait « Toutes les différences », ce qui le faisait lire comme un total qu'il n'a jamais été. Un onglet sans ligne donne une feuille réduite à son en-tête, pour qu'on la retrouve dans le classeur comme on la voit à l'écran. Dans la feuille « Retrouvées mais différentes », chaque colonne comparée occupe une colonne par fichier (`Adresse (A)`, `Adresse (B)`), suivie de la liste des colonnes en écart. Le fichier est écrit compressé.
 
 Les feuilles sont construites à partir de `buildTabs()`, la même fonction que celle qui dessine les onglets (`results-view.js`) : l'écran et le fichier exporté ne peuvent pas diverger.
 
@@ -279,7 +281,7 @@ Trois mécanismes y contribuent :
 
 1. **Affichage virtualisé** — seules les lignes visibles existent dans le DOM, encadrées par deux cales qui reproduisent la hauteur du reste (`results-view.js`). Le défilement reste complet, sans plafond d'affichage.
 2. **Classeur libéré après lecture** — le slot conserve l'objet `File` (poignée vers le disque, coût mémoire nul) et non le classeur SheetJS ; changer de feuille relit le fichier en ne matérialisant que la feuille voulue (`XLSX.read(…, { sheets: [nom] })`).
-3. **Export compressé** — feuilles construites en tableaux (`aoa_to_sheet`) plutôt qu'en objets et écriture avec `{ compression: true }`. Les feuilles par fichier reprennent les lignes déjà présentes dans « Toutes les différences » ; c'est le prix d'un export qui correspond à l'écran, et la compression l'absorbe largement.
+3. **Export compressé** — feuilles construites en tableaux (`aoa_to_sheet`) plutôt qu'en objets et écriture avec `{ compression: true }`. Les feuilles par fichier reprennent les lignes déjà présentes dans « Présentes d'un seul côté » ; c'est le prix d'un export qui correspond à l'écran, et la compression l'absorbe largement.
 
 L'index du moteur utilise un chaînage des occurrences dans un seul `Int32Array` plutôt qu'un tableau de lignes par clé, et trace pour chaque ligne son rapprochement et sa présence (`trace`, `tuples`) — c'est ce qui permet d'exporter le fichier A annoté sans réanalyser.
 - Le tableau de résultats est rendu par blocs de 500 lignes pour rester fluide sur de gros volumes.

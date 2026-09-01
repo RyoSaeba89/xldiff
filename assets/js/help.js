@@ -137,7 +137,7 @@
         {
           titre: 'Lire les résultats',
           html: `<ul>
-            <li><strong>Toutes les différences</strong> — la liste complète ; la colonne <em>Source</em> dit de quel fichier vient chaque ligne.</li>
+            <li><strong>Présentes d'un seul côté</strong> — les lignes qui n'existent que dans A ou que dans B ; la colonne <em>Source</em> dit laquelle.</li>
             <li><strong>Uniquement dans A</strong> / <strong>Uniquement dans B</strong> — le détail fichier par fichier.</li>
             <li>Le numéro affiché est celui de la ligne dans le fichier Excel d'origine (l'en-tête est la ligne 1).</li>
           </ul>`,
@@ -268,7 +268,7 @@
         {
           titre: 'Lire les résultats',
           html: `<ul>
-            <li><strong>Toutes les différences</strong> — les lignes absentes d'au moins un fichier.</li>
+            <li><strong>Présentes d'un seul côté</strong> (« Absentes d'au moins un fichier » à trois fichiers) — les lignes sans équivalent ailleurs. Elle ne comptent PAS les lignes retrouvées dont le contenu diffère, qui ont leur propre onglet.</li>
             <li><strong>Retrouvées mais différentes</strong> — les lignes présentes partout dont une colonne comparée diverge, affichées <em>valeur A → valeur B</em>.</li>
             <li>Un onglet par fichier, et avec trois fichiers une colonne <strong>Présente dans</strong> (« A + B » = ligne absente de C).</li>
           </ul>`,
