@@ -15,6 +15,7 @@
   const MODE = window.XLDIFF_MODE === 'dupes' ? 'dupes' : 'diff';
 
   let commonHeaders = [];
+  let compared = false;
 
   XLDiffResults.init();
 
@@ -36,6 +37,14 @@
   const progressFill = $('progressFill');
 
   function checkReady() {
+    // Charger un autre fichier ou changer de feuille rend l'analyse
+    // affichée périmée : on la retire et on coupe l'export, sinon le
+    // bouton exporte en silence le résultat de la comparaison précédente.
+    if (compared) {
+      compared = false;
+      XLDiffResults.hide();
+      btnExport.disabled = true;
+    }
     if (!slotA.loaded || !slotB.loaded) return;
     const setA = new Set(slotA.headers);
     commonHeaders = slotB.headers.filter(h => setA.has(h));
@@ -89,6 +98,7 @@
       },
     });
 
+    compared = true;
     btnCompare.disabled = false;
     btnExport.disabled = false;
     statusText.textContent = MODE === 'dupes'

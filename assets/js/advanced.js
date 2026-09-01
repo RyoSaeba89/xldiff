@@ -74,6 +74,24 @@
   function onSlotChange() {
     renderSheetPanel();
     rebuildMappings();
+    invaliderResultats();
+  }
+
+  // Modifier une association, en ajouter une, en supprimer une, changer
+  // de feuille ou de fichier rend l'analyse affichée périmée : on la
+  // retire et on coupe les exports. Sans ça les boutons restaient actifs
+  // et exportaient en silence le résultat de la comparaison précédente.
+  // La coche « Ignorer les doublons » fait l'inverse — elle relance
+  // l'analyse — parce qu'elle est un réglage à deux états, pas une liste
+  // qu'on remanie sélecteur par sélecteur.
+  function invaliderResultats() {
+    if (!hasCompared) return;
+    hasCompared = false;
+    XLDiffResults.hide();
+    btnExport.disabled = true;
+    if (btnExportAnnote) btnExportAnnote.disabled = true;
+    statusText.className = 'status-text warn';
+    statusText.textContent = 'Les réglages ont changé — relancez la comparaison pour mettre les résultats à jour.';
   }
 
   // ---------- Choix des feuilles (premier choix, avant les colonnes) ----------
@@ -210,7 +228,7 @@
           row.appendChild(arrow);
         }
         const sel = buildSelect(slot.headers, m[slot.side], 'side-' + slot.side.toLowerCase());
-        sel.addEventListener('change', () => { m[slot.side] = sel.value; });
+        sel.addEventListener('change', () => { m[slot.side] = sel.value; invaliderResultats(); });
         row.appendChild(sel);
       });
 
@@ -222,6 +240,7 @@
         list.splice(idx, 1);
         renderAll();
         updateReady();
+        invaliderResultats();
       });
 
       row.appendChild(remove);
@@ -250,6 +269,7 @@
     list.push(m);
     renderAll();
     updateReady();
+    invaliderResultats();
   }
 
   btnAddMapping.addEventListener('click', () => addRow(mappings));

@@ -58,7 +58,13 @@ Avec trois fichiers, une ligne est en double dès que sa clé existe dans **au m
 
 Les résultats commencent par un résumé en phrases simples (« Il y a N lignes retrouvées dans les deux fichiers : X à l'identique, Y dont le contenu diffère », « Il y a X lignes uniquement dans A »…), suivi du détail ligne par ligne dans des onglets, d'un export `.xlsx` et d'un bouton **Recommencer** pour repartir d'une page vierge.
 
-L'export tient en une feuille « Toutes les différences » (la colonne `Source` permet de filtrer) plus, si des colonnes sont comparées, une feuille « Retrouvées mais différentes » où chaque colonne comparée occupe une colonne par fichier (`Adresse (A)`, `Adresse (B)`), suivie de la liste des colonnes en écart. Le fichier est écrit compressé.
+L'export reprend **un à un les onglets affichés** : même libellé, même contenu, même ordre. À deux fichiers on obtient « Toutes les différences », « Retrouvées mais différentes » (si des colonnes sont comparées), « Uniquement dans A » et « Uniquement dans B » ; à trois fichiers, « A, absentes ailleurs », « B, absentes ailleurs », « C, absentes ailleurs ». Un onglet sans ligne donne une feuille réduite à son en-tête, pour qu'on la retrouve dans le classeur comme on la voit à l'écran. Dans la feuille « Retrouvées mais différentes », chaque colonne comparée occupe une colonne par fichier (`Adresse (A)`, `Adresse (B)`), suivie de la liste des colonnes en écart. Le fichier est écrit compressé.
+
+Les feuilles sont construites à partir de `buildTabs()`, la même fonction que celle qui dessine les onglets (`results-view.js`) : l'écran et le fichier exporté ne peuvent pas diverger.
+
+La colonne **« Ligne »** donne le **vrai numéro de ligne Excel**, y compris quand le fichier contient des lignes vides. Celles-ci sont écartées à la lecture, mais elles ne décalent pas les lignes suivantes : le chargeur convertit la feuille avec `blankrows: true` (une entrée par ligne de la plage, vide ou non) et pose le numéro avant d'écarter les vides (`file-loader.js`). Le nombre de lignes annoncé dans la zone de dépôt est celui des lignes retenues, donc le même que celui du résumé.
+
+Modifier un réglage après une comparaison — une association de colonnes, la feuille choisie, un fichier remplacé — **retire les résultats affichés et désactive les exports** jusqu'à un nouveau clic sur « Comparer ». Sans ça, les boutons restaient actifs et exportaient en silence l'analyse précédente. La coche « Ignorer les doublons » fait l'inverse et relance l'analyse : c'est un réglage à deux états, pas une liste qu'on remanie sélecteur par sélecteur.
 
 ## Aide et prise en main
 
@@ -199,9 +205,57 @@ Import-Certificate -FilePath signing\xldiff-code-signing.cer -CertStoreLocation 
 
 Pour une confiance sur tout le parc, la voie propre reste un certificat émis par la CA interne de la collectivité ou un certificat de signature de code commercial (déployable par GPO).
 
-## Site en ligne (GitHub Pages)
+## Sites en ligne et livraison (CI)
 
-Le site est publié automatiquement sur **https://ryosaeba89.github.io/xldiff/** à chaque push sur `main` (GitHub Pages sert le dépôt tel quel depuis la racine, aucun build n'est nécessaire). Le traitement reste 100 % local dans le navigateur : aucun fichier comparé n'est envoyé au serveur.
+L'application est publiée sur deux sites, qui servent **exactement le même contenu** — `index.html` + `pages/` + `assets/`, rien d'autre :
+
+| | Site | Job |
+|---|---|---|
+| GitHub | https://ryosaeba89.github.io/xldiff/ | `.github/workflows/pages.yml` |
+| GitLab | GitLab Pages de l'instance | job `pages` du `.gitlab-ci.yml` |
+
+Le traitement reste 100 % local dans le navigateur : aucun fichier comparé n'est envoyé à un serveur.
+
+**GitHub demande un réglage, GitLab non.** Sur GitHub, il faut passer *Settings > Pages > Source* de « Deploy from a branch » à « GitHub Actions » — Pages y servait jusqu'ici la **racine du dépôt**, donc aussi `src-tauri/`, `scripts/`, `signing/` et le README. Sur GitLab il n'existe **aucun réglage de source** : le site est entièrement piloté par le job `pages`, il n'y a rien à activer dans les paramètres du projet.
+
+### Poser une version
+
+Les deux plateformes créent leur release à la pose d'un tag `v…`, à partir des **mêmes sources de vérité** : le numéro de version du dépôt et `CHANGELOG.md`. Trois scripts partagés l'assurent :
+
+- `scripts/verifie-version.js` — vérifie que les **neuf endroits** qui portent le numéro (`package.json`, `Cargo.toml`, `Cargo.lock`, `tauri.conf.json`, `CHANGELOG.md`, la page Nouveautés et les pieds de page) s'accordent avec le tag. Un oubli **arrête la livraison** au lieu de la traverser et d'aboutir à un site ou un exe qui annonce une version fausse.
+- `scripts/notes-de-version.js` — extrait de `CHANGELOG.md` la section de la version, qui devient le corps de la release. Les notes ne sont jamais recopiées à la main, donc GitHub et GitLab publient le même texte.
+- `scripts/payload-gitlab.js` — fabrique le JSON de la release GitLab avec `JSON.stringify`, parce que les notes contiennent guillemets, apostrophes et retours à la ligne qu'un heredoc shell finirait par mal échapper.
+
+Les deux premiers se lancent en local, avant de poser le tag :
+
+```bash
+node scripts/verifie-version.js        # déduit la version de package.json
+node scripts/notes-de-version.js v3.5  # aperçu des notes qui seront publiées
+```
+
+Côté GitLab, la release est créée par un `curl` sur l'API avec `CI_JOB_TOKEN`, le jeton que GitLab fabrique pour chaque exécution — aucun secret à déclarer. C'est aussi le **seul chemin qui fonctionne depuis ce poste**, dont l'identifiant ne vaut que pour `git` : toute l'API répond 401. Même recette que la pipeline d'ATGRC.
+
+### L'exe n'est pas compilé par la CI
+
+C'est délibéré. `xldiff.exe` est signé avec un certificat qui vit dans le magasin personnel du poste de développement (cf. *Signature de l'exécutable*) : un runner ne peut pas le signer et produirait un binaire nu — c'est-à-dire exactement ce que les contrôles applicatifs des postes regardent de plus près.
+
+L'exe signé est donc **versionné dans `release/xldiff.exe`**. GitHub l'attache à la Release, GitLab pointe dessus au tag. Publier une version tient alors en une suite :
+
+```bash
+# 1. monter la version (les neuf endroits) et écrire le CHANGELOG
+node scripts/verifie-version.js
+
+# 2. compiler et signer
+npm run exe && npm run sign
+cp src-tauri/target/release/xldiff.exe release/xldiff.exe
+
+# 3. committer, taguer, pousser : les deux pipelines font le reste
+git add -A && git commit -m "v3.5 : ..."
+git tag -a v3.5 -m "XLDiff v3.5"
+git push github main --tags && git push gitlab main --tags
+```
+
+Tant que `release/xldiff.exe` n'est pas versionné, les deux releases se publient quand même — sans lien de téléchargement, et en le disant plutôt qu'en offrant un bouton qui renvoie une 404.
 
 ## Notes techniques
 
@@ -225,7 +279,7 @@ Trois mécanismes y contribuent :
 
 1. **Affichage virtualisé** — seules les lignes visibles existent dans le DOM, encadrées par deux cales qui reproduisent la hauteur du reste (`results-view.js`). Le défilement reste complet, sans plafond d'affichage.
 2. **Classeur libéré après lecture** — le slot conserve l'objet `File` (poignée vers le disque, coût mémoire nul) et non le classeur SheetJS ; changer de feuille relit le fichier en ne matérialisant que la feuille voulue (`XLSX.read(…, { sheets: [nom] })`).
-3. **Export compressé et non redondant** — feuilles construites en tableaux (`aoa_to_sheet`) plutôt qu'en objets, écriture avec `{ compression: true }`, et plus de feuille par fichier qui répétait les mêmes lignes.
+3. **Export compressé** — feuilles construites en tableaux (`aoa_to_sheet`) plutôt qu'en objets et écriture avec `{ compression: true }`. Les feuilles par fichier reprennent les lignes déjà présentes dans « Toutes les différences » ; c'est le prix d'un export qui correspond à l'écran, et la compression l'absorbe largement.
 
 L'index du moteur utilise un chaînage des occurrences dans un seul `Int32Array` plutôt qu'un tableau de lignes par clé, et trace pour chaque ligne son rapprochement et sa présence (`trace`, `tuples`) — c'est ce qui permet d'exporter le fichier A annoté sans réanalyser.
 - Le tableau de résultats est rendu par blocs de 500 lignes pour rester fluide sur de gros volumes.

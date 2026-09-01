@@ -1,0 +1,59 @@
+# ==========================================================================
+#  Publication de l'application web sur GitHub Pages.
+#
+#  XLDiff est 100 % statique (aucun build) : le job rassemble l'app —
+#  index.html + pages/ + assets/ — et la publie. C'est le même contenu que
+#  le job « pages » du .gitlab-ci.yml, pour que les deux sites servent
+#  rigoureusement la même chose.
+#
+#  Pourquoi un workflow plutôt que la publication directe de la branche :
+#  Pages servait jusqu'ici la RACINE du dépôt, donc aussi src-tauri/,
+#  scripts/, signing/ et le README. Seule l'application a sa place en
+#  ligne.
+#
+#  PRÉREQUIS À FAIRE UNE FOIS, dans Settings > Pages du dépôt :
+#  passer « Source » de « Deploy from a branch » à « GitHub Actions ».
+#  Sans ça, ce workflow réussit mais le site continue d'être servi depuis
+#  la branche.
+# ==========================================================================
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un seul déploiement à la fois, sans annuler celui qui est en cours :
+# interrompre une publication de Pages laisse le site dans un état bâtard.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deployer:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rassembler l'application
+        run: |
+          mkdir -p public
+          cp index.html public/
+          cp -r assets pages public/
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - id: deploiement
+        uses: actions/deploy-pages@v4

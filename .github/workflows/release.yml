@@ -1,0 +1,102 @@
+# ==========================================================================
+#  Création de la Release GitHub à la pose d'un tag « v… ».
+#
+#  Ce que le job fait :
+#    1. vérifie que les neuf endroits qui portent le numéro de version
+#       s'accordent avec le tag (scripts/verifie-version.js) ;
+#    2. extrait les notes de CHANGELOG.md (scripts/notes-de-version.js) —
+#       le même script que la pipeline GitLab, pour que les deux
+#       plateformes publient rigoureusement le même texte ;
+#    3. crée — ou met à jour — la Release avec ces notes ;
+#    4. y attache release/xldiff.exe s'il est versionné dans le tag.
+#
+#  Ce que le job NE fait PAS : compiler l'exe. Il est signé avec un
+#  certificat qui vit dans le magasin personnel du poste de développement ;
+#  un runner ne peut pas le signer et produirait un binaire nu, c'est-à-dire
+#  exactement ce que les contrôles applicatifs des postes regardent de plus
+#  près. L'exe signé est donc versionné dans release/xldiff.exe, comme pour
+#  ATGRC, et ce job se contente de l'attacher.
+#
+#  Pour publier une version : monter la version, écrire le CHANGELOG,
+#  signer, committer l'exe, pousser un tag.
+#
+#      npm run exe && npm run sign
+#      cp src-tauri/target/release/xldiff.exe release/xldiff.exe
+#      git add release/xldiff.exe && git commit -m "Exe signé 3.5.0"
+#      git tag -a v3.5 -m "XLDiff v3.5" && git push github main --tags
+#
+#  Relancer ce workflow sur un tag déjà publié met à jour les notes sans
+#  détacher ce qui est déjà en ligne.
+# ==========================================================================
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag à publier (ex. v3.5) — il doit déjà exister'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Déterminer le tag
+        id: tag
+        run: echo "nom=${{ inputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - name: Vérifier la cohérence des versions
+        run: node scripts/verifie-version.js "${{ steps.tag.outputs.nom }}"
+
+      - name: Extraire les notes de version
+        run: node scripts/notes-de-version.js "${{ steps.tag.outputs.nom }}" > notes.md
+
+      - name: Créer ou mettre à jour la Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.nom }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG déjà présente : mise à jour des notes."
+            gh release edit "$TAG" --title "XLDiff $TAG" --notes-file notes.md
+          else
+            gh release create "$TAG" --title "XLDiff $TAG" --notes-file notes.md --verify-tag
+          fi
+
+      - name: Attacher l'exe signé
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.nom }}
+        run: |
+          if [ -f release/xldiff.exe ]; then
+            gh release upload "$TAG" release/xldiff.exe --clobber
+            echo "### Release $TAG publiée avec l'exe signé" >> "$GITHUB_STEP_SUMMARY"
+            sha256sum release/xldiff.exe >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "### Release $TAG publiée SANS l'exe"
+              echo ""
+              echo "\`release/xldiff.exe\` n'est pas versionné dans ce tag. Pour l'ajouter :"
+              echo ""
+              echo '```'
+              echo "npm run exe && npm run sign"
+              echo "cp src-tauri/target/release/xldiff.exe release/xldiff.exe"
+              echo "git add release/xldiff.exe && git commit -m 'Exe signé'"
+              echo "gh release upload $TAG release/xldiff.exe"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

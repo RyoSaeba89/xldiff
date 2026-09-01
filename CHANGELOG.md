@@ -2,6 +2,16 @@
 
 Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https://ryosaeba89.github.io/xldiff/pages/changelog.html>
 
+## Version 3.5 — 1er septembre 2026
+
+### Ce que vous voyez à l'écran est exactement ce que vous exportez
+
+- **L'export `.xlsx` contient les mêmes onglets que l'écran** : « Toutes les différences », « Retrouvées mais différentes », « Uniquement dans A », « Uniquement dans B » — et un onglet par fichier quand vous en comparez trois. Le fichier exporté ne contenait jusqu'ici qu'un seul onglet, tous fichiers mélangés. La recherche de doublons suit la même règle (« Tous les doublons », « Doublons côté A », « Doublons côté B »). Un onglet vide donne une feuille réduite à son en-tête, pour qu'on la retrouve dans le classeur comme on la voit à l'écran.
+- **Le numéro de ligne est juste, même quand le fichier contient des lignes vides.** Une seule ligne vide au milieu du fichier décalait toutes les suivantes : une ligne réellement en ligne 4 était annoncée en ligne 3. Corrigé à l'écran, dans l'export et dans le fichier A annoté.
+- **Les résultats ne restent plus affichés quand ils ne valent plus rien.** Changer une association de colonnes, la feuille d'un classeur ou un fichier après avoir comparé retire les résultats et coupe les exports jusqu'à ce que vous relanciez la comparaison. Le bouton exportait jusqu'ici, sans rien dire, la comparaison précédente.
+- **Le nombre de lignes annoncé sous un fichier déposé** est désormais celui des lignes réellement lues, donc le même que celui du résumé.
+- L'onglet « Uniquement A » s'appelle maintenant **« Uniquement dans A »**, à l'écran comme dans le classeur exporté.
+
 ## Version 3.4 — 19 août 2026
 
 ### La présentation revient à chaque visite — ou plus jamais, à votre main

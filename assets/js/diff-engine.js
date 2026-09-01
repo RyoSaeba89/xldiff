@@ -39,6 +39,9 @@
 //  Chaque ligne retournée porte __rowNum (n° de ligne Excel,
 //  l'en-tête étant la ligne 1), __source ('A', 'B' ou 'C') et
 //  __presence (fichiers où la clé est présente, ex. « A + B »).
+//  __rowNum vient du chargeur, qui connaît les lignes vides écartées
+//  à la lecture ; le moteur ne le déduit PAS de la position dans le
+//  tableau, qui ne dit rien de la ligne d'origine.
 //
 //  TRAÇAGE — `trace[side]` décrit le sort de CHAQUE ligne du
 //  fichier, y compris celles qui ne sont pas des différences :
@@ -102,7 +105,10 @@ const XLDiffEngine = (() => {
     const next = new Int32Array(n).fill(-1);
     for (let i = 0; i < n; i++) {
       const row = data[i];
-      row.__rowNum = i + 2; // ligne Excel (1-based, l'en-tête est la ligne 1)
+      // Le chargeur a déjà posé le vrai numéro de ligne Excel, lignes
+      // vides du fichier comprises. Le repli i + 2 ne sert qu'aux appels
+      // directs du moteur, sur des lignes construites à la main.
+      if (row.__rowNum == null) row.__rowNum = i + 2;
       row.__source = side;
       const k = makeKey(row, cols);
       const e = keys.get(k);

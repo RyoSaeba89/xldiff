@@ -25,3 +25,7 @@ src-tauri/gen/
 # Ancien guide utilisateur Word : remplacé par l'aide intégrée
 # (visite guidée + bouton « ? »), cf. README
 docs/
+
+# Sorties des jobs de CI rejouees en local (cf. README, section CI)
+/public/
+/notes.md

@@ -27,6 +27,7 @@
 //
 //  API : XLDiffResults.init()
 //        XLDiffResults.show({ diff, columns, totals, mode, sources })
+//        XLDiffResults.hide()               (résultats devenus périmés)
 //        XLDiffResults.setColumns(columns)
 //        XLDiffResults.exportResults()
 //        XLDiffResults.exportAnnotated()   (mode 'diff' seulement)
@@ -99,6 +100,20 @@ const XLDiffResults = (() => {
       vue: null,
     };
     render();
+  }
+
+  // Retire les résultats affichés : ils décrivent une analyse qui n'a
+  // plus cours. `state` repasse à null, donc les deux exports deviennent
+  // inopérants tant qu'une nouvelle comparaison n'a pas eu lieu — c'est
+  // la garantie qu'on n'exporte jamais un résultat périmé.
+  function hide() {
+    if (!dom) return;
+    state = null;
+    dom.results.classList.remove('visible');
+    dom.summaryBox.innerHTML = '';
+    dom.tabsBar.innerHTML = '';
+    dom.thead.innerHTML = '';
+    dom.tbody.innerHTML = '';
   }
 
   function setColumns(columns) {
@@ -229,7 +244,7 @@ const XLDiffResults = (() => {
     sides.forEach(sd => {
       tabs.push({
         id: 'only' + sd,
-        label: three ? `${sd}, absentes ailleurs` : `Uniquement ${sd}`,
+        label: three ? `${sd}, absentes ailleurs` : `Uniquement dans ${sd}`,
         count: diff.bySide[sd].length,
       });
     });
@@ -375,61 +390,84 @@ const XLDiffResults = (() => {
     XLSX.writeFile(wb, nomFichier, { compression: true });
   }
 
-  function exportResults() {
-    if (!state) return;
-    const { diff, columns, sides, mode } = state;
-    const three = sides.length > 2;
-    const wb = XLSX.utils.book_new();
+  // Nom de feuille Excel : 31 caractères au maximum, et les caractères
+  // : \ / ? * [ ] y sont interdits. Les libellés d'onglet passent tous
+  // aujourd'hui, mais ils suivront ceux de l'écran s'ils changent.
+  function nomFeuille(label) {
+    return String(label).replace(/[\\\/:?*\[\]]/g, ' ').slice(0, 31).trim() || 'Feuille';
+  }
 
-    // Une seule feuille pour les écarts de présence : la colonne Source
-    // permet de filtrer dans Excel, alors qu'une feuille par fichier
-    // réécrivait les mêmes lignes une seconde fois.
+  // Écarts de présence : une ligne source par ligne de tableau, avec
+  // exactement les colonnes qu'affiche prepareRows().
+  function aoaPresence(rows) {
+    const { columns, sides } = state;
+    const three = sides.length > 2;
+
     const entete = ['Ligne', 'Source'];
     if (three) entete.push('Présente dans');
     for (const col of columns) entete.push(col.label);
 
     const aoa = [entete];
-    for (const r of diff.all) {
+    for (const r of rows) {
       const ligne = [r.__rowNum || '', r.__source || ''];
       if (three) ligne.push(r.__presence || r.__source || '');
       for (const col of columns) ligne.push(cellValue(r, col));
       aoa.push(ligne);
     }
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa),
-      mode === 'dupes' ? 'Tous les doublons' : 'Toutes différences');
+    return aoa;
+  }
 
-    // Lignes retrouvées mais différentes : une colonne par fichier pour
-    // les colonnes comparées, afin que le résultat reste retraitable
-    if (diff.compared && diff.modified.length) {
-      const enteteMod = sides.map(sd => `Ligne ${sd}`);
+  // Lignes retrouvées mais différentes : une colonne par fichier pour
+  // les colonnes comparées, afin que le résultat reste retraitable
+  function aoaModifiees() {
+    const { diff, columns, sides } = state;
+
+    const entete = sides.map(sd => `Ligne ${sd}`);
+    for (const col of columns) {
+      if (col.role === 'cmp') for (const sd of sides) entete.push(`${col.label} (${sd})`);
+      else entete.push(col.label);
+    }
+    entete.push('Colonnes en écart');
+
+    const aoa = [entete];
+    for (const p of diff.modified) {
+      const ligne = sides.map(sd => p.rows[sd].__rowNum || '');
       for (const col of columns) {
-        if (col.role === 'cmp') for (const sd of sides) enteteMod.push(`${col.label} (${sd})`);
-        else enteteMod.push(col.label);
-      }
-      enteteMod.push('Colonnes en écart');
-
-      const aoaMod = [enteteMod];
-      for (const p of diff.modified) {
-        const ligne = sides.map(sd => p.rows[sd].__rowNum || '');
-        for (const col of columns) {
-          if (col.role === 'cmp') {
-            for (const sd of sides) {
-              const c = col.cols[sd];
-              ligne.push(c == null ? '' : val(p.rows[sd][c]));
-            }
-          } else {
-            let v = '';
-            for (const sd of sides) {
-              const c = col.cols[sd];
-              if (c != null) { v = val(p.rows[sd][c]); break; }
-            }
-            ligne.push(v);
+        if (col.role === 'cmp') {
+          for (const sd of sides) {
+            const c = col.cols[sd];
+            ligne.push(c == null ? '' : val(p.rows[sd][c]));
           }
+        } else {
+          let v = '';
+          for (const sd of sides) {
+            const c = col.cols[sd];
+            if (c != null) { v = val(p.rows[sd][c]); break; }
+          }
+          ligne.push(v);
         }
-        ligne.push(p.diffs.map(d => d.label).join(', '));
-        aoaMod.push(ligne);
       }
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaMod), 'Retrouvées mais différentes');
+      ligne.push(p.diffs.map(d => d.label).join(', '));
+      aoa.push(ligne);
+    }
+    return aoa;
+  }
+
+  // Le classeur exporté reprend un à un les onglets affichés : même
+  // libellé, même contenu, même ordre. buildTabs() reste la seule
+  // source de vérité, l'écran et le fichier ne peuvent plus diverger.
+  // Un onglet sans ligne donne une feuille réduite à son en-tête : on
+  // la retrouve dans le classeur comme on la voit à l'écran.
+  function exportResults() {
+    if (!state) return;
+    const { diff, mode } = state;
+    const wb = XLSX.utils.book_new();
+
+    for (const onglet of buildTabs()) {
+      const aoa = onglet.id === 'modified'
+        ? aoaModifiees()
+        : aoaPresence(onglet.id === 'all' ? diff.all : diff.bySide[onglet.id.slice(4)]);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), nomFeuille(onglet.label));
     }
 
     ecrire(wb, `${mode === 'dupes' ? 'xldiff_doublons' : 'xldiff'}_${horodatage()}.xlsx`);
@@ -501,6 +539,11 @@ const XLDiffResults = (() => {
     // 2) à la suite, les lignes de B et C qui n'ont pas été rapprochées
     const posA = new Map(srcA.headers.map((h, i) => [h, i]));
     for (const sd of autres) {
+      // `trace` est indexée par la POSITION de la ligne dans le fichier,
+      // que __rowNum ne donne pas : le numéro de ligne Excel tient compte
+      // des lignes vides écartées à la lecture. D'où cette table, bâtie
+      // une fois par fichier sur l'identité des objets.
+      const posLigne = new Map(sources[sd].data.map((r, i) => [r, i]));
       for (const row of diff.bySide[sd]) {
         const ligne = new Array(srcA.headers.length).fill('');
         // Seules les colonnes de rapprochement sont reportees : elles
@@ -515,7 +558,8 @@ const XLDiffResults = (() => {
           const p = posA.get(nomA);
           if (p !== undefined) ligne[p] = val(row[nomAutre]);
         }
-        const masque = diff.trace[sd].presence[(row.__rowNum || 2) - 2];
+        const pos = posLigne.get(row);
+        const masque = pos === undefined ? 0 : diff.trace[sd].presence[pos];
         ligne.push(statutLigne(sides, masque, -1, false, sd));
         ligne.push(row.__presence || sd);
         if (cmpCols.length) ligne.push('');
@@ -535,5 +579,5 @@ const XLDiffResults = (() => {
     ecrire(wb, `xldiff_fichierA_annote_${horodatage()}.xlsx`);
   }
 
-  return { init, show, setColumns, exportResults, exportAnnotated };
+  return { init, show, hide, setColumns, exportResults, exportAnnotated };
 })();

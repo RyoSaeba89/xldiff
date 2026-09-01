@@ -408,12 +408,17 @@ const XLDiffFiles = (() => {
 
       const sheet = wb.Sheets[slot.sheetName];
       const range = XLSX.utils.decode_range(sheet ? (sheet['!ref'] || 'A1') : 'A1');
-      slot.rowCount = range.e.r;
       slot.colCount = range.e.c + 1;
 
+      // Les lignes d'abord : le nombre annoncé dans la zone de dépôt est
+      // celui des lignes réellement retenues, donc le même que celui du
+      // résumé des résultats. La plage du classeur, elle, déborde souvent
+      // sur des lignes vides.
+      parseSheetData(sheet, range);
+      slot.rowCount = slot.data.length;
       updateFileInfo();
       renderSheetSelector();
-      parseSheetData(sheet);
+      if (onChange) onChange(slot);
       // Le classeur a livré tout ce dont on a besoin : rien ne le retient,
       // il part au ramasse-miettes (cf. commentaire sur slot.file)
     }
@@ -445,11 +450,32 @@ const XLDiffFiles = (() => {
       });
     }
 
-    function parseSheetData(sheet) {
-      const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-      slot.data = json;
-      slot.headers = json.length ? Object.keys(json[0]) : [];
-      if (onChange) onChange(slot);
+    // Les lignes vides sont écartées, mais chaque ligne retenue garde son
+    // VRAI numéro de ligne Excel. C'est tout l'objet de `blankrows: true` :
+    // la conversion rend alors une entrée par ligne de la plage, vide ou
+    // non, donc l'indice i correspond exactement à la ligne range.s.r+2+i.
+    // Sans ça, une seule ligne vide au milieu du fichier décale toutes les
+    // suivantes dans la colonne « Ligne » et dans les exports.
+    function parseSheetData(sheet, range) {
+      if (!sheet) { slot.data = []; slot.headers = []; return; }
+      const brut = XLSX.utils.sheet_to_json(sheet, { defval: '', blankrows: true });
+      const premiere = range.s.r + 2; // ligne Excel de la 1re ligne de données
+      const data = [];
+      let headers = [];
+      for (let i = 0; i < brut.length; i++) {
+        const row = brut[i];
+        let vide = true;
+        for (const k in row) {
+          if (row[k] !== '' && row[k] != null) { vide = false; break; }
+        }
+        if (vide) continue;
+        // avant d'ajouter __rowNum, qui n'est pas une colonne du fichier
+        if (!headers.length) headers = Object.keys(row);
+        row.__rowNum = premiere + i;
+        data.push(row);
+      }
+      slot.data = data;
+      slot.headers = headers;
     }
 
     // Sélecteur supplémentaire pour charger le .htm d'une feuille de frameset

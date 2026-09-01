@@ -131,14 +131,14 @@
           html: `<ul>
             <li>Les colonnes portant le même nom dans les deux fichiers sont retenues automatiquement.</li>
             <li>Deux lignes se correspondent si <strong>toutes</strong> ces colonnes sont identiques.</li>
-            <li>Les répétitions comptent : une ligne présente 3 fois dans A et 1 fois dans B laisse 2 lignes signalées « uniquement A ».</li>
+            <li>Les répétitions comptent : une ligne présente 3 fois dans A et 1 fois dans B laisse 2 lignes signalées « Uniquement dans A ».</li>
           </ul>`,
         },
         {
           titre: 'Lire les résultats',
           html: `<ul>
             <li><strong>Toutes les différences</strong> — la liste complète ; la colonne <em>Source</em> dit de quel fichier vient chaque ligne.</li>
-            <li><strong>Uniquement A</strong> / <strong>Uniquement B</strong> — le détail fichier par fichier.</li>
+            <li><strong>Uniquement dans A</strong> / <strong>Uniquement dans B</strong> — le détail fichier par fichier.</li>
             <li>Le numéro affiché est celui de la ligne dans le fichier Excel d'origine (l'en-tête est la ligne 1).</li>
           </ul>`,
         },
@@ -276,7 +276,7 @@
         {
           titre: 'Les exports',
           html: `<ul>
-            <li><strong>Exporter .xlsx</strong> — la liste des différences, plus une feuille pour les lignes retrouvées mais différentes (une colonne par fichier).</li>
+            <li><strong>Exporter .xlsx</strong> — un classeur qui reprend les onglets ci-dessus, une feuille par onglet, avec le même libellé et le même contenu.</li>
             <li><strong>Exporter le fichier A annoté</strong> — votre fichier A complet, avec à droite <em>Statut</em>, <em>Présente dans</em>, <em>Colonnes en écart</em>, la valeur des autres fichiers et la ligne d'origine. Les lignes venues de B ou C sont ajoutées à la suite.</li>
           </ul>`,
         },
