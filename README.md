@@ -1,6 +1,6 @@
 # XLDiff — Comparateur de fichiers Excel
 
-**Version 3.4**
+**Version 3.7**
 
 Outil web 100 % local pour analyser deux ou trois fichiers Excel. Aucune donnée n'est envoyée sur le réseau : tout le traitement s'effectue dans le navigateur.
 
@@ -58,7 +58,7 @@ Avec trois fichiers, une ligne est en double dès que sa clé existe dans **au m
 
 Les résultats commencent par un résumé en phrases simples (« Il y a N lignes retrouvées dans les deux fichiers : X à l'identique, Y dont le contenu diffère », « Il y a X lignes uniquement dans A »…), suivi du détail ligne par ligne dans des onglets, d'un export `.xlsx` et d'un bouton **Recommencer** pour repartir d'une page vierge.
 
-L'export reprend **un à un les onglets affichés** : même libellé, même contenu, même ordre. À deux fichiers on obtient « Présentes d'un seul côté », « Retrouvées mais différentes » (si des colonnes sont comparées), « Uniquement dans A » et « Uniquement dans B » ; à trois fichiers, « Absentes d'au moins un fichier », puis « A, absentes ailleurs », « B, absentes ailleurs », « C, absentes ailleurs ».
+L'export reprend **un à un les onglets retenus** : même libellé, même contenu, même ordre qu'à l'écran. À deux fichiers on obtient « Présentes d'un seul côté », « Retrouvées mais différentes » (si des colonnes sont comparées), « Uniquement dans A » et « Uniquement dans B » ; à trois fichiers, « Absentes d'au moins un fichier », puis « A, absentes ailleurs », « B, absentes ailleurs », « C, absentes ailleurs ».
 
 Les deux natures d'écart sont **comptées séparément et ne se recouvrent jamais** : une ligne est soit sans équivalent dans l'autre fichier, soit retrouvée avec un contenu qui diverge. Le premier onglet ne contient donc que la première nature — il s'appelait « Toutes les différences », ce qui le faisait lire comme un total qu'il n'a jamais été. Un onglet sans ligne donne une feuille réduite à son en-tête, pour qu'on la retrouve dans le classeur comme on la voit à l'écran. Dans la feuille « Retrouvées mais différentes », chaque colonne comparée occupe une colonne par fichier (`Adresse (A)`, `Adresse (B)`), suivie de la liste des colonnes en écart. Le fichier est écrit compressé.
 
@@ -67,6 +67,28 @@ Les feuilles sont construites à partir de `buildTabs()`, la même fonction que 
 La colonne **« Ligne »** donne le **vrai numéro de ligne Excel**, y compris quand le fichier contient des lignes vides. Celles-ci sont écartées à la lecture, mais elles ne décalent pas les lignes suivantes : le chargeur convertit la feuille avec `blankrows: true` (une entrée par ligne de la plage, vide ou non) et pose le numéro avant d'écarter les vides (`file-loader.js`). Le nombre de lignes annoncé dans la zone de dépôt est celui des lignes retenues, donc le même que celui du résumé.
 
 Modifier un réglage après une comparaison — une association de colonnes, la feuille choisie, un fichier remplacé — **retire les résultats affichés et désactive les exports** jusqu'à un nouveau clic sur « Comparer ». Sans ça, les boutons restaient actifs et exportaient en silence l'analyse précédente. La coche « Ignorer les doublons » fait l'inverse et relance l'analyse : c'est un réglage à deux états, pas une liste qu'on remanie sélecteur par sélecteur.
+
+### Choisir les onglets à exporter
+
+Le bouton **« Exporter .xlsx »** n'écrit pas aussitôt : il ouvre sous lui un panneau — *Que voulez-vous exporter ?* — qui liste les onglets affichés, chacun avec son nombre de lignes.
+
+![Le panneau « Que voulez-vous exporter ? » ouvert sous le bouton, une case cochée par onglet avec son nombre de lignes](assets/screenshots/choix-export.png)
+
+**Toutes les cases sont cochées à chaque ouverture**, y compris après un export partiel : le classeur ne peut pas se retrouver amputé par un réglage laissé de côté la fois précédente. Un lien *Tout décocher* / *Tout cocher* traite la liste d'un coup. *Annuler*, `Échap` ou un clic à côté referment sans rien écrire — et sans annoncer « Export terminé », qui n'apparaît qu'une fois le fichier produit. Tant qu'aucune case n'est cochée, le bouton *Exporter* reste inactif : un classeur sans aucune feuille n'existe pas.
+
+Le panneau se remplit lui aussi avec `buildTabs()` : ce qu'il propose est exactement ce qui est affiché, et le contenu d'une feuille ne dépend pas de la sélection. Il est posé en **coordonnées de document**, donc suit la page au défilement sans écouteur, et se recale contre le bord droit de la fenêtre quand le bouton est trop à droite. Il passe **sous** la visite guidée (`z-index` 900 contre 950 et au-delà), qui reste prioritaire. Le second bouton, « Exporter le fichier A annoté », ne produit qu'une seule feuille : il n'est pas concerné et exporte directement.
+
+### Renommer les onglets avant l'export
+
+La case **« Renommer les onglets avant l'export »**, décochée par défaut, ouvre sous chaque onglet retenu un champ pré-rempli avec son libellé : ce qui y est écrit devient le nom de la feuille dans le classeur, et un champ laissé tel quel donne exactement le fichier d'avant.
+
+![La case « Renommer les onglets avant l'export » cochée : un champ de saisie sous chaque onglet retenu](assets/screenshots/renommer-onglets.png)
+
+Les champs **suivent les cases** : décocher un onglet retire le sien, et sa saisie est conservée tant que le panneau reste ouvert — un décochage par mégarde n'efface rien. Comme les cases, tout repart à zéro à l'ouverture suivante.
+
+**Un nom qu'Excel refuserait bloque l'export plutôt que d'être corrigé en douce** : le champ passe en rouge, la raison s'affiche dessous et le bouton *Exporter* reste inactif. Sont refusés le nom vide, plus de 31 caractères, les caractères `: \ / ? * [ ]`, l'apostrophe en début ou en fin, et un nom déjà porté par un autre onglet retenu (la casse ne distingue pas deux feuilles pour Excel). Le verdict est rendu à la frappe (`input`, pas `change`), et `Entrée` depuis un champ lance l'export dès qu'il n'y a plus de faute. `nomFeuille()` reste appliqué en dernier ressort à tous les noms, saisis ou non.
+
+Un doublon n'est cherché que parmi les onglets **retenus** : deux noms identiques dont l'un est décoché ne posent aucun problème, puisqu'une seule feuille sera écrite. La liste du panneau est bornée en hauteur (`max-height`) et défile toute seule : avec trois fichiers et les champs ouverts, elle dépasserait la fenêtre.
 
 ## Aide et prise en main
 
@@ -142,7 +164,7 @@ Aucune installation : utiliser le site en ligne **https://ryosaeba89.github.io/x
 1. Sur la page d'accueil, répondre à la question « Que recherchez-vous ? » (différences ou doublons), puis choisir le mode le cas échéant.
 2. Glisser-déposer les deux fichiers — un troisième au besoin dans les deux modes avancés (sélection de feuille possible si le classeur en contient plusieurs).
 3. Cliquer sur **Comparer** (ou **Rechercher les doublons**).
-4. Consulter le résumé puis le détail par onglets, et éventuellement **Exporter** le résultat en `.xlsx`.
+4. Consulter le résumé puis le détail par onglets, et éventuellement **Exporter** le résultat en `.xlsx` — en choisissant, dans le panneau qui s'ouvre, les onglets à mettre dans le fichier (tous cochés au départ).
 
 ## Architecture
 

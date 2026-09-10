@@ -118,7 +118,7 @@
         {
           cible: '#results.visible',
           titre: 'Lisez le résultat',
-          texte: 'Le résultat commence par un <strong>résumé en phrases simples</strong>, suivi du détail ligne par ligne dans des onglets. <strong>Exporter .xlsx</strong> enregistre tout dans un fichier Excel, et <strong>Recommencer</strong> repart d\'une page vierge.',
+          texte: 'Le résultat commence par un <strong>résumé en phrases simples</strong>, suivi du détail ligne par ligne dans des onglets. <strong>Exporter .xlsx</strong> vous demande d\'abord quels onglets mettre dans le fichier Excel — ils sont tous cochés — et <strong>Recommencer</strong> repart d\'une page vierge.',
         },
       ],
       sections: [
@@ -156,6 +156,10 @@
           q: 'Une même ligne apparaît plusieurs fois',
           r: 'C\'est normal : les répétitions sont comptées. Si une ligne existe 3 fois d\'un côté et 1 fois de l\'autre, les 2 exemplaires en trop sont signalés.',
         },
+        {
+          q: 'Je ne veux qu\'une partie des onglets dans le fichier Excel',
+          r: 'Cliquez sur <strong>Exporter .xlsx</strong> : un panneau s\'ouvre sous le bouton et liste les onglets affichés, tous cochés. Décochez ceux dont vous n\'avez pas besoin, puis cliquez sur <strong>Exporter</strong>. La case <strong>Renommer les onglets avant l\'export</strong> permet au passage de choisir le nom de chaque feuille. À l\'ouverture suivante, tout est de nouveau coché et le renommage éteint.',
+        },
       ],
     },
 
@@ -175,7 +179,7 @@
         {
           cible: '#results.visible',
           titre: 'Lisez le résultat',
-          texte: 'Un <strong>résumé en phrases simples</strong>, puis le détail : les lignes en double vues côté A, puis côté B, avec leur numéro de ligne d\'origine. <strong>Exporter .xlsx</strong> enregistre la liste dans un fichier Excel.',
+          texte: 'Un <strong>résumé en phrases simples</strong>, puis le détail : les lignes en double vues côté A, puis côté B, avec leur numéro de ligne d\'origine. <strong>Exporter .xlsx</strong> enregistre la liste dans un fichier Excel, après vous avoir demandé quels onglets y mettre — ils sont tous cochés.',
         },
       ],
       sections: [
@@ -212,6 +216,10 @@
           q: 'Puis-je chercher sur trois fichiers ?',
           r: 'Oui, avec les doublons avancé : le fichier C y est facultatif et la colonne « Présente dans » indique dans quels fichiers chaque ligne se retrouve.',
         },
+        {
+          q: 'Je ne veux qu\'une partie des onglets dans le fichier Excel',
+          r: 'Cliquez sur <strong>Exporter .xlsx</strong> : un panneau s\'ouvre sous le bouton et liste les onglets affichés, tous cochés. Décochez ceux dont vous n\'avez pas besoin, puis cliquez sur <strong>Exporter</strong>. La case <strong>Renommer les onglets avant l\'export</strong> permet au passage de choisir le nom de chaque feuille. À l\'ouverture suivante, tout est de nouveau coché et le renommage éteint.',
+        },
       ],
     },
 
@@ -241,7 +249,7 @@
         {
           cible: '#results.visible',
           titre: 'Lisez le résultat, puis exportez',
-          texte: 'Un résumé en phrases simples, puis le détail par onglets — avec trois fichiers, la colonne <strong>Présente dans</strong> dit où chaque ligne se trouve. Deux exports : <strong>Exporter .xlsx</strong> pour la liste, et <strong>Exporter le fichier A annoté</strong> pour reprendre votre fichier A avec le verdict ajouté à droite.',
+          texte: 'Un résumé en phrases simples, puis le détail par onglets — avec trois fichiers, la colonne <strong>Présente dans</strong> dit où chaque ligne se trouve. Deux exports : <strong>Exporter .xlsx</strong> pour la liste — il vous demande d\'abord quels onglets exporter, tous cochés — et <strong>Exporter le fichier A annoté</strong> pour reprendre votre fichier A avec le verdict ajouté à droite.',
         },
       ],
       sections: [
@@ -276,7 +284,7 @@
         {
           titre: 'Les exports',
           html: `<ul>
-            <li><strong>Exporter .xlsx</strong> — un classeur qui reprend les onglets ci-dessus, une feuille par onglet, avec le même libellé et le même contenu.</li>
+            <li><strong>Exporter .xlsx</strong> — un classeur qui reprend les onglets ci-dessus, une feuille par onglet, avec le même libellé et le même contenu. Le clic ouvre d'abord un panneau où vous choisissez les onglets à exporter : tout est coché, décochez ce dont vous n'avez pas besoin. Une case <strong>Renommer les onglets avant l'export</strong> y ouvre, sous chaque onglet retenu, un champ pour donner à la feuille le nom de votre choix.</li>
             <li><strong>Exporter le fichier A annoté</strong> — votre fichier A complet, avec à droite <em>Statut</em>, <em>Présente dans</em>, <em>Colonnes en écart</em>, la valeur des autres fichiers et la ligne d'origine. Les lignes venues de B ou C sont ajoutées à la suite.</li>
           </ul>`,
         },
@@ -297,6 +305,10 @@
         {
           q: 'Une date apparaît en écart alors qu\'elle est identique',
           r: 'Sur les colonnes comparées, les dates sont ramenées au format JJ/MM/AAAA avant comparaison, justement pour éviter ce cas. Si l\'écart persiste, la valeur est sans doute du texte d\'un côté et une vraie date de l\'autre, avec un contenu réellement différent.',
+        },
+        {
+          q: 'Je ne veux qu\'une partie des onglets dans le fichier Excel',
+          r: 'Cliquez sur <strong>Exporter .xlsx</strong> : un panneau s\'ouvre sous le bouton et liste les onglets affichés, tous cochés. Décochez ceux dont vous n\'avez pas besoin, puis cliquez sur <strong>Exporter</strong>. La case <strong>Renommer les onglets avant l\'export</strong> permet au passage de choisir le nom de chaque feuille. À l\'ouverture suivante, tout est de nouveau coché et le renommage éteint.',
         },
       ],
     },
@@ -322,7 +334,7 @@
         {
           cible: '#results.visible',
           titre: 'Lisez le résultat',
-          texte: 'Un résumé en phrases simples, puis le détail par fichier. Avec trois fichiers, une ligne est en double dès qu\'elle se retrouve dans <strong>au moins un autre fichier</strong> : la colonne <strong>Présente dans</strong> dit lesquels.',
+          texte: 'Un résumé en phrases simples, puis le détail par fichier. Avec trois fichiers, une ligne est en double dès qu\'elle se retrouve dans <strong>au moins un autre fichier</strong> : la colonne <strong>Présente dans</strong> dit lesquels. <strong>Exporter .xlsx</strong> vous demande quels onglets mettre dans le fichier Excel — ils sont tous cochés.',
         },
       ],
       sections: [
@@ -359,6 +371,10 @@
         {
           q: 'Pourquoi ma ligne n\'est-elle pas vue comme un doublon ?',
           r: 'Les colonnes associées sont comparées caractère par caractère : un espace en trop, un accent ou une casse différente suffisent à séparer deux lignes. Réduisez le nombre de colonnes associées pour un rapprochement plus large.',
+        },
+        {
+          q: 'Je ne veux qu\'une partie des onglets dans le fichier Excel',
+          r: 'Cliquez sur <strong>Exporter .xlsx</strong> : un panneau s\'ouvre sous le bouton et liste les onglets affichés, tous cochés. Décochez ceux dont vous n\'avez pas besoin, puis cliquez sur <strong>Exporter</strong>. La case <strong>Renommer les onglets avant l\'export</strong> permet au passage de choisir le nom de chaque feuille. À l\'ouverture suivante, tout est de nouveau coché et le renommage éteint.',
         },
       ],
     },

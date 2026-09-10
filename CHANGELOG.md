@@ -2,6 +2,22 @@
 
 Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https://ryosaeba89.github.io/xldiff/pages/changelog.html>
 
+## Version 3.7 — 10 septembre 2026
+
+### Vous choisissez ce que contient le fichier exporté
+
+- **« Exporter .xlsx » vous demande d'abord ce que vous voulez exporter.** Un panneau s'ouvre sous le bouton et liste les onglets affichés à l'écran, chacun avec son nombre de lignes : décochez ceux dont vous n'avez pas besoin, le classeur ne contiendra que les autres. Le fichier reprenait jusqu'ici tous les onglets, sans autre choix possible.
+- **Tout est coché à l'ouverture**, et le reste à chaque nouvel export : un fichier incomplet ne peut pas sortir d'un réglage laissé de côté la fois précédente. Un lien **Tout décocher** vide la liste d'un coup, et **Tout cocher** la remplit.
+- **Annuler, `Échap` ou un clic à côté referment le panneau sans rien écrire.** Tant qu'aucune case n'est cochée, le bouton **Exporter** reste inactif : un classeur sans aucune feuille n'existe pas.
+- Le contenu des feuilles ne change pas : mêmes colonnes, même ordre qu'à l'écran. Le bouton **Exporter le fichier A annoté**, qui ne produit qu'une seule feuille, n'est pas concerné.
+
+### Et vous pouvez renommer les onglets au passage
+
+- **Une case « Renommer les onglets avant l'export »**, décochée par défaut, ouvre sous chaque onglet retenu un champ déjà rempli avec son nom actuel. Ce que vous y écrivez devient le nom de la feuille dans le fichier Excel ; un champ laissé tel quel donne exactement le fichier d'avant.
+- **Les champs suivent vos cases** : décocher un onglet retire le sien, et le recocher vous rend ce que vous aviez déjà tapé. Comme le reste du panneau, tout repart à zéro à l'ouverture suivante.
+- **Un nom qu'Excel refuserait est signalé sous le champ et bloque l'export**, au lieu d'être corrigé en douce en un nom que vous n'avez pas choisi : nom vide, plus de 31 caractères, caractères `\ / ? * [ ]` ou deux-points, apostrophe en début ou en fin, ou nom déjà pris par un autre onglet.
+- Depuis un champ, `Entrée` lance l'export dès que tous les noms sont acceptables.
+
 ## Version 3.6 — 1er septembre 2026
 
 ### Un onglet qui portait un nom trompeur

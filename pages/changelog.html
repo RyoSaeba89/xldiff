@@ -63,6 +63,29 @@
 
     <div class="release">
       <div class="release-header">
+        <span class="release-tag">Version 3.7</span>
+        <span class="release-date">10 septembre 2026</span>
+      </div>
+
+      <h3>Vous choisissez ce que contient le fichier exporté</h3>
+      <ul>
+        <li><strong>« Exporter .xlsx » vous demande d'abord ce que vous voulez exporter.</strong> Un panneau s'ouvre sous le bouton et liste les onglets affichés à l'écran, chacun avec son nombre de lignes : décochez ceux dont vous n'avez pas besoin, le classeur ne contiendra que les autres. Le fichier reprenait jusqu'ici tous les onglets, sans autre choix possible.</li>
+        <li><strong>Tout est coché à l'ouverture</strong>, et le reste à chaque nouvel export : un fichier incomplet ne peut pas sortir d'un réglage laissé de côté la fois précédente. Un lien <strong>Tout décocher</strong> vide la liste d'un coup, et <strong>Tout cocher</strong> la remplit.</li>
+        <li><strong>Annuler, <code>Échap</code> ou un clic à côté referment le panneau sans rien écrire.</strong> Tant qu'aucune case n'est cochée, le bouton <strong>Exporter</strong> reste inactif : un classeur sans aucune feuille n'existe pas.</li>
+        <li>Le contenu des feuilles ne change pas : mêmes colonnes, même ordre qu'à l'écran. Le bouton <strong>Exporter le fichier A annoté</strong>, qui ne produit qu'une seule feuille, n'est pas concerné.</li>
+      </ul>
+
+      <h3>Et vous pouvez renommer les onglets au passage</h3>
+      <ul>
+        <li><strong>Une case « Renommer les onglets avant l'export »</strong>, décochée par défaut, ouvre sous chaque onglet retenu un champ déjà rempli avec son nom actuel. Ce que vous y écrivez devient le nom de la feuille dans le fichier Excel ; un champ laissé tel quel donne exactement le fichier d'avant.</li>
+        <li><strong>Les champs suivent vos cases</strong> : décocher un onglet retire le sien, et le recocher vous rend ce que vous aviez déjà tapé. Comme le reste du panneau, tout repart à zéro à l'ouverture suivante.</li>
+        <li><strong>Un nom qu'Excel refuserait est signalé sous le champ et bloque l'export</strong>, au lieu d'être corrigé en douce en un nom que vous n'avez pas choisi : nom vide, plus de 31 caractères, caractères <code>\ / ? * [ ]</code> ou deux-points, apostrophe en début ou en fin, ou nom déjà pris par un autre onglet.</li>
+        <li>Depuis un champ, <code>Entrée</code> lance l'export dès que tous les noms sont acceptables.</li>
+      </ul>
+    </div>
+
+    <div class="release old">
+      <div class="release-header">
         <span class="release-tag">Version 3.6</span>
         <span class="release-date">1er septembre 2026</span>
       </div>
@@ -277,7 +300,7 @@
   </div>
 </div>
 
-<div class="footer">XLDiff v3.6 — Jacques Rennie · Eurométropole de Strasbourg</div>
+<div class="footer">XLDiff v3.7 — Jacques Rennie · Eurométropole de Strasbourg</div>
 
 </body>
 </html>

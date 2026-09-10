@@ -29,7 +29,8 @@
 //        XLDiffResults.show({ diff, columns, totals, mode, sources })
 //        XLDiffResults.hide()               (résultats devenus périmés)
 //        XLDiffResults.setColumns(columns)
-//        XLDiffResults.exportResults()
+//        XLDiffResults.exportResults(ancre, fait)
+//                                           (ouvre le choix des onglets)
 //        XLDiffResults.exportAnnotated()   (mode 'diff' seulement)
 // ============================================================
 
@@ -99,6 +100,7 @@ const XLDiffResults = (() => {
       activeTab: 'all',
       vue: null,
     };
+    fermerChoix(false);
     render();
   }
 
@@ -109,6 +111,7 @@ const XLDiffResults = (() => {
   function hide() {
     if (!dom) return;
     state = null;
+    fermerChoix(false);
     dom.results.classList.remove('visible');
     dom.summaryBox.innerHTML = '';
     dom.tabsBar.innerHTML = '';
@@ -476,24 +479,267 @@ const XLDiffResults = (() => {
     return aoa;
   }
 
-  // Le classeur exporté reprend un à un les onglets affichés : même
-  // libellé, même contenu, même ordre. buildTabs() reste la seule
-  // source de vérité, l'écran et le fichier ne peuvent plus diverger.
-  // Un onglet sans ligne donne une feuille réduite à son en-tête : on
-  // la retrouve dans le classeur comme on la voit à l'écran.
-  function exportResults() {
-    if (!state) return;
-    const { diff, mode } = state;
-    const wb = XLSX.utils.book_new();
+  // Un onglet, une feuille : c'est buildTabs() qui décide du libellé, du
+  // contenu et de l'ordre, pour l'écran comme pour le classeur.
+  function aoaOnglet(onglet) {
+    const { diff } = state;
+    return onglet.id === 'modified'
+      ? aoaModifiees()
+      : aoaPresence(onglet.id === 'all' ? diff.all : diff.bySide[onglet.id.slice(4)]);
+  }
 
-    for (const onglet of buildTabs()) {
-      const aoa = onglet.id === 'modified'
-        ? aoaModifiees()
-        : aoaPresence(onglet.id === 'all' ? diff.all : diff.bySide[onglet.id.slice(4)]);
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), nomFeuille(onglet.label));
+  // Le classeur exporté reprend un à un les onglets retenus : même
+  // contenu et même ordre qu'à l'écran, sous le libellé de l'onglet — ou
+  // sous le nom saisi par l'usager s'il a demandé à les renommer.
+  // buildTabs() reste la seule source de vérité pour le contenu : l'écran
+  // et le fichier ne peuvent pas diverger. Un onglet sans ligne donne une
+  // feuille réduite à son en-tête, comme on la voit à l'écran.
+  function ecrireSelection(ids, noms) {
+    if (!state) return;
+    const onglets = buildTabs().filter(t => ids.indexOf(t.id) !== -1);
+    if (!onglets.length) return;
+
+    const wb = XLSX.utils.book_new();
+    for (const onglet of onglets) {
+      const nom = (noms && noms[onglet.id]) || onglet.label;
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaOnglet(onglet)), nomFeuille(nom));
+    }
+    ecrire(wb, `${state.mode === 'dupes' ? 'xldiff_doublons' : 'xldiff'}_${horodatage()}.xlsx`);
+  }
+
+  // ---------- Choix des onglets à exporter ----------
+  //
+  // Le clic sur « Exporter .xlsx » n'écrit plus aussitôt : il ouvre sous
+  // le bouton un panneau où chaque onglet de l'écran porte sa case, avec
+  // son nombre de lignes. Le panneau repart toujours de « tout coché » et
+  // du renommage éteint : le contenu du classeur ne dépend jamais d'un
+  // réglage laissé de côté à l'export précédent. Annuler, Échap ou un clic
+  // à côté referment sans rien écrire, et rien n'est exporté si plus
+  // aucune case n'est cochée.
+  //
+  // RENOMMAGE — la case « Renommer les onglets avant l'export » (éteinte
+  // par défaut) ouvre, sous chaque onglet coché, un champ pré-rempli avec
+  // son libellé : le laisser tel quel donne exactement le fichier d'avant.
+  // Un nom qu'Excel refuserait est signalé sous le champ et bloque
+  // l'export, plutôt que d'être corrigé en douce en un nom que l'usager
+  // n'a pas choisi.
+
+  let choix = null; // { racine, liste, bascule, renommer, valider, ancre, fait }
+
+  function choixOuvert() { return !!choix && !choix.racine.hidden; }
+  function casesChoix() {
+    return Array.prototype.slice.call(choix.liste.querySelectorAll('input[type="checkbox"]'));
+  }
+
+  // Excel refuse un nom vide, plus de 31 caractères, les caractères
+  // : \ / ? * [ ], l'apostrophe en début ou en fin, et deux feuilles de
+  // même nom dans un classeur (la casse ne les distingue pas).
+  const CARS_INTERDITS = /[\\\/:?*\[\]]/;
+
+  function erreurNom(valeur, dejaVus) {
+    const nom = String(valeur).trim();
+    if (!nom) return 'Donnez un nom à cet onglet.';
+    if (nom.length > 31) return `31 caractères au maximum (il y en a ${nom.length}).`;
+    if (CARS_INTERDITS.test(nom)) return 'Excel interdit les caractères : \\ / ? * [ ]';
+    if (nom[0] === '\'' || nom[nom.length - 1] === '\'') return 'Le nom ne peut ni commencer ni finir par une apostrophe.';
+    if (dejaVus.indexOf(nom.toLowerCase()) !== -1) return 'Ce nom est déjà pris par un autre onglet.';
+    return '';
+  }
+
+  function majChoix() {
+    const cases = casesChoix();
+    const coches = cases.filter(c => c.checked).length;
+    choix.bascule.textContent = coches === cases.length ? 'Tout décocher' : 'Tout cocher';
+
+    // Les champs ne concernent que les onglets retenus : décocher un
+    // onglet retire le sien. Sa saisie reste en mémoire tant que le
+    // panneau est ouvert, pour qu'un décochage par mégarde ne l'efface pas.
+    const renommer = choix.renommer.checked;
+    const dejaVus = [];
+    let faute = false;
+    for (const c of cases) {
+      const item = c.closest('.export-choice-item');
+      const champ = item.querySelector('.ec-nom');
+      const erreur = item.querySelector('.ec-erreur');
+      const actif = renommer && c.checked;
+      champ.hidden = !actif;
+      if (!actif) {
+        erreur.hidden = true;
+        champ.classList.remove('en-faute');
+        champ.removeAttribute('aria-invalid');
+        continue;
+      }
+      const message = erreurNom(champ.value, dejaVus);
+      if (message) {
+        faute = true;
+        champ.setAttribute('aria-invalid', 'true');
+      } else {
+        dejaVus.push(champ.value.trim().toLowerCase());
+        champ.removeAttribute('aria-invalid');
+      }
+      champ.classList.toggle('en-faute', !!message);
+      erreur.textContent = message;
+      erreur.hidden = !message;
     }
 
-    ecrire(wb, `${mode === 'dupes' ? 'xldiff_doublons' : 'xldiff'}_${horodatage()}.xlsx`);
+    // Un classeur sans la moindre feuille n'existe pas, et un nom qu'Excel
+    // refuserait non plus : dans les deux cas le bouton reste inerte
+    // plutôt que d'écrire un fichier que l'usager croirait conforme.
+    choix.valider.disabled = coches === 0 || faute;
+  }
+
+  // Le panneau est posé en coordonnées de document : il suit la page au
+  // défilement sans écouteur, et se recale au redimensionnement.
+  function placerChoix() {
+    const { racine, ancre } = choix;
+    if (!ancre || !ancre.getBoundingClientRect) return;
+    const r = ancre.getBoundingClientRect();
+    const marge = 8;
+    const largeurVue = document.documentElement.clientWidth || 0;
+    let gauche = r.left + window.scrollX;
+    const maxi = window.scrollX + largeurVue - racine.offsetWidth - marge;
+    if (largeurVue && gauche > maxi) gauche = maxi;
+    if (gauche < window.scrollX + marge) gauche = window.scrollX + marge;
+    racine.style.left = `${Math.round(gauche)}px`;
+    racine.style.top = `${Math.round(r.bottom + window.scrollY + 6)}px`;
+  }
+
+  function creerChoix() {
+    const racine = document.createElement('div');
+    racine.className = 'export-choice';
+    racine.id = 'exportChoice';
+    racine.setAttribute('role', 'dialog');
+    racine.setAttribute('aria-labelledby', 'exportChoiceTitre');
+    racine.hidden = true;
+    racine.innerHTML =
+      '<div class="export-choice-title" id="exportChoiceTitre">Que voulez-vous exporter ?</div>' +
+      '<div class="export-choice-list" id="exportChoiceList"></div>' +
+      '<button type="button" class="export-choice-toggle" id="exportChoiceToggle">Tout décocher</button>' +
+      '<label class="export-choice-rename">' +
+      '<input type="checkbox" id="exportChoiceRename">' +
+      '<span>Renommer les onglets avant l\'export</span>' +
+      '</label>' +
+      '<div class="export-choice-actions">' +
+      '<button type="button" class="btn btn-secondary" id="exportChoiceCancel">Annuler</button>' +
+      '<button type="button" class="btn btn-primary" id="exportChoiceOk">Exporter</button>' +
+      '</div>';
+    document.body.appendChild(racine);
+
+    choix = {
+      racine,
+      liste: racine.querySelector('#exportChoiceList'),
+      bascule: racine.querySelector('#exportChoiceToggle'),
+      renommer: racine.querySelector('#exportChoiceRename'),
+      valider: racine.querySelector('#exportChoiceOk'),
+      ancre: null,
+      fait: null,
+    };
+
+    choix.liste.addEventListener('change', majChoix);
+    // `input` et non `change` : le verdict sur un nom se met à jour à la
+    // frappe, pas seulement quand le champ perd le focus.
+    choix.liste.addEventListener('input', majChoix);
+    choix.liste.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' || !e.target.classList.contains('ec-nom')) return;
+      e.preventDefault();
+      if (!choix.valider.disabled) choix.valider.click();
+    });
+    choix.bascule.addEventListener('click', () => {
+      const cases = casesChoix();
+      const tout = cases.every(c => c.checked);
+      cases.forEach(c => { c.checked = !tout; });
+      majChoix();
+    });
+    choix.renommer.addEventListener('change', () => {
+      majChoix();
+      const premier = choix.liste.querySelector('.ec-nom:not([hidden])');
+      if (choix.renommer.checked && premier) { premier.focus(); premier.select(); }
+    });
+    racine.querySelector('#exportChoiceCancel').addEventListener('click', () => fermerChoix(true));
+    choix.valider.addEventListener('click', () => {
+      const renommer = choix.renommer.checked;
+      const ids = [];
+      const noms = {};
+      for (const c of casesChoix()) {
+        if (!c.checked) continue;
+        const id = c.getAttribute('data-onglet');
+        ids.push(id);
+        if (renommer) noms[id] = c.closest('.export-choice-item').querySelector('.ec-nom').value.trim();
+      }
+      const fait = choix.fait;
+      fermerChoix(true);
+      ecrireSelection(ids, renommer ? noms : null);
+      if (fait) fait(ids);
+    });
+
+    // Échap est intercepté à la capture : sans ça, l'aide de la page le
+    // recevrait aussi et fermerait son volet en même temps que le panneau.
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && choixOuvert()) { e.stopPropagation(); fermerChoix(true); }
+    }, true);
+    // Un clic à côté referme ; un clic sur le bouton d'export est laissé
+    // passer, c'est lui qui referme — sans quoi il rouvrirait aussitôt.
+    document.addEventListener('mousedown', e => {
+      if (!choixOuvert()) return;
+      if (racine.contains(e.target)) return;
+      if (choix.ancre && choix.ancre.contains(e.target)) return;
+      fermerChoix(false);
+    }, true);
+    window.addEventListener('resize', () => { if (choixOuvert()) placerChoix(); });
+
+    return choix;
+  }
+
+  function ouvrirChoix(ancre, fait) {
+    const c = choix || creerChoix();
+    c.ancre = ancre;
+    c.fait = fait || null;
+    // Toutes les cases cochées et le renommage éteint à chaque ouverture :
+    // voir le commentaire de section. Le champ de chaque onglet est
+    // pré-rempli avec son libellé, celui-là même que porte la feuille
+    // exportée sans renommage.
+    c.liste.innerHTML = buildTabs().map(t =>
+      '<div class="export-choice-item">' +
+      '<label class="ec-case">' +
+      `<input type="checkbox" checked data-onglet="${escAttr(t.id)}">` +
+      `<span class="ec-label">${esc(t.label)}</span>` +
+      `<span class="ec-count">${num(t.count)}</span>` +
+      '</label>' +
+      `<input type="text" class="ec-nom" hidden value="${escAttr(t.label)}" ` +
+      `aria-label="Nom de la feuille pour l'onglet ${escAttr(t.label)}">` +
+      '<div class="ec-erreur" hidden></div>' +
+      '</div>').join('');
+    c.renommer.checked = false;
+    majChoix();
+    c.racine.hidden = false;
+    placerChoix();
+    const premiere = c.liste.querySelector('input');
+    if (premiere) premiere.focus();
+  }
+
+  function fermerChoix(rendreFocus) {
+    if (!choixOuvert()) return;
+    const ancre = choix.ancre;
+    choix.racine.hidden = true;
+    choix.ancre = null;
+    choix.fait = null;
+    if (rendreFocus && ancre && ancre.focus) ancre.focus();
+  }
+
+  // `ancre` est le bouton sous lequel s'ouvre le panneau, `fait` le
+  // rappel joué une fois le fichier écrit — jamais si l'usager annule.
+  function exportResults(ancre, fait) {
+    if (!state) return;
+    const bouton = ancre && ancre.getBoundingClientRect ? ancre : $('btnExport');
+    // Appelé sans bouton à l'écran (pilotage direct) : tous les onglets
+    // sont exportés, comme avant l'arrivée du panneau.
+    if (!bouton) {
+      ecrireSelection(buildTabs().map(t => t.id));
+      if (fait) fait();
+      return;
+    }
+    if (choixOuvert() && choix.ancre === bouton) { fermerChoix(true); return; }
+    ouvrirChoix(bouton, fait);
   }
 
   // ---------- Export du fichier A annoté ----------

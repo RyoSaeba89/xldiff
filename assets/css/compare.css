@@ -204,6 +204,153 @@
   flex-wrap: wrap;
 }
 
+/* ---------- CHOIX DES ONGLETS À EXPORTER ---------- */
+
+/* Panneau ouvert par « Exporter .xlsx », ancré sous le bouton. Il est
+   posé en coordonnées de document (position: absolute, calculée dans
+   results-view.js) : il suit donc la page au défilement. Il passe sous
+   la visite guidée (z-index 950 et au-delà), qui reste prioritaire. */
+.export-choice {
+  position: absolute;
+  z-index: 900;
+  min-width: 280px;
+  max-width: min(380px, calc(100vw - 16px));
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--rl);
+  box-shadow: var(--shm);
+}
+.export-choice[hidden] { display: none; }
+
+.export-choice-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+/* Liste bornée en hauteur : avec trois fichiers et les champs de
+   renommage ouverts, le panneau dépasserait la fenêtre. */
+.export-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: min(46vh, 360px);
+  overflow-y: auto;
+}
+
+.export-choice-item { border-radius: var(--r); }
+
+/* Le nombre de lignes est repoussé à droite : la colonne de chiffres se
+   lit d'un coup d'œil, comme le compteur porté par l'onglet à l'écran. */
+.ec-case {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: var(--r);
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+.ec-case:hover { background: var(--gl2); }
+.ec-case input[type="checkbox"] {
+  accent-color: var(--g1);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  flex: none;
+}
+.ec-case .ec-label { flex: 1; }
+.ec-case .ec-count {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sec);
+  background: var(--gl);
+  border-radius: 10px;
+  padding: 1px 8px;
+}
+
+/* Champ de renommage : décalé sous la case dont il porte le nom, pour
+   qu'on voie sans hésitation à quel onglet il appartient. */
+.ec-nom {
+  display: block;
+  width: calc(100% - 29px);
+  margin: 1px 0 6px 23px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+.ec-nom:focus { outline: none; border-color: var(--g1); box-shadow: 0 0 0 2px var(--gl); }
+.ec-nom.en-faute { border-color: var(--red); }
+.ec-nom.en-faute:focus { box-shadow: 0 0 0 2px var(--orange-l); }
+.ec-erreur {
+  margin: -4px 0 6px 23px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--red);
+}
+/* Le display: block ci-dessus l'emporterait sur la règle du navigateur */
+.ec-nom[hidden], .ec-erreur[hidden] { display: none; }
+
+/* La case qui ouvre les champs, détachée de la liste qu'elle transforme */
+.export-choice-rename {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+.export-choice-rename input[type="checkbox"] {
+  accent-color: var(--g1);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  flex: none;
+}
+
+.export-choice-toggle {
+  margin-top: 8px;
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--g1);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.export-choice-toggle:hover { color: var(--g2); }
+
+.export-choice-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.export-choice-actions .btn { padding: 7px 14px; font-size: 13px; }
+
+/* Écran étroit : le panneau occupe la largeur disponible et ses deux
+   boutons s'étirent, pour rester atteignables au doigt. */
+@media (max-width: 480px) {
+  .export-choice { min-width: 0; width: calc(100vw - 16px); }
+  .export-choice-actions .btn { flex: 1; }
+}
+
 /* ---------- RÉSULTATS ---------- */
 
 .results { display: none; }

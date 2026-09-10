@@ -107,8 +107,11 @@
   }
 
   btnCompare.addEventListener('click', compare);
+  // Le statut n'est écrit qu'une fois le fichier produit : le clic ouvre
+  // d'abord le choix des onglets à exporter, que l'usager peut annuler.
   btnExport.addEventListener('click', () => {
-    XLDiffResults.exportResults();
-    statusText.textContent = 'Export terminé ✓';
+    XLDiffResults.exportResults(btnExport, () => {
+      statusText.textContent = 'Export terminé ✓';
+    });
   });
 })();
