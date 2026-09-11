@@ -2,6 +2,17 @@
 
 Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https://ryosaeba89.github.io/xldiff/pages/changelog.html>
 
+## Version 3.8 — 11 septembre 2026
+
+### Les colonnes vides ne partent plus dans le fichier Excel
+
+- **Une colonne qu'aucune ligne ne renseigne n'est plus écrite dans le fichier exporté**, son intitulé compris. Une colonne que vos fichiers portent mais que personne n'a jamais remplie encombrait jusqu'ici le classeur sur toute sa largeur : il fallait la retrouver et la supprimer à la main avant de retravailler le résultat.
+- **Une cellule qui ne contient que des espaces compte pour vide**, y compris l'espace insécable que sèment les exports de certains logiciels. Une colonne d'apparence blanche ne survit donc pas au filtre sous prétexte qu'elle contient un caractère invisible.
+- **La règle vaut pour tous les exports, sans exception** : le classeur par onglets des quatre comparatifs comme le fichier A annoté. Les colonnes ajoutées par XLDiff suivent la même règle que les vôtres : « Colonnes en écart » disparaît si aucune ligne n'en porte, et une colonne « (B) » restée blanche aussi.
+- **Chaque feuille est traitée pour elle-même.** Une colonne renseignée dans « Uniquement dans A » mais vide dans « Uniquement dans B » reste dans la première feuille et disparaît de la seconde : chacune ne montre que ce qu'elle a vraiment à dire.
+- **Une feuille sans aucune ligne garde son en-tête entier.** Un onglet vide continue de donner une feuille réduite à ses intitulés, comme on la voit à l'écran : il n'y a rien à y filtrer, et une feuille sans la moindre colonne ne renseignerait sur rien.
+- Rien ne change à l'écran : les onglets affichent toujours toutes les colonnes. Le tri se fait à l'écriture du fichier, et ne dépend d'aucun réglage.
+
 ## Version 3.7 — 10 septembre 2026
 
 ### Vous choisissez ce que contient le fichier exporté

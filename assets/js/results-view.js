@@ -423,6 +423,47 @@ const XLDiffResults = (() => {
     return String(label).replace(/[\\\/:?*\[\]]/g, ' ').slice(0, 31).trim() || 'Feuille';
   }
 
+  // Une colonne dont aucune ligne ne porte de valeur n'apprend rien à
+  // qui relit le classeur : elle est retirée de la feuille, en-tête
+  // compris. Une cellule réduite à des espaces compte pour vide — en
+  // JavaScript, `\s` couvre déjà l'espace insécable (U+00A0) et son
+  // cousin étroit (U+202F), ceux que sèment les exports Excel — sans
+  // quoi une colonne d'apparence blanche survivrait au filtre.
+  function celluleVide(v) {
+    return v == null || String(v).trim() === '';
+  }
+
+  // La règle vaut pour TOUTES les colonnes, sans exception : celles de
+  // vos fichiers comme celles qu'ajoute XLDiff (« Colonnes en écart »
+  // quand aucune ligne n'en porte, une colonne « (B) » restée blanche).
+  // Une seule réserve, à chaque bout : une feuille sans aucune ligne de
+  // données garde son en-tête entier, et une feuille dont toutes les
+  // colonnes seraient vides le garde aussi — il n'y a rien à y filtrer,
+  // et une feuille sans la moindre colonne ne renseignerait sur rien.
+  //
+  // Le balayage s'arrête dès que chaque colonne a trouvé une valeur :
+  // sur un export dense, il ne lit que les toutes premières lignes.
+  function retirerColonnesVides(aoa) {
+    if (aoa.length < 2) return aoa;
+    const largeur = aoa[0].length;
+    const remplie = new Array(largeur).fill(false);
+    let restantes = largeur;
+    for (let l = 1; l < aoa.length && restantes; l++) {
+      const ligne = aoa[l];
+      for (let c = 0; c < largeur; c++) {
+        if (remplie[c] || celluleVide(ligne[c])) continue;
+        remplie[c] = true;
+        restantes--;
+      }
+    }
+    // Rien à retirer (toutes remplies) ou rien à garder (toutes vides) :
+    // dans les deux cas la feuille part telle quelle, sans recopie.
+    if (restantes === 0 || restantes === largeur) return aoa;
+    const gardees = [];
+    for (let c = 0; c < largeur; c++) if (remplie[c]) gardees.push(c);
+    return aoa.map(ligne => gardees.map(c => ligne[c]));
+  }
+
   // Écarts de présence : une ligne source par ligne de tableau, avec
   // exactement les colonnes qu'affiche prepareRows().
   function aoaPresence(rows) {
@@ -502,7 +543,8 @@ const XLDiffResults = (() => {
     const wb = XLSX.utils.book_new();
     for (const onglet of onglets) {
       const nom = (noms && noms[onglet.id]) || onglet.label;
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaOnglet(onglet)), nomFeuille(nom));
+      const aoa = retirerColonnesVides(aoaOnglet(onglet));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), nomFeuille(nom));
     }
     ecrire(wb, `${state.mode === 'dupes' ? 'xldiff_doublons' : 'xldiff'}_${horodatage()}.xlsx`);
   }
@@ -844,7 +886,7 @@ const XLDiffResults = (() => {
     }
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Fichier A annoté');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(retirerColonnesVides(aoa)), 'Fichier A annoté');
     ecrire(wb, `xldiff_fichierA_annote_${horodatage()}.xlsx`);
   }
 

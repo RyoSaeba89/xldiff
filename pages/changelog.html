@@ -63,6 +63,23 @@
 
     <div class="release">
       <div class="release-header">
+        <span class="release-tag">Version 3.8</span>
+        <span class="release-date">11 septembre 2026</span>
+      </div>
+
+      <h3>Les colonnes vides ne partent plus dans le fichier Excel</h3>
+      <ul>
+        <li><strong>Une colonne qu'aucune ligne ne renseigne n'est plus écrite dans le fichier exporté</strong>, son intitulé compris. Une colonne que vos fichiers portent mais que personne n'a jamais remplie encombrait jusqu'ici le classeur sur toute sa largeur : il fallait la retrouver et la supprimer à la main avant de retravailler le résultat.</li>
+        <li><strong>Une cellule qui ne contient que des espaces compte pour vide</strong>, y compris l'espace insécable que sèment les exports de certains logiciels. Une colonne d'apparence blanche ne survit donc pas au filtre sous prétexte qu'elle contient un caractère invisible.</li>
+        <li><strong>La règle vaut pour tous les exports, sans exception</strong> : le classeur par onglets des quatre comparatifs comme le fichier A annoté. Les colonnes ajoutées par XLDiff suivent la même règle que les vôtres : <em>Colonnes en écart</em> disparaît si aucune ligne n'en porte, et une colonne <em>(B)</em> restée blanche aussi.</li>
+        <li><strong>Chaque feuille est traitée pour elle-même.</strong> Une colonne renseignée dans « Uniquement dans A » mais vide dans « Uniquement dans B » reste dans la première feuille et disparaît de la seconde : chacune ne montre que ce qu'elle a vraiment à dire.</li>
+        <li><strong>Une feuille sans aucune ligne garde son en-tête entier.</strong> Un onglet vide continue de donner une feuille réduite à ses intitulés, comme on la voit à l'écran : il n'y a rien à y filtrer, et une feuille sans la moindre colonne ne renseignerait sur rien.</li>
+        <li>Rien ne change à l'écran : les onglets affichent toujours toutes les colonnes. Le tri se fait à l'écriture du fichier, et ne dépend d'aucun réglage.</li>
+      </ul>
+    </div>
+
+    <div class="release old">
+      <div class="release-header">
         <span class="release-tag">Version 3.7</span>
         <span class="release-date">10 septembre 2026</span>
       </div>
@@ -300,7 +317,7 @@
   </div>
 </div>
 
-<div class="footer">XLDiff v3.7 — Jacques Rennie · Eurométropole de Strasbourg</div>
+<div class="footer">XLDiff v3.8 — Jacques Rennie · Eurométropole de Strasbourg</div>
 
 </body>
 </html>
