@@ -39,7 +39,7 @@ const XLDiffResults = (() => {
   const MARGE = 12;        // lignes rendues au-delà de la zone visible
   const HAUTEUR_DEFAUT = 30;
   let dom = null;
-  let state = null; // { diff, columns, totals, sides, mode, activeTab, vue, sources }
+  let state = null; // { diff, columns, totals, sides, mode, activeTab, vue, sources, colsParOnglet }
 
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -74,6 +74,18 @@ const XLDiffResults = (() => {
       tbody: $('tbody'),
       wrapper: $('tableWrapper'),
     };
+    // La mention des colonnes masquées est posée ici, sous le tableau,
+    // plutôt que recopiée dans les quatre pages : elle n'a rien qui
+    // dépende de la page, et cette vue est seule à l'écrire.
+    if (dom.wrapper && dom.wrapper.parentNode) {
+      const mention = document.createElement('div');
+      mention.className = 'cols-masquees';
+      mention.id = 'colsMasquees';
+      mention.hidden = true;
+      dom.wrapper.parentNode.insertBefore(mention, dom.wrapper.nextSibling);
+      dom.colsMasquees = mention;
+    }
+
     const btnRestart = $('btnRestart');
     if (btnRestart) btnRestart.addEventListener('click', () => location.reload());
     // Un seul écouteur pour toute la vie de la page : le défilement
@@ -99,6 +111,7 @@ const XLDiffResults = (() => {
       sources: sources || null,
       activeTab: 'all',
       vue: null,
+      colsParOnglet: {}, // colonnes retenues par onglet, cf. colonnesVisibles()
     };
     fermerChoix(false);
     render();
@@ -117,11 +130,15 @@ const XLDiffResults = (() => {
     dom.tabsBar.innerHTML = '';
     dom.thead.innerHTML = '';
     dom.tbody.innerHTML = '';
+    annoncerColonnesMasquees([]);
   }
 
+  // La liste des colonnes change : le verdict gardé par onglet ne vaut
+  // plus rien, on le jette avant de redessiner.
   function setColumns(columns) {
     if (!state) return;
     state.columns = columns;
+    state.colsParOnglet = {};
     render();
   }
 
@@ -344,9 +361,14 @@ const XLDiffResults = (() => {
   // ---------- Écarts de présence : une ligne source par ligne de tableau ----------
 
   function prepareRows() {
-    const { diff, columns, sides, mode, activeTab } = state;
+    const { diff, sides, mode, activeTab } = state;
     const three = sides.length > 2;
     const rows = activeTab === 'all' ? diff.all : diff.bySide[activeTab.slice(4)];
+
+    // Les valeurs pesées sont celles-là mêmes que la cellule affichera,
+    // et que `aoaPresence()` écrira dans la feuille.
+    const columns = colonnesVisibles(activeTab, rows.length,
+      (l, c) => cellValue(rows[l], state.columns[c]));
 
     dom.thead.innerHTML = '<tr><th>Ligne</th><th>Source</th>' +
       (three ? '<th>Présente dans</th>' : '') +
@@ -371,7 +393,30 @@ const XLDiffResults = (() => {
   // ---------- Lignes retrouvées mais différentes ----------
 
   function prepareModified() {
-    const { diff, columns, sides } = state;
+    const { diff, sides } = state;
+
+    // Même valeur que la cellule rendue plus bas : les deux versions
+    // quand la ligne est en écart sur cette colonne, sinon la valeur du
+    // premier fichier qui porte la colonne. La table des écarts est
+    // rebâtie au changement de ligne seulement — le balayage les lit
+    // dans l'ordre.
+    let derniere = -1;
+    let ecarts = null;
+    const columns = colonnesVisibles('modified', diff.modified.length, (l, c) => {
+      const pair = diff.modified[l];
+      if (l !== derniere) {
+        derniere = l;
+        ecarts = new Map(pair.diffs.map(d => [d.label, d]));
+      }
+      const col = state.columns[c];
+      const d = ecarts.get(col.label);
+      if (d) return sides.map(sd => val(d.values[sd])).join(' ');
+      for (const sd of sides) {
+        const cc = col.cols[sd];
+        if (cc != null) return val(pair.rows[sd][cc]);
+      }
+      return '';
+    });
 
     dom.thead.innerHTML = '<tr><th>Lignes</th>' +
       columns.map(c => `<th>${esc(c.label)}</th>`).join('') + '</tr>';
@@ -424,44 +469,101 @@ const XLDiffResults = (() => {
   }
 
   // Une colonne dont aucune ligne ne porte de valeur n'apprend rien à
-  // qui relit le classeur : elle est retirée de la feuille, en-tête
-  // compris. Une cellule réduite à des espaces compte pour vide — en
-  // JavaScript, `\s` couvre déjà l'espace insécable (U+00A0) et son
-  // cousin étroit (U+202F), ceux que sèment les exports Excel — sans
-  // quoi une colonne d'apparence blanche survivrait au filtre.
+  // qui lit le résultat : elle n'est ni affichée à l'écran, ni écrite
+  // dans le fichier exporté, en-tête compris. Une cellule réduite à des
+  // espaces compte pour vide — en JavaScript, `\s` couvre déjà l'espace
+  // insécable (U+00A0) et son cousin étroit (U+202F), ceux que sèment
+  // les exports Excel — sans quoi une colonne d'apparence blanche
+  // survivrait au filtre.
   function celluleVide(v) {
     return v == null || String(v).trim() === '';
   }
 
-  // La règle vaut pour TOUTES les colonnes, sans exception : celles de
-  // vos fichiers comme celles qu'ajoute XLDiff (« Colonnes en écart »
-  // quand aucune ligne n'en porte, une colonne « (B) » restée blanche).
-  // Une seule réserve, à chaque bout : une feuille sans aucune ligne de
-  // données garde son en-tête entier, et une feuille dont toutes les
-  // colonnes seraient vides le garde aussi — il n'y a rien à y filtrer,
-  // et une feuille sans la moindre colonne ne renseignerait sur rien.
+  // Seul juge de « colonne renseignée », pour l'écran comme pour le
+  // fichier : `cellule(l, c)` rend la valeur de la ligne `l` dans la
+  // colonne `c`, telle qu'elle sera montrée ou écrite. Les deux passent
+  // par ici, donc le tableau affiche exactement les colonnes que la
+  // feuille exportée portera. La règle vaut pour TOUTES les colonnes,
+  // sans exception : celles des fichiers comme celles qu'ajoute XLDiff
+  // (« Colonnes en écart » quand aucune ligne n'en porte, une colonne
+  // « (B) » restée blanche), et la case « Afficher toutes les colonnes »
+  // du mode avancé n'y échappe pas davantage.
   //
   // Le balayage s'arrête dès que chaque colonne a trouvé une valeur :
-  // sur un export dense, il ne lit que les toutes premières lignes.
-  function retirerColonnesVides(aoa) {
-    if (aoa.length < 2) return aoa;
-    const largeur = aoa[0].length;
-    const remplie = new Array(largeur).fill(false);
-    let restantes = largeur;
-    for (let l = 1; l < aoa.length && restantes; l++) {
-      const ligne = aoa[l];
-      for (let c = 0; c < largeur; c++) {
-        if (remplie[c] || celluleVide(ligne[c])) continue;
+  // sur un résultat dense, il ne lit que les toutes premières lignes.
+  function colonnesRenseignees(nbLignes, nbColonnes, cellule) {
+    const remplie = new Array(nbColonnes).fill(false);
+    let restantes = nbColonnes;
+    for (let l = 0; l < nbLignes && restantes; l++) {
+      for (let c = 0; c < nbColonnes; c++) {
+        if (remplie[c] || celluleVide(cellule(l, c))) continue;
         remplie[c] = true;
         restantes--;
       }
     }
-    // Rien à retirer (toutes remplies) ou rien à garder (toutes vides) :
-    // dans les deux cas la feuille part telle quelle, sans recopie.
-    if (restantes === 0 || restantes === largeur) return aoa;
+    // Aucune colonne renseignée — un onglet sans ligne, ou des lignes
+    // toutes vides : on garde tout. Un tableau sans la moindre colonne,
+    // comme une feuille réduite à rien, ne renseignerait sur rien.
+    if (restantes === nbColonnes) remplie.fill(true);
+    return remplie;
+  }
+
+  // La feuille exportée porte les mêmes colonnes que l'onglet qu'elle
+  // reprend, par la même règle et sur les mêmes valeurs.
+  function retirerColonnesVides(aoa) {
+    if (aoa.length < 2) return aoa;
+    const largeur = aoa[0].length;
+    const remplie = colonnesRenseignees(aoa.length - 1, largeur, (l, c) => aoa[l + 1][c]);
     const gardees = [];
     for (let c = 0; c < largeur; c++) if (remplie[c]) gardees.push(c);
+    if (gardees.length === largeur) return aoa; // rien à retirer, pas de recopie
     return aoa.map(ligne => gardees.map(c => ligne[c]));
+  }
+
+  // ---------- Colonnes affichées, onglet par onglet ----------
+
+  // Chaque onglet ne montre que les colonnes que SES lignes renseignent :
+  // c'est une prévisualisation fidèle de la feuille qu'il produira. Le
+  // verdict est gardé en mémoire par onglet — passer d'un onglet à
+  // l'autre ne rebalaye pas les lignes — et jeté dès que le résultat ou
+  // la liste des colonnes change (`show()`, `setColumns()`).
+  function colonnesVisibles(cle, nbLignes, cellule) {
+    const toutes = state.columns;
+    let cache = state.colsParOnglet[cle];
+    if (!cache) {
+      const remplie = colonnesRenseignees(nbLignes, toutes.length, cellule);
+      cache = {
+        visibles: toutes.filter((col, c) => remplie[c]),
+        masquees: toutes.filter((col, c) => !remplie[c]).map(col => col.label),
+      };
+      state.colsParOnglet[cle] = cache;
+    }
+    annoncerColonnesMasquees(cache.masquees);
+    return cache.visibles;
+  }
+
+  // Une colonne qui disparaît sans un mot se lit comme une perte de
+  // données : la mention sous le tableau dit laquelle et pourquoi. Au-delà
+  // de huit, la liste est abrégée — l'infobulle les donne toutes.
+  const MAX_NOMS = 8;
+
+  function annoncerColonnesMasquees(labels) {
+    const el = dom.colsMasquees;
+    if (!el) return;
+    if (!labels.length) {
+      el.hidden = true;
+      el.textContent = '';
+      el.removeAttribute('title');
+      return;
+    }
+    const n = labels.length;
+    let liste = joinFr(labels.slice(0, MAX_NOMS).map(l => `« ${l} »`));
+    if (n > MAX_NOMS) liste += `, et ${num(n - MAX_NOMS)} autre${plur(n - MAX_NOMS)}`;
+    el.textContent = n > 1
+      ? `${num(n)} colonnes sans aucune valeur ne sont pas affichées : ${liste}. Elles ne seront pas non plus écrites dans le fichier exporté.`
+      : `1 colonne sans aucune valeur n'est pas affichée : ${liste}. Elle ne sera pas non plus écrite dans le fichier exporté.`;
+    el.title = labels.join(', ');
+    el.hidden = false;
   }
 
   // Écarts de présence : une ligne source par ligne de tableau, avec

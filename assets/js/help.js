@@ -158,7 +158,7 @@
         },
         {
           q: 'Je ne veux qu\'une partie des onglets dans le fichier Excel',
-          r: 'Cliquez sur <strong>Exporter .xlsx</strong> : un panneau s\'ouvre sous le bouton et liste les onglets affichés, tous cochés. Décochez ceux dont vous n\'avez pas besoin, puis cliquez sur <strong>Exporter</strong>. La case <strong>Renommer les onglets avant l\'export</strong> permet au passage de choisir le nom de chaque feuille. À l\'ouverture suivante, tout est de nouveau coché et le renommage éteint. Les colonnes qu\'aucune ligne ne renseigne ne sont pas écrites dans le fichier.',
+          r: 'Cliquez sur <strong>Exporter .xlsx</strong> : un panneau s\'ouvre sous le bouton et liste les onglets affichés, tous cochés. Décochez ceux dont vous n\'avez pas besoin, puis cliquez sur <strong>Exporter</strong>. La case <strong>Renommer les onglets avant l\'export</strong> permet au passage de choisir le nom de chaque feuille. À l\'ouverture suivante, tout est de nouveau coché et le renommage éteint. Les colonnes qu\'aucune ligne ne renseigne ne sont ni affichées, ni écrites dans le fichier : une ligne sous le tableau vous dit lesquelles.',
         },
       ],
     },
@@ -218,7 +218,7 @@
         },
         {
           q: 'Je ne veux qu\'une partie des onglets dans le fichier Excel',
-          r: 'Cliquez sur <strong>Exporter .xlsx</strong> : un panneau s\'ouvre sous le bouton et liste les onglets affichés, tous cochés. Décochez ceux dont vous n\'avez pas besoin, puis cliquez sur <strong>Exporter</strong>. La case <strong>Renommer les onglets avant l\'export</strong> permet au passage de choisir le nom de chaque feuille. À l\'ouverture suivante, tout est de nouveau coché et le renommage éteint. Les colonnes qu\'aucune ligne ne renseigne ne sont pas écrites dans le fichier.',
+          r: 'Cliquez sur <strong>Exporter .xlsx</strong> : un panneau s\'ouvre sous le bouton et liste les onglets affichés, tous cochés. Décochez ceux dont vous n\'avez pas besoin, puis cliquez sur <strong>Exporter</strong>. La case <strong>Renommer les onglets avant l\'export</strong> permet au passage de choisir le nom de chaque feuille. À l\'ouverture suivante, tout est de nouveau coché et le renommage éteint. Les colonnes qu\'aucune ligne ne renseigne ne sont ni affichées, ni écrites dans le fichier : une ligne sous le tableau vous dit lesquelles.',
         },
       ],
     },
@@ -286,7 +286,7 @@
           html: `<ul>
             <li><strong>Exporter .xlsx</strong> — un classeur qui reprend les onglets ci-dessus, une feuille par onglet, avec le même libellé et le même contenu. Le clic ouvre d'abord un panneau où vous choisissez les onglets à exporter : tout est coché, décochez ce dont vous n'avez pas besoin. Une case <strong>Renommer les onglets avant l'export</strong> y ouvre, sous chaque onglet retenu, un champ pour donner à la feuille le nom de votre choix.</li>
             <li><strong>Exporter le fichier A annoté</strong> — votre fichier A complet, avec à droite <em>Statut</em>, <em>Présente dans</em>, <em>Colonnes en écart</em>, la valeur des autres fichiers et la ligne d'origine. Les lignes venues de B ou C sont ajoutées à la suite.</li>
-            <li>Dans les deux cas, <strong>les colonnes qu'aucune ligne ne renseigne ne sont pas écrites</strong> : le fichier ne contient que les colonnes qui portent une valeur, même si l'écran les affiche toutes.</li>
+            <li>Dans les deux cas, <strong>les colonnes qu'aucune ligne ne renseigne ne sont pas écrites</strong> : le fichier reprend exactement les colonnes que le tableau vous montre, et le tableau ne montre que celles qui portent une valeur.</li>
           </ul>`,
         },
       ],
@@ -309,7 +309,7 @@
         },
         {
           q: 'Je ne veux qu\'une partie des onglets dans le fichier Excel',
-          r: 'Cliquez sur <strong>Exporter .xlsx</strong> : un panneau s\'ouvre sous le bouton et liste les onglets affichés, tous cochés. Décochez ceux dont vous n\'avez pas besoin, puis cliquez sur <strong>Exporter</strong>. La case <strong>Renommer les onglets avant l\'export</strong> permet au passage de choisir le nom de chaque feuille. À l\'ouverture suivante, tout est de nouveau coché et le renommage éteint. Les colonnes qu\'aucune ligne ne renseigne ne sont pas écrites dans le fichier.',
+          r: 'Cliquez sur <strong>Exporter .xlsx</strong> : un panneau s\'ouvre sous le bouton et liste les onglets affichés, tous cochés. Décochez ceux dont vous n\'avez pas besoin, puis cliquez sur <strong>Exporter</strong>. La case <strong>Renommer les onglets avant l\'export</strong> permet au passage de choisir le nom de chaque feuille. À l\'ouverture suivante, tout est de nouveau coché et le renommage éteint. Les colonnes qu\'aucune ligne ne renseigne ne sont ni affichées, ni écrites dans le fichier : une ligne sous le tableau vous dit lesquelles.',
         },
       ],
     },
@@ -375,7 +375,7 @@
         },
         {
           q: 'Je ne veux qu\'une partie des onglets dans le fichier Excel',
-          r: 'Cliquez sur <strong>Exporter .xlsx</strong> : un panneau s\'ouvre sous le bouton et liste les onglets affichés, tous cochés. Décochez ceux dont vous n\'avez pas besoin, puis cliquez sur <strong>Exporter</strong>. La case <strong>Renommer les onglets avant l\'export</strong> permet au passage de choisir le nom de chaque feuille. À l\'ouverture suivante, tout est de nouveau coché et le renommage éteint. Les colonnes qu\'aucune ligne ne renseigne ne sont pas écrites dans le fichier.',
+          r: 'Cliquez sur <strong>Exporter .xlsx</strong> : un panneau s\'ouvre sous le bouton et liste les onglets affichés, tous cochés. Décochez ceux dont vous n\'avez pas besoin, puis cliquez sur <strong>Exporter</strong>. La case <strong>Renommer les onglets avant l\'export</strong> permet au passage de choisir le nom de chaque feuille. À l\'ouverture suivante, tout est de nouveau coché et le renommage éteint. Les colonnes qu\'aucune ligne ne renseigne ne sont ni affichées, ni écrites dans le fichier : une ligne sous le tableau vous dit lesquelles.',
         },
       ],
     },

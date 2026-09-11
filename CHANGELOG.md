@@ -4,14 +4,16 @@ Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https:
 
 ## Version 3.8 — 11 septembre 2026
 
-### Les colonnes vides ne partent plus dans le fichier Excel
+### Les colonnes vides disparaissent de l'écran comme du fichier Excel
 
-- **Une colonne qu'aucune ligne ne renseigne n'est plus écrite dans le fichier exporté**, son intitulé compris. Une colonne que vos fichiers portent mais que personne n'a jamais remplie encombrait jusqu'ici le classeur sur toute sa largeur : il fallait la retrouver et la supprimer à la main avant de retravailler le résultat.
+- **Une colonne qu'aucune ligne ne renseigne n'est plus affichée, ni écrite dans le fichier exporté**, son intitulé compris. Une colonne que vos fichiers portent mais que personne n'a jamais remplie encombrait jusqu'ici le tableau et le classeur sur toute leur largeur : il fallait la retrouver et la supprimer à la main avant de retravailler le résultat.
+- **L'aperçu à l'écran montre exactement ce que le fichier contiendra.** Dès le clic sur **Comparer** — ou sur **Rechercher les doublons** —, le tableau ne porte plus que les colonnes qui ont quelque chose à dire, et l'export reprend les mêmes. Ce que vous voyez est ce que vous obtenez.
+- **Une ligne sous le tableau dit ce qui a été écarté** : « 2 colonnes sans aucune valeur ne sont pas affichées : « Commentaire » et « Note ». Elles ne seront pas non plus écrites dans le fichier exporté. » Une colonne absente ne peut donc pas se lire comme une perte de données. Au-delà de huit, la liste est abrégée et l'infobulle les donne toutes.
 - **Une cellule qui ne contient que des espaces compte pour vide**, y compris l'espace insécable que sèment les exports de certains logiciels. Une colonne d'apparence blanche ne survit donc pas au filtre sous prétexte qu'elle contient un caractère invisible.
+- **Chaque onglet est jugé pour lui-même.** Une colonne renseignée dans « Uniquement dans A » mais vide dans « Uniquement dans B » reste affichée dans le premier onglet et disparaît du second — et les deux feuilles exportées suivent, chacune la sienne.
 - **La règle vaut pour tous les exports, sans exception** : le classeur par onglets des quatre comparatifs comme le fichier A annoté. Les colonnes ajoutées par XLDiff suivent la même règle que les vôtres : « Colonnes en écart » disparaît si aucune ligne n'en porte, et une colonne « (B) » restée blanche aussi.
-- **Chaque feuille est traitée pour elle-même.** Une colonne renseignée dans « Uniquement dans A » mais vide dans « Uniquement dans B » reste dans la première feuille et disparaît de la seconde : chacune ne montre que ce qu'elle a vraiment à dire.
-- **Une feuille sans aucune ligne garde son en-tête entier.** Un onglet vide continue de donner une feuille réduite à ses intitulés, comme on la voit à l'écran : il n'y a rien à y filtrer, et une feuille sans la moindre colonne ne renseignerait sur rien.
-- Rien ne change à l'écran : les onglets affichent toujours toutes les colonnes. Le tri se fait à l'écriture du fichier, et ne dépend d'aucun réglage.
+- **La case « Afficher toutes les colonnes »** des comparatifs avancés n'y échappe pas non plus : elle ajoute bien les colonnes qui ne sont ni rapprochées ni comparées, mais celles qui restent vides ne s'affichent pas pour autant.
+- **Un onglet sans aucune ligne garde son en-tête entier**, à l'écran comme dans le classeur : il n'y a rien à y filtrer, et un tableau sans la moindre colonne ne renseignerait sur rien.
 
 ## Version 3.7 — 10 septembre 2026
 

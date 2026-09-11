@@ -489,6 +489,15 @@
   max-height: 600px;
   box-shadow: var(--sh);
 }
+/* Mention des colonnes sans aucune valeur, sous le tableau. Pas de
+   `display` ici : l'attribut `hidden` doit pouvoir la masquer seul. */
+.cols-masquees {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-light);
+}
+
 table { width: 100%; border-collapse: collapse; }
 thead { position: sticky; top: 0; z-index: 2; }
 th {

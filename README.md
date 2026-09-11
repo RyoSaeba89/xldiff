@@ -39,7 +39,7 @@ L'onglet **« Retrouvées mais différentes »** montre la valeur de chaque fich
 
 Dans les résultats, une case « Afficher toutes les colonnes » permet de basculer entre l'affichage des seules colonnes rapprochées et comparées et l'affichage complet.
 
-Un second bouton d'export, « **Exporter le fichier A annoté** », reprend le fichier A tel quel — toutes ses lignes et toutes ses colonnes — et ajoute à droite `Statut`, `Présente dans`, `Colonnes en écart`, la valeur de chaque autre fichier pour les colonnes comparées, et `Ligne d'origine`. Les lignes venues de B ou C et absentes de A sont ajoutées à la suite (seules leurs colonnes de rapprochement sont reportées, pour ne pas faire passer une valeur de B pour une valeur de A). Comme tout export d'XLDiff, la feuille produite ne porte que les colonnes qu'au moins une ligne renseigne (voir *[Les colonnes sans aucune valeur ne sont pas écrites](#les-colonnes-sans-aucune-valeur-ne-sont-pas-écrites)*).
+Un second bouton d'export, « **Exporter le fichier A annoté** », reprend le fichier A tel quel — toutes ses lignes et toutes ses colonnes — et ajoute à droite `Statut`, `Présente dans`, `Colonnes en écart`, la valeur de chaque autre fichier pour les colonnes comparées, et `Ligne d'origine`. Les lignes venues de B ou C et absentes de A sont ajoutées à la suite (seules leurs colonnes de rapprochement sont reportées, pour ne pas faire passer une valeur de B pour une valeur de A). Comme partout dans XLDiff, la feuille produite ne porte que les colonnes qu'au moins une ligne renseigne (voir *[Les colonnes sans aucune valeur ne sont ni affichées, ni écrites](#les-colonnes-sans-aucune-valeur-ne-sont-ni-affichées-ni-écrites)*).
 
 Une case « **Ignorer les lignes en double au sein d'un même fichier** » (décochée par défaut) change la règle de comparaison : cochée, une ligne dont la clé est présente dans tous les fichiers n'est jamais une différence, même si elle se répète un nombre de fois différent de l'un à l'autre (ex. 3 fois dans A, 1 fois dans B) ; seules les clés absentes d'au moins un fichier sont signalées, avec toutes leurs occurrences. Basculer la case après une comparaison relance automatiquement l'analyse.
 
@@ -64,23 +64,21 @@ Les deux natures d'écart sont **comptées séparément et ne se recouvrent jama
 
 Les feuilles sont construites à partir de `buildTabs()`, la même fonction que celle qui dessine les onglets (`results-view.js`) : l'écran et le fichier exporté ne peuvent pas diverger.
 
-### Les colonnes sans aucune valeur ne sont pas écrites
+### Les colonnes sans aucune valeur ne sont ni affichées, ni écrites
 
-**Une colonne qu'aucune ligne ne renseigne est retirée de la feuille exportée, en-tête compris.** Une colonne présente dans les fichiers mais jamais remplie encombrait le classeur sur toute sa largeur, et il fallait la supprimer à la main avant de retravailler le résultat.
+**Une colonne qu'aucune ligne ne renseigne est retirée du tableau et de la feuille exportée, en-tête compris.** Une colonne présente dans les fichiers mais jamais remplie encombrait l'écran et le classeur sur toute leur largeur, et il fallait la supprimer à la main avant de retravailler le résultat.
 
-Le filtre s'applique aux **deux boutons d'export sans exception** — le classeur par onglets des quatre comparatifs et le fichier A annoté — et **à chaque feuille séparément** : une colonne renseignée dans « Uniquement dans A » mais vide dans « Uniquement dans B » reste dans la première feuille et disparaît de la seconde. Les colonnes ajoutées par XLDiff n'y échappent pas : « Colonnes en écart » quand aucune ligne n'en porte, une colonne `Adresse (B)` restée blanche.
+![Sous le tableau, la mention « 2 colonnes sans aucune valeur ne sont pas affichées : « Commentaire » et « Note » »](assets/screenshots/colonnes-masquees.png)
+
+**L'écran est une prévisualisation fidèle du fichier** : `colonnesRenseignees()` est le seul juge, pour le tableau comme pour la feuille, et pèse dans les deux cas la valeur telle qu'elle sera montrée ou écrite. Le filtre s'applique **onglet par onglet** — une colonne renseignée dans « Uniquement dans A » mais vide dans « Uniquement dans B » reste dans le premier onglet et disparaît du second, comme dans les deux feuilles correspondantes — et aux **deux boutons d'export sans exception**, le classeur par onglets comme le fichier A annoté. Les colonnes ajoutées par XLDiff n'y échappent pas : « Colonnes en écart » quand aucune ligne n'en porte, une colonne `Adresse (B)` restée blanche. La case **« Afficher toutes les colonnes »** des comparatifs avancés non plus : elle ajoute les colonnes ni rapprochées ni comparées, mais celles qui restent vides ne s'affichent pas pour autant.
+
+**Une ligne sous le tableau nomme ce qui a été écarté**, parce qu'une colonne qui disparaît sans un mot se lit comme une perte de données. Au-delà de huit noms, la liste est abrégée (`MAX_NOMS`) et l'infobulle les donne toutes. L'élément est injecté par `init()` sous `#tableWrapper` plutôt que recopié dans les quatre pages : il n'a rien qui dépende de la page, et `results-view.js` est seul à l'écrire.
 
 **Une cellule réduite à des espaces compte pour vide.** `String(v).trim()` suffit : en JavaScript, `\s` couvre déjà l'espace insécable `U+00A0` et son cousin étroit `U+202F`, ceux que sèment les exports Excel — sans quoi une colonne d'apparence blanche survivrait au filtre.
 
-Deux réserves, une à chaque bout : **une feuille sans aucune ligne de données garde son en-tête entier** (rien à filtrer, et une feuille sans la moindre colonne ne renseignerait sur rien), et une feuille dont toutes les colonnes seraient vides le garde aussi. Dans les deux cas, comme lorsque toutes les colonnes sont remplies, le tableau part tel quel sans recopie.
+**Un onglet sans aucune ligne garde son en-tête entier**, à l'écran comme dans le classeur, de même qu'un onglet dont toutes les colonnes seraient vides : il n'y a rien à y filtrer, et un tableau sans la moindre colonne ne renseignerait sur rien. Quand rien n'est à retirer, le tableau de tableaux part tel quel, sans recopie.
 
-`retirerColonnesVides()` (`results-view.js`) s'intercale entre la construction du tableau de tableaux et `aoa_to_sheet` — un seul point de passage pour les deux exports. Le balayage s'arrête dès que chaque colonne a trouvé une valeur : sur un export dense, il ne lit que les toutes premières lignes.
-
-**Rien ne change à l'écran** : les onglets affichent toujours toutes les colonnes, et le tri n'est fait qu'à l'écriture du fichier. Il n'est commandé par aucun réglage — il n'y a pas de case pour le désactiver.
-
-La colonne **« Ligne »** donne le **vrai numéro de ligne Excel**, y compris quand le fichier contient des lignes vides. Celles-ci sont écartées à la lecture, mais elles ne décalent pas les lignes suivantes : le chargeur convertit la feuille avec `blankrows: true` (une entrée par ligne de la plage, vide ou non) et pose le numéro avant d'écarter les vides (`file-loader.js`). Le nombre de lignes annoncé dans la zone de dépôt est celui des lignes retenues, donc le même que celui du résumé.
-
-Modifier un réglage après une comparaison — une association de colonnes, la feuille choisie, un fichier remplacé — **retire les résultats affichés et désactive les exports** jusqu'à un nouveau clic sur « Comparer ». Sans ça, les boutons restaient actifs et exportaient en silence l'analyse précédente. La coche « Ignorer les doublons » fait l'inverse et relance l'analyse : c'est un réglage à deux états, pas une liste qu'on remanie sélecteur par sélecteur.
+Le balayage s'arrête dès que chaque colonne a trouvé une valeur : sur un résultat dense, il ne lit que les toutes premières lignes. Le verdict est **gardé en mémoire par onglet** (`state.colsParOnglet`), donc passer d'un onglet à l'autre ne rebalaye rien ; il est jeté par `show()` et par `setColumns()`, les deux seuls moments où le résultat ou la liste des colonnes change.
 
 ### Choisir les onglets à exporter
 
@@ -90,7 +88,7 @@ Le bouton **« Exporter .xlsx »** n'écrit pas aussitôt : il ouvre sous lui un
 
 **Toutes les cases sont cochées à chaque ouverture**, y compris après un export partiel : le classeur ne peut pas se retrouver amputé par un réglage laissé de côté la fois précédente. Un lien *Tout décocher* / *Tout cocher* traite la liste d'un coup. *Annuler*, `Échap` ou un clic à côté referment sans rien écrire — et sans annoncer « Export terminé », qui n'apparaît qu'une fois le fichier produit. Tant qu'aucune case n'est cochée, le bouton *Exporter* reste inactif : un classeur sans aucune feuille n'existe pas.
 
-Le panneau se remplit lui aussi avec `buildTabs()` : ce qu'il propose est exactement ce qui est affiché, et le contenu d'une feuille ne dépend pas de la sélection. Il est posé en **coordonnées de document**, donc suit la page au défilement sans écouteur, et se recale contre le bord droit de la fenêtre quand le bouton est trop à droite. Il passe **sous** la visite guidée (`z-index` 900 contre 950 et au-delà), qui reste prioritaire. Le second bouton, « Exporter le fichier A annoté », ne produit qu'une seule feuille : ce panneau ne le concerne pas et il exporte directement — le retrait des colonnes vides, lui, s'applique aux deux.
+Le panneau se remplit lui aussi avec `buildTabs()` : ce qu'il propose est exactement ce qui est affiché, et le contenu d'une feuille ne dépend pas de la sélection. Il est posé en **coordonnées de document**, donc suit la page au défilement sans écouteur, et se recale contre le bord droit de la fenêtre quand le bouton est trop à droite. Il passe **sous** la visite guidée (`z-index` 900 contre 950 et au-delà), qui reste prioritaire. Le second bouton, « Exporter le fichier A annoté », ne produit qu'une seule feuille : ce panneau ne le concerne pas et il exporte directement — le retrait des colonnes vides, lui, s'applique aux deux boutons.
 
 ### Renommer les onglets avant l'export
 
@@ -178,7 +176,7 @@ Aucune installation : utiliser le site en ligne **https://ryosaeba89.github.io/x
 1. Sur la page d'accueil, répondre à la question « Que recherchez-vous ? » (différences ou doublons), puis choisir le mode le cas échéant.
 2. Glisser-déposer les deux fichiers — un troisième au besoin dans les deux modes avancés (sélection de feuille possible si le classeur en contient plusieurs).
 3. Cliquer sur **Comparer** (ou **Rechercher les doublons**).
-4. Consulter le résumé puis le détail par onglets, et éventuellement **Exporter** le résultat en `.xlsx` — en choisissant, dans le panneau qui s'ouvre, les onglets à mettre dans le fichier (tous cochés au départ). Les colonnes qu'aucune ligne ne renseigne ne sont pas écrites.
+4. Consulter le résumé puis le détail par onglets, et éventuellement **Exporter** le résultat en `.xlsx` — en choisissant, dans le panneau qui s'ouvre, les onglets à mettre dans le fichier (tous cochés au départ). Les colonnes qu'aucune ligne ne renseigne ne sont ni affichées à l'écran, ni écrites dans le fichier.
 
 ## Architecture
 
