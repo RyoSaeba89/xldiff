@@ -4,18 +4,16 @@
 #  Ce que le job fait :
 #    1. vérifie que les neuf endroits qui portent le numéro de version
 #       s'accordent avec le tag (scripts/verifie-version.js) ;
-#    2. extrait les notes de CHANGELOG.md (scripts/notes-de-version.js) —
-#       le même script que la pipeline GitLab, pour que les deux
-#       plateformes publient rigoureusement le même texte ;
+#    2. extrait les notes de CHANGELOG.md (scripts/notes-de-version.js),
+#       pour que les notes publiées soient exactement celles du dépôt ;
 #    3. crée — ou met à jour — la Release avec ces notes ;
 #    4. y attache release/xldiff.exe s'il est versionné dans le tag.
 #
 #  Ce que le job NE fait PAS : compiler l'exe. Il est signé avec un
-#  certificat qui vit dans le magasin personnel du poste de développement ;
-#  un runner ne peut pas le signer et produirait un binaire nu, c'est-à-dire
-#  exactement ce que les contrôles applicatifs des postes regardent de plus
-#  près. L'exe signé est donc versionné dans release/xldiff.exe, comme pour
-#  ATGRC, et ce job se contente de l'attacher.
+#  certificat qui vit dans le magasin personnel du poste de build ; un
+#  runner ne peut pas le signer et produirait un binaire nu. L'exe signé
+#  est donc versionné dans release/xldiff.exe, et ce job se contente de
+#  l'attacher.
 #
 #  Pour publier une version : monter la version, écrire le CHANGELOG,
 #  signer, committer l'exe, pousser un tag.

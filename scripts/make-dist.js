@@ -1,5 +1,5 @@
-// Prépare dist/ : copie de l'application web (mêmes fichiers que le job
-// GitLab Pages) pour qu'elle soit embarquée dans le binaire Tauri.
+// Prépare dist/ : copie de l'application web (les mêmes fichiers que ceux
+// publiés en ligne) pour qu'elle soit embarquée dans le binaire Tauri.
 const fs = require('fs');
 const path = require('path');
 

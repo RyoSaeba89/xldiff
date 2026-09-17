@@ -239,43 +239,39 @@ Import-Certificate -FilePath signing\xldiff-code-signing.cer -CertStoreLocation 
 Import-Certificate -FilePath signing\xldiff-code-signing.cer -CertStoreLocation Cert:\CurrentUser\TrustedPublisher
 ```
 
-Pour une confiance sur tout le parc, la voie propre reste un certificat émis par la CA interne de la collectivité ou un certificat de signature de code commercial (déployable par GPO).
+Pour une confiance à plus grande échelle, la voie propre reste un certificat de signature de code émis par une autorité reconnue.
 
-## Sites en ligne et livraison (CI)
+## Site en ligne et livraison (CI)
 
-L'application est publiée sur deux sites, qui servent **exactement le même contenu** — `index.html` + `pages/` + `assets/`, rien d'autre :
+L'application est publiée en ligne avec **exactement le même contenu** que le dépôt — `index.html` + `pages/` + `assets/`, rien d'autre :
 
 | | Site | Job |
 |---|---|---|
 | GitHub | https://ryosaeba89.github.io/xldiff/ | `.github/workflows/pages.yml` |
-| GitLab | GitLab Pages de l'instance | job `pages` du `.gitlab-ci.yml` |
 
 Le traitement reste 100 % local dans le navigateur : aucun fichier comparé n'est envoyé à un serveur.
 
-**GitHub demande un réglage, GitLab non.** Sur GitHub, il faut passer *Settings > Pages > Source* de « Deploy from a branch » à « GitHub Actions » — Pages y servait jusqu'ici la **racine du dépôt**, donc aussi `src-tauri/`, `scripts/`, `signing/` et le README. Sur GitLab il n'existe **aucun réglage de source** : le site est entièrement piloté par le job `pages`, il n'y a rien à activer dans les paramètres du projet.
+**Un réglage est nécessaire, une fois.** Il faut passer *Settings > Pages > Source* de « Deploy from a branch » à « GitHub Actions » — Pages servait jusqu'ici la **racine du dépôt**, donc aussi `src-tauri/`, `scripts/`, `signing/` et le README.
 
 ### Poser une version
 
-Les deux plateformes créent leur release à la pose d'un tag `v…`, à partir des **mêmes sources de vérité** : le numéro de version du dépôt et `CHANGELOG.md`. Trois scripts partagés l'assurent :
+La release est créée à la pose d'un tag `v…`, à partir des **sources de vérité** du dépôt : le numéro de version et `CHANGELOG.md`. Deux scripts l'assurent :
 
 - `scripts/verifie-version.js` — vérifie que les **neuf endroits** qui portent le numéro (`package.json`, `Cargo.toml`, `Cargo.lock`, `tauri.conf.json`, `CHANGELOG.md`, la page Nouveautés et les pieds de page) s'accordent avec le tag. Un oubli **arrête la livraison** au lieu de la traverser et d'aboutir à un site ou un exe qui annonce une version fausse.
-- `scripts/notes-de-version.js` — extrait de `CHANGELOG.md` la section de la version, qui devient le corps de la release. Les notes ne sont jamais recopiées à la main, donc GitHub et GitLab publient le même texte.
-- `scripts/payload-gitlab.js` — fabrique le JSON de la release GitLab avec `JSON.stringify`, parce que les notes contiennent guillemets, apostrophes et retours à la ligne qu'un heredoc shell finirait par mal échapper.
+- `scripts/notes-de-version.js` — extrait de `CHANGELOG.md` la section de la version, qui devient le corps de la release. Les notes ne sont jamais recopiées à la main, donc la release publie exactement le texte du dépôt.
 
-Les deux premiers se lancent en local, avant de poser le tag :
+Les deux se lancent en local, avant de poser le tag :
 
 ```bash
 node scripts/verifie-version.js        # déduit la version de package.json
 node scripts/notes-de-version.js v3.5  # aperçu des notes qui seront publiées
 ```
 
-Côté GitLab, la release est créée par un `curl` sur l'API avec `CI_JOB_TOKEN`, le jeton que GitLab fabrique pour chaque exécution — aucun secret à déclarer. C'est aussi le **seul chemin qui fonctionne depuis ce poste**, dont l'identifiant ne vaut que pour `git` : toute l'API répond 401. Même recette que la pipeline d'ATGRC.
-
 ### L'exe n'est pas compilé par la CI
 
-C'est délibéré. `xldiff.exe` est signé avec un certificat qui vit dans le magasin personnel du poste de développement (cf. *Signature de l'exécutable*) : un runner ne peut pas le signer et produirait un binaire nu — c'est-à-dire exactement ce que les contrôles applicatifs des postes regardent de plus près.
+C'est délibéré. `xldiff.exe` est signé avec un certificat qui vit dans le magasin personnel du poste de build (cf. *Signature de l'exécutable*) : un runner ne peut pas le signer et produirait un binaire nu.
 
-L'exe signé est donc **versionné dans `release/xldiff.exe`**. GitHub l'attache à la Release, GitLab pointe dessus au tag. Publier une version tient alors en une suite :
+L'exe signé est donc **versionné dans `release/xldiff.exe`**. GitHub l'attache à la Release. Publier une version tient alors en une suite :
 
 ```bash
 # 1. monter la version (les neuf endroits) et écrire le CHANGELOG
@@ -285,13 +281,13 @@ node scripts/verifie-version.js
 npm run exe && npm run sign
 cp src-tauri/target/release/xldiff.exe release/xldiff.exe
 
-# 3. committer, taguer, pousser : les deux pipelines font le reste
+# 3. committer, taguer, pousser : le workflow fait le reste
 git add -A && git commit -m "v3.5 : ..."
 git tag -a v3.5 -m "XLDiff v3.5"
-git push github main --tags && git push gitlab main --tags
+git push github main --tags
 ```
 
-Tant que `release/xldiff.exe` n'est pas versionné, les deux releases se publient quand même — sans lien de téléchargement, et en le disant plutôt qu'en offrant un bouton qui renvoie une 404.
+Tant que `release/xldiff.exe` n'est pas versionné, la release se publie quand même — sans lien de téléchargement, et en le disant plutôt qu'en offrant un bouton qui renvoie une 404.
 
 ## Notes techniques
 

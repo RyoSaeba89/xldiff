@@ -1,14 +1,14 @@
 // ==========================================================================
 //  Extrait de CHANGELOG.md la section d'une version, pour servir de corps
-//  de Release. Les deux pipelines (GitHub et GitLab) l'utilisent : les
-//  notes publiées sont donc exactement celles du dépôt, jamais une
-//  recopie à la main qui finit par diverger.
+//  de Release. Le workflow GitHub l'utilise : les notes publiées sont
+//  donc exactement celles du dépôt, jamais une recopie à la main qui
+//  finit par diverger.
 //
 //    node scripts/notes-de-version.js v3.5   > notes.md
 //    node scripts/notes-de-version.js 3.5    (le « v » du tag est toléré)
 //
 //  Utilisable aussi comme module : require('./notes-de-version.js')
-//  expose notesDeVersion(tag). C'est ce dont se sert payload-gitlab.js.
+//  expose notesDeVersion(tag).
 //
 //  Sort en erreur si la section n'existe pas : mieux vaut interrompre le
 //  pipeline que publier une Release aux notes vides.
@@ -38,8 +38,8 @@ function notesDeVersion(brut) {
     if (lignes[i].startsWith('## ')) { fin = i; break; }
   }
 
-  // Le titre lui-même est retiré : GitHub et GitLab affichent déjà le nom
-  // de la version au-dessus du corps de la Release.
+  // Le titre lui-même est retiré : GitHub affiche déjà le nom de la
+  // version au-dessus du corps de la Release.
   const corps = lignes.slice(debut + 1, fin).join('\n').trim();
   if (!corps) throw new Error('La section « ## Version ' + court + ' » est vide.');
   return corps;

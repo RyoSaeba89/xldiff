@@ -2,9 +2,7 @@
 #  Publication de l'application web sur GitHub Pages.
 #
 #  XLDiff est 100 % statique (aucun build) : le job rassemble l'app —
-#  index.html + pages/ + assets/ — et la publie. C'est le même contenu que
-#  le job « pages » du .gitlab-ci.yml, pour que les deux sites servent
-#  rigoureusement la même chose.
+#  index.html + pages/ + assets/ — et la publie.
 #
 #  Pourquoi un workflow plutôt que la publication directe de la branche :
 #  Pages servait jusqu'ici la RACINE du dépôt, donc aussi src-tauri/,
