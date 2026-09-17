@@ -2,7 +2,7 @@
 name = "xldiff"
 version = "3.8.0"
 description = "XLDiff — comparateur de fichiers Excel"
-authors = ["Jacques Rennie"]
+authors = ["RyoSaeba89"]
 edition = "2021"
 
 [build-dependencies]

@@ -1,4 +1,4 @@
-﻿# Signe xldiff.exe avec le certificat de signature de code « XLDiff »
+﻿# Signe xldiff.exe avec le certificat de signature de code « RyoSaeba89 »
 # du magasin personnel de l'utilisateur (Cert:\CurrentUser\My).
 #
 # Le certificat est auto-signé (voir signing/xldiff-code-signing.cer pour
@@ -11,11 +11,11 @@ param(
 $ExePath = (Resolve-Path $ExePath).Path
 
 $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert |
-  Where-Object { $_.Subject -like '*XLDiff*' } |
+  Where-Object { $_.Subject -like '*RyoSaeba89*' } |
   Sort-Object NotAfter -Descending |
   Select-Object -First 1
 if (-not $cert) {
-  throw "Certificat de signature XLDiff introuvable dans Cert:\CurrentUser\My (voir README, section Signature)."
+  throw "Certificat de signature RyoSaeba89 introuvable dans Cert:\CurrentUser\My (voir README, section Signature)."
 }
 
 $sig = Set-AuthenticodeSignature -FilePath $ExePath -Certificate $cert `
