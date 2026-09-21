@@ -30,130 +30,53 @@
 
 <div class="container">
   <div class="hero">
-    <h2>Que <span class="accent">recherchez-vous</span> ?</h2>
-    <p>XLDiff analyse deux ou trois fichiers Excel directement dans votre navigateur. Commencez par choisir le type d'analyse.</p>
+    <h2>Vos fichiers ont-ils les <span class="accent">mêmes colonnes</span> ?</h2>
+    <p>XLDiff compare deux ou trois fichiers Excel directement dans votre navigateur : les lignes présentes d'un seul côté, les lignes identiques et les écarts de contenu. Choisissez le mode qui correspond à vos fichiers.</p>
   </div>
 
-  <div class="choice-grid">
-    <button class="choice-card" id="choiceDiff" type="button">
-      <div class="choice-icon choice-icon-diff">
+  <div class="mode-grid">
+    <a class="mode-card" href="pages/simple.html">
+      <div class="mode-icon">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="8" cy="12" r="6"/>
-          <circle cx="16" cy="12" r="6"/>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <line x1="9" y1="13" x2="15" y2="13"/>
+          <line x1="9" y1="17" x2="15" y2="17"/>
         </svg>
       </div>
-      <div class="choice-title">Les différences entre deux fichiers</div>
-      <div class="choice-desc">Repérer ce qui a changé d'un fichier à l'autre : les lignes présentes dans l'un mais <strong>absentes de l'autre</strong> (ajouts, suppressions, modifications).</div>
-      <span class="choice-cta">Choisir →</span>
-    </button>
+      <div class="mode-title">Oui — comparatif simple</div>
+      <div class="mode-desc">Deux fichiers issus du <strong>même export Excel</strong> (mêmes colonnes). La comparaison est entièrement automatique.</div>
+      <ul class="mode-steps">
+        <li>Déposez les deux fichiers</li>
+        <li>Colonnes communes détectées automatiquement</li>
+        <li>Lignes absentes et lignes identiques</li>
+      </ul>
+      <span class="mode-cta">Commencer →</span>
+    </a>
 
-    <button class="choice-card dupes" id="choiceDupes" type="button">
-      <div class="choice-icon choice-icon-dupes">
+    <a class="mode-card advanced" href="pages/advanced.html">
+      <div class="mode-icon">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="9" y="9" width="12" height="12" rx="2"/>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          <line x1="4" y1="21" x2="4" y2="14"/>
+          <line x1="4" y1="10" x2="4" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12" y2="3"/>
+          <line x1="20" y1="21" x2="20" y2="16"/>
+          <line x1="20" y1="12" x2="20" y2="3"/>
+          <line x1="1" y1="14" x2="7" y2="14"/>
+          <line x1="9" y1="8" x2="15" y2="8"/>
+          <line x1="17" y1="16" x2="23" y2="16"/>
         </svg>
       </div>
-      <div class="choice-title">Les doublons entre deux fichiers</div>
-      <div class="choice-desc">Repérer les lignes en double : celles qui sont présentes <strong>à la fois dans les deux fichiers</strong>.</div>
-      <span class="choice-cta">Choisir →</span>
-    </button>
-  </div>
-
-  <div class="mode-section" id="modeSectionDiff">
-    <div class="mode-section-title">Vos deux fichiers ont-ils les mêmes colonnes ?</div>
-    <div class="mode-grid">
-      <a class="mode-card" href="pages/simple.html">
-        <div class="mode-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14,2 14,8 20,8"/>
-            <line x1="9" y1="13" x2="15" y2="13"/>
-            <line x1="9" y1="17" x2="15" y2="17"/>
-          </svg>
-        </div>
-        <div class="mode-title">Oui — comparatif simple</div>
-        <div class="mode-desc">Deux fichiers issus du <strong>même export Excel</strong> (mêmes colonnes). La comparaison est entièrement automatique.</div>
-        <ul class="mode-steps">
-          <li>Déposez les deux fichiers</li>
-          <li>Colonnes communes détectées automatiquement</li>
-          <li>Comparaison sur toutes les colonnes</li>
-        </ul>
-        <span class="mode-cta">Commencer →</span>
-      </a>
-
-      <a class="mode-card advanced" href="pages/advanced.html">
-        <div class="mode-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="4" y1="21" x2="4" y2="14"/>
-            <line x1="4" y1="10" x2="4" y2="3"/>
-            <line x1="12" y1="21" x2="12" y2="12"/>
-            <line x1="12" y1="8" x2="12" y2="3"/>
-            <line x1="20" y1="21" x2="20" y2="16"/>
-            <line x1="20" y1="12" x2="20" y2="3"/>
-            <line x1="1" y1="14" x2="7" y2="14"/>
-            <line x1="9" y1="8" x2="15" y2="8"/>
-            <line x1="17" y1="16" x2="23" y2="16"/>
-          </svg>
-        </div>
-        <div class="mode-title">Non — comparatif avancé</div>
-        <div class="mode-desc">Deux ou trois fichiers <strong>différents</strong>. Associez les colonnes qui identifient une ligne, et vérifiez au besoin le contenu d'autres colonnes (l'adresse, par exemple).</div>
-        <ul class="mode-steps">
-          <li>Déposez deux fichiers (un troisième au besoin)</li>
-          <li>Associez les colonnes A ↔ B ↔ C</li>
-          <li>Lignes absentes et écarts de contenu</li>
-        </ul>
-        <span class="mode-cta">Commencer →</span>
-      </a>
-    </div>
-  </div>
-
-  <div class="mode-section" id="modeSectionDupes">
-    <div class="mode-section-title">Vos deux fichiers ont-ils les mêmes colonnes ?</div>
-    <div class="mode-grid">
-      <a class="mode-card" href="pages/doublons.html">
-        <div class="mode-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14,2 14,8 20,8"/>
-            <line x1="9" y1="13" x2="15" y2="13"/>
-            <line x1="9" y1="17" x2="15" y2="17"/>
-          </svg>
-        </div>
-        <div class="mode-title">Oui — doublons simple</div>
-        <div class="mode-desc">Deux fichiers issus du <strong>même export Excel</strong> (mêmes colonnes). La recherche est entièrement automatique.</div>
-        <ul class="mode-steps">
-          <li>Déposez les deux fichiers</li>
-          <li>Colonnes communes détectées automatiquement</li>
-          <li>Doublons si toutes les colonnes sont identiques</li>
-        </ul>
-        <span class="mode-cta">Commencer →</span>
-      </a>
-
-      <a class="mode-card advanced" href="pages/doublons-avance.html">
-        <div class="mode-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="4" y1="21" x2="4" y2="14"/>
-            <line x1="4" y1="10" x2="4" y2="3"/>
-            <line x1="12" y1="21" x2="12" y2="12"/>
-            <line x1="12" y1="8" x2="12" y2="3"/>
-            <line x1="20" y1="21" x2="20" y2="16"/>
-            <line x1="20" y1="12" x2="20" y2="3"/>
-            <line x1="1" y1="14" x2="7" y2="14"/>
-            <line x1="9" y1="8" x2="15" y2="8"/>
-            <line x1="17" y1="16" x2="23" y2="16"/>
-          </svg>
-        </div>
-        <div class="mode-title">Non — doublons avancé</div>
-        <div class="mode-desc">Deux ou trois fichiers <strong>différents</strong>. Associez les colonnes à comparer : deux lignes sont en double si ces colonnes sont identiques.</div>
-        <ul class="mode-steps">
-          <li>Déposez deux fichiers (un troisième au besoin)</li>
-          <li>Associez les colonnes A ↔ B ↔ C</li>
-          <li>Doublons sur les colonnes choisies</li>
-        </ul>
-        <span class="mode-cta">Commencer →</span>
-      </a>
-    </div>
+      <div class="mode-title">Non — comparatif avancé</div>
+      <div class="mode-desc">Deux ou trois fichiers <strong>différents</strong>. Associez les colonnes qui identifient une ligne, et vérifiez au besoin le contenu d'autres colonnes (l'adresse, par exemple).</div>
+      <ul class="mode-steps">
+        <li>Déposez deux fichiers (un troisième au besoin)</li>
+        <li>Associez les colonnes A ↔ B ↔ C</li>
+        <li>Lignes absentes, identiques et écarts de contenu</li>
+      </ul>
+      <span class="mode-cta">Commencer →</span>
+    </a>
   </div>
 
   <div class="privacy-note">
@@ -165,25 +88,8 @@
   </div>
 </div>
 
-<div class="footer">XLDiff v3.8 — RyoSaeba89 · <a href="pages/changelog.html">Nouveautés</a></div>
+<div class="footer">XLDiff v4.0 — RyoSaeba89 · <a href="pages/changelog.html">Nouveautés</a></div>
 
-<script>
-(() => {
-  const choices = [
-    { btn: document.getElementById('choiceDiff'), section: document.getElementById('modeSectionDiff') },
-    { btn: document.getElementById('choiceDupes'), section: document.getElementById('modeSectionDupes') },
-  ];
-  choices.forEach((choice, i) => {
-    choice.btn.addEventListener('click', () => {
-      choices.forEach((c, j) => {
-        c.btn.classList.toggle('selected', i === j);
-        c.section.classList.toggle('visible', i === j);
-      });
-      choice.section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
-  });
-})();
-</script>
 <script>window.XLDIFF_PAGE = 'home';</script>
 <script src="assets/js/help.js"></script>
 </body>

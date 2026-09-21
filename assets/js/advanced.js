@@ -14,16 +14,13 @@
 //  Un troisième fichier (C) est facultatif : la page le propose
 //  uniquement si elle contient la zone de dépôt #dropC.
 //
-//  Deux pages utilisent ce contrôleur, selon window.XLDIFF_MODE
-//  (défini par la page avant ce script) :
-//    'diff'  (défaut) — advanced.html        : différences
-//    'dupes'          — doublons-avance.html : lignes communes
-//  Les deux acceptent le troisième fichier.
+//  Les lignes communes aux fichiers (l'ancienne page « doublons
+//  avancé ») sont des onglets du même résultat : « Identiques entre
+//  A et B », et « Présentes dans 2 ou 3 fichiers » à trois fichiers.
 // ============================================================
 
 (() => {
   const $ = id => document.getElementById(id);
-  const MODE = window.XLDIFF_MODE === 'dupes' ? 'dupes' : 'diff';
 
   // Une association = un nom de colonne par fichier chargé : { A, B, C }
   let mappings = [];    // colonnes de rapprochement (clé)
@@ -53,21 +50,18 @@
   const mappingTitle = $('mappingTitle');
   const mapList = $('mapList');
   const btnAddMapping = $('btnAddMapping');
-  // Panneau « colonnes à comparer » : présent uniquement sur advanced.html
   const comparePanel = $('comparePanel');
   const compareTitle = $('compareTitle');
   const compareList = $('compareList');
   const btnAddCompare = $('btnAddCompare');
   const btnCompare = $('btnCompare');
   const btnExport = $('btnExport');
-  // Export du fichier A annote : present uniquement sur advanced.html
   const btnExportAnnote = $('btnExportAnnote');
   const statusText = $('statusText');
   const progressBar = $('progressBar');
   const progressFill = $('progressFill');
   const showAllCols = $('showAllCols');
-  // Coche « Ignorer les doublons » : présente uniquement sur advanced.html
-  // (mode différences), absente des pages doublons
+  // Coche « Ignorer les lignes en double au sein d'un même fichier »
   const ignoreDupes = $('ignoreDupes');
   let hasCompared = false;
 
@@ -81,7 +75,7 @@
   // de feuille ou de fichier rend l'analyse affichée périmée : on la
   // retire et on coupe les exports. Sans ça les boutons restaient actifs
   // et exportaient en silence le résultat de la comparaison précédente.
-  // La coche « Ignorer les doublons » fait l'inverse — elle relance
+  // La coche « Ignorer les lignes en double… » fait l'inverse — elle relance
   // l'analyse — parce qu'elle est un réglage à deux états, pas une liste
   // qu'on remanie sélecteur par sélecteur.
   function invaliderResultats() {
@@ -140,9 +134,7 @@
   // un classeur contient plusieurs feuilles
   function setTitles(withSheets) {
     const prefix = withSheets ? '2. ' : '';
-    mappingTitle.textContent = prefix + (MODE === 'dupes'
-      ? 'Association des colonnes'
-      : 'Colonnes de rapprochement');
+    mappingTitle.textContent = prefix + 'Colonnes de rapprochement';
     if (compareTitle) {
       compareTitle.textContent = (withSheets ? '3. ' : '') + 'Colonnes à comparer (facultatif)';
     }
@@ -286,14 +278,11 @@
         : 'Chargez les deux fichiers à analyser.';
       return;
     }
-    const uneColonne = MODE === 'dupes' ? 'colonne associée' : 'colonne de rapprochement';
-    const desColonnes = MODE === 'dupes' ? 'colonne(s) associée(s)' : 'colonne(s) de rapprochement';
     if (mappings.length === 0) {
-      statusText.textContent = `Ajoutez au moins une ${uneColonne} pour lancer l'analyse.`;
+      statusText.textContent = "Ajoutez au moins une colonne de rapprochement pour lancer l'analyse.";
       return;
     }
-    const action = MODE === 'dupes' ? 'la recherche de doublons' : 'le rapprochement';
-    let txt = `${mappings.length} ${desColonnes} — ${action} portera uniquement sur ces colonnes.`;
+    let txt = `${mappings.length} colonne(s) de rapprochement — le rapprochement portera uniquement sur ces colonnes.`;
     if (compareCols.length) {
       txt += ` ${compareCols.length} colonne(s) comparée(s) : le contenu des lignes retrouvées sera vérifié.`;
     }
@@ -356,7 +345,7 @@
     progressBar.classList.add('visible');
     progressFill.style.width = '30%';
     statusText.className = 'status-text';
-    statusText.textContent = MODE === 'dupes' ? 'Recherche en cours…' : 'Comparaison en cours…';
+    statusText.textContent = 'Comparaison en cours…';
     btnCompare.disabled = true;
 
     requestAnimationFrame(() => setTimeout(runCompare, 30));
@@ -370,11 +359,9 @@
       cols: mappings.map(m => m[s.side]),
     }));
 
-    const result = MODE === 'dupes'
-      ? XLDiffEngine.common(sources)
-      : XLDiffEngine.analyze(sources, compareCols.map(m => toColumn(m, active, 'cmp')), {
-          ignoreDuplicates: !!(ignoreDupes && ignoreDupes.checked),
-        });
+    const result = XLDiffEngine.analyze(sources, compareCols.map(m => toColumn(m, active, 'cmp')), {
+      ignoreDuplicates: !!(ignoreDupes && ignoreDupes.checked),
+    });
     hasCompared = true;
 
     progressFill.style.width = '100%';
@@ -391,25 +378,18 @@
       diff: result,
       columns: buildColumns(showAllCols.checked),
       totals,
-      mode: MODE,
       sources: donnees,
     });
 
     btnCompare.disabled = false;
     btnExport.disabled = false;
     if (btnExportAnnote) btnExportAnnote.disabled = false;
-    if (MODE === 'dupes') {
-      // À trois fichiers, chaque fichier a ses propres lignes en double :
-      // le total du tableau est la somme, pas le seul côté A
-      const n = active.length > 2 ? result.all.length : result.onlyA.length;
-      statusText.textContent = `Terminé — ${n.toLocaleString()} doublon(s) trouvé(s)`;
-    } else {
-      let txt = `Terminé — ${result.all.length.toLocaleString()} différence(s) trouvée(s)`;
-      if (result.compared) {
-        txt += ` et ${result.modified.length.toLocaleString()} ligne(s) retrouvée(s) mais différente(s)`;
-      }
-      statusText.textContent = txt;
+    let txt = `Terminé — ${result.all.length.toLocaleString()} différence(s) trouvée(s)`;
+    if (result.compared) {
+      txt += `, ${result.modified.length.toLocaleString()} ligne(s) retrouvée(s) mais différente(s)`;
     }
+    txt += ` et ${result.identiques.length.toLocaleString()} ligne(s) identique(s)`;
+    statusText.textContent = txt;
   }
 
   btnCompare.addEventListener('click', compare);

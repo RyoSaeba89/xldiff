@@ -1,6 +1,6 @@
 // ==========================================================================
 //  Vérifie que TOUS les endroits qui portent le numéro de version
-//  s'accordent avec le tag publié. Ils sont neuf : en oublier un livre un
+//  s'accordent avec le tag publié. Ils sont dix : en oublier un livre un
 //  exe dont la fenêtre annonce l'ancienne version, ou un pied de page qui
 //  ment sur le site. Les deux pipelines appellent ce script avant de
 //  créer la Release, pour que l'oubli arrête la livraison au lieu de la
@@ -30,7 +30,7 @@ if (arg) {
 const courte = longue.endsWith('.0') ? longue.slice(0, -2) : longue;
 
 const pages = ['index.html', 'pages/advanced.html', 'pages/simple.html',
-               'pages/doublons.html', 'pages/doublons-avance.html', 'pages/changelog.html'];
+               'pages/changelog.html'];
 
 const controles = [
   ['package.json', '"version": "' + longue + '"'],

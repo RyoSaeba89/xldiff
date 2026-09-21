@@ -1,19 +1,20 @@
 # XLDiff — Comparateur de fichiers Excel
 
-**Version 3.8**
+**Version 4.0**
 
 Outil web 100 % local pour analyser deux ou trois fichiers Excel. Aucune donnée n'est envoyée sur le réseau : tout le traitement s'effectue dans le navigateur.
 
-La page d'accueil pose la question « **Que recherchez-vous ?** » :
+Une seule comparaison dit tout ce que deux ou trois fichiers ont en commun et ce qui les sépare :
 
-- **Les différences entre deux fichiers** — les lignes présentes dans l'un mais absentes de l'autre ;
-- **Les doublons entre deux fichiers** — les lignes présentes à la fois dans les deux fichiers.
+- **les lignes présentes d'un seul côté** — ajoutées, retirées ;
+- **les lignes identiques** — présentes de part et d'autre, sans écart ;
+- **les écarts de contenu** (comparatif avancé) — la même ligne retrouvée partout, mais une adresse qui diffère.
 
-Chaque analyse propose ensuite la même question « **Vos deux fichiers ont-ils les mêmes colonnes ?** », qui mène au mode simple (colonnes identiques, tout est automatique) ou avancé (fichiers différents, association de colonnes).
+La page d'accueil pose une seule question, « **Vos fichiers ont-ils les mêmes colonnes ?** », qui mène au comparatif simple (même export, tout est automatique) ou au comparatif avancé (fichiers différents, association de colonnes, troisième fichier facultatif).
 
-![Page d'accueil d'XLDiff : choix entre différences et doublons, puis entre mode simple et mode avancé](assets/screenshots/accueil.png)
+![Page d'accueil d'XLDiff : la question des colonnes, puis le choix entre comparatif simple et comparatif avancé](assets/screenshots/accueil.png)
 
-## Recherche de différences : deux modes
+## Deux modes de comparaison
 
 ### Comparatif simple
 Pour deux fichiers issus du **même export Excel** (mêmes colonnes). Les colonnes communes sont détectées automatiquement et la comparaison porte sur toutes les colonnes — aucun réglage nécessaire.
@@ -43,22 +44,32 @@ Un second bouton d'export, « **Exporter le fichier A annoté** », reprend le f
 
 Une case « **Ignorer les lignes en double au sein d'un même fichier** » (décochée par défaut) change la règle de comparaison : cochée, une ligne dont la clé est présente dans tous les fichiers n'est jamais une différence, même si elle se répète un nombre de fois différent de l'un à l'autre (ex. 3 fois dans A, 1 fois dans B) ; seules les clés absentes d'au moins un fichier sont signalées, avec toutes leurs occurrences. Basculer la case après une comparaison relance automatiquement l'analyse.
 
-## Recherche de doublons : deux modes
+## Lignes identiques (et fin de la recherche de doublons)
 
-L'outil liste les lignes **communes à plusieurs fichiers**, c'est-à-dire l'inverse de la recherche de différences.
+Depuis la v4.0, les deux comparatifs ont un onglet **« Identiques entre A et B »** (« Identiques entre A, B et C » à trois fichiers), à l'écran comme dans l'export `.xlsx`. Il liste les lignes retrouvées dans tous les fichiers **sans le moindre écart** sur les colonnes comparées — sans colonne comparée, toutes les lignes retrouvées. Une ligne du tableau par ligne retrouvée : la colonne `Lignes` donne son numéro dans chaque fichier (`A12 / B40`), puis une seule valeur par colonne, celle du premier fichier qui porte la colonne ; la feuille exportée reprend ces numéros dans une colonne par fichier (`Ligne A`, `Ligne B`).
 
-- **Doublons simple** — deux fichiers issus du même export (mêmes colonnes) : les colonnes communes sont détectées automatiquement, deux lignes sont en double si toutes leurs colonnes sont identiques.
-- **Doublons avancé** — deux ou trois fichiers différents (le **fichier C est facultatif**) : choix des feuilles puis association des colonnes A ↔ B ↔ C, comme le comparatif avancé ; deux lignes sont en double si les colonnes associées sont identiques.
+![Onglet « Identiques entre A et B » : une ligne par ligne retrouvée, avec son numéro dans chaque fichier](assets/screenshots/identiques.png)
 
-Avec trois fichiers, une ligne est en double dès que sa clé existe dans **au moins un autre fichier** — l'inverse exact de la recherche de différences, où une ligne remonte dès qu'elle est absente d'au moins un fichier. La colonne **« Présente dans »** indique les fichiers concernés (`A + B`, `B + C`, `A + B + C`) et chaque fichier a son onglet de lignes en double. Le nombre d'occurrences retenues dans un fichier est plafonné au plus grand nombre d'occurrences trouvé dans les autres (3 fois dans A, 1 fois dans B, 2 fois dans C → 2 lignes remontées côté A).
+**La recherche de doublons a disparu, parce qu'elle faisait double emploi.** Ses deux pages (*doublons simple* et *doublons avancé*) et la question « Que recherchez-vous ? » de l'accueil sont supprimées. La vérification a été faite sur le moteur lui-même, pas sur le principe : sur 300 tirages aléatoires,
 
-![Doublons sur trois fichiers : un onglet par fichier et la colonne « Présente dans »](assets/screenshots/doublons-trois-fichiers.png)
+- **à deux fichiers**, l'ancienne liste de doublons et les lignes retrouvées par la comparaison sont **exactement les mêmes lignes**, occurrence par occurrence (les deux reposent sur la même règle, min(occurrences dans A, occurrences dans B) par clé). Sans colonne comparée, c'est l'onglet « Identiques entre A et B » ; avec des colonnes comparées, c'est la réunion de « Identiques entre A et B » et « Retrouvées mais différentes ».
+- **à trois fichiers**, ce n'est pas le cas : un doublon n'exigeait la présence que dans **deux** fichiers sur trois, un rapprochement l'exige dans les trois. D'où un onglet de plus, **« Présentes dans 2 ou 3 fichiers »**, qui reprend exactement l'ancienne règle : une ligne y figure dès que sa clé existe dans au moins un autre fichier, la colonne « Présente dans » dit lesquels (`A + B`, `B + C`, `A + B + C`), et le nombre d'occurrences retenues d'un fichier est plafonné au plus grand nombre d'occurrences trouvé ailleurs (3 fois dans A, 1 fois dans B, 2 fois dans C → 2 lignes côté A). Le libellé tient en 31 caractères, la limite d'un nom de feuille Excel.
+
+Le test de non-régression compare la nouvelle analyse à l'ancienne fonction `common()`, extraite du dépôt (`git show`) : 5 603 contrôles, ligne par ligne, sans écart. Le comparatif simple couvre l'ancien *doublons simple* : ses colonnes communes forment la clé, comme elles formaient celle des doublons.
 
 ## Résultats
 
 Les résultats commencent par un résumé en phrases simples (« Il y a N lignes retrouvées dans les deux fichiers : X à l'identique, Y dont le contenu diffère », « Il y a X lignes uniquement dans A »…), suivi du détail ligne par ligne dans des onglets, d'un export `.xlsx` et d'un bouton **Recommencer** pour repartir d'une page vierge.
 
-L'export reprend **un à un les onglets retenus** : même libellé, même contenu, même ordre qu'à l'écran. À deux fichiers on obtient « Présentes d'un seul côté », « Retrouvées mais différentes » (si des colonnes sont comparées), « Uniquement dans A » et « Uniquement dans B » ; à trois fichiers, « Absentes d'au moins un fichier », puis « A, absentes ailleurs », « B, absentes ailleurs », « C, absentes ailleurs ».
+L'export reprend **un à un les onglets retenus** : même libellé, même contenu, même ordre qu'à l'écran.
+
+| | Deux fichiers | Trois fichiers |
+|---|---|---|
+| Écarts de présence, tous fichiers | Présentes d'un seul côté | Absentes d'au moins un fichier |
+| Écarts de contenu (si des colonnes sont comparées) | Retrouvées mais différentes | Retrouvées mais différentes |
+| Lignes communes, sans écart | Identiques entre A et B | Identiques entre A, B et C |
+| Lignes communes à au moins deux fichiers | — | Présentes dans 2 ou 3 fichiers |
+| Écarts de présence, fichier par fichier | Uniquement dans A, Uniquement dans B | A, absentes ailleurs, B…, C… |
 
 Les deux natures d'écart sont **comptées séparément et ne se recouvrent jamais** : une ligne est soit sans équivalent dans l'autre fichier, soit retrouvée avec un contenu qui diverge. Le premier onglet ne contient donc que la première nature — il s'appelait « Toutes les différences », ce qui le faisait lire comme un total qu'il n'a jamais été. Un onglet sans ligne donne une feuille réduite à son en-tête, pour qu'on la retrouve dans le classeur comme on la voit à l'écran. Dans la feuille « Retrouvées mais différentes », chaque colonne comparée occupe une colonne par fichier (`Adresse (A)`, `Adresse (B)`), suivie de la liste des colonnes en écart. Le fichier est écrit compressé.
 
@@ -70,9 +81,9 @@ Les feuilles sont construites à partir de `buildTabs()`, la même fonction que 
 
 ![Sous le tableau, la mention « 2 colonnes sans aucune valeur ne sont pas affichées : « Commentaire » et « Note » »](assets/screenshots/colonnes-masquees.png)
 
-**L'écran est une prévisualisation fidèle du fichier** : `colonnesRenseignees()` est le seul juge, pour le tableau comme pour la feuille, et pèse dans les deux cas la valeur telle qu'elle sera montrée ou écrite. Le filtre s'applique **onglet par onglet** — une colonne renseignée dans « Uniquement dans A » mais vide dans « Uniquement dans B » reste dans le premier onglet et disparaît du second, comme dans les deux feuilles correspondantes — et aux **deux boutons d'export sans exception**, le classeur par onglets comme le fichier A annoté. Les colonnes ajoutées par XLDiff n'y échappent pas : « Colonnes en écart » quand aucune ligne n'en porte, une colonne `Adresse (B)` restée blanche. La case **« Afficher toutes les colonnes »** des comparatifs avancés non plus : elle ajoute les colonnes ni rapprochées ni comparées, mais celles qui restent vides ne s'affichent pas pour autant.
+**L'écran est une prévisualisation fidèle du fichier** : `colonnesRenseignees()` est le seul juge, pour le tableau comme pour la feuille, et pèse dans les deux cas la valeur telle qu'elle sera montrée ou écrite. Le filtre s'applique **onglet par onglet** — une colonne renseignée dans « Uniquement dans A » mais vide dans « Uniquement dans B » reste dans le premier onglet et disparaît du second, comme dans les deux feuilles correspondantes — et aux **deux boutons d'export sans exception**, le classeur par onglets comme le fichier A annoté. Les colonnes ajoutées par XLDiff n'y échappent pas : « Colonnes en écart » quand aucune ligne n'en porte, une colonne `Adresse (B)` restée blanche. La case **« Afficher toutes les colonnes »** du comparatif avancé non plus : elle ajoute les colonnes ni rapprochées ni comparées, mais celles qui restent vides ne s'affichent pas pour autant.
 
-**Une ligne sous le tableau nomme ce qui a été écarté**, parce qu'une colonne qui disparaît sans un mot se lit comme une perte de données. Au-delà de huit noms, la liste est abrégée (`MAX_NOMS`) et l'infobulle les donne toutes. L'élément est injecté par `init()` sous `#tableWrapper` plutôt que recopié dans les quatre pages : il n'a rien qui dépende de la page, et `results-view.js` est seul à l'écrire.
+**Une ligne sous le tableau nomme ce qui a été écarté**, parce qu'une colonne qui disparaît sans un mot se lit comme une perte de données. Au-delà de huit noms, la liste est abrégée (`MAX_NOMS`) et l'infobulle les donne toutes. L'élément est injecté par `init()` sous `#tableWrapper` plutôt que recopié dans les deux pages de comparaison : il n'a rien qui dépende de la page, et `results-view.js` est seul à l'écrire.
 
 **Une cellule réduite à des espaces compte pour vide.** `String(v).trim()` suffit : en JavaScript, `\s` couvre déjà l'espace insécable `U+00A0` et son cousin étroit `U+202F`, ceux que sèment les exports Excel — sans quoi une colonne d'apparence blanche survivrait au filtre.
 
@@ -100,7 +111,7 @@ Les champs **suivent les cases** : décocher un onglet retire le sien, et sa sai
 
 **Un nom qu'Excel refuserait bloque l'export plutôt que d'être corrigé en douce** : le champ passe en rouge, la raison s'affiche dessous et le bouton *Exporter* reste inactif. Sont refusés le nom vide, plus de 31 caractères, les caractères `: \ / ? * [ ]`, l'apostrophe en début ou en fin, et un nom déjà porté par un autre onglet retenu (la casse ne distingue pas deux feuilles pour Excel). Le verdict est rendu à la frappe (`input`, pas `change`), et `Entrée` depuis un champ lance l'export dès qu'il n'y a plus de faute. `nomFeuille()` reste appliqué en dernier ressort à tous les noms, saisis ou non.
 
-Un doublon n'est cherché que parmi les onglets **retenus** : deux noms identiques dont l'un est décoché ne posent aucun problème, puisqu'une seule feuille sera écrite. La liste du panneau est bornée en hauteur (`max-height`) et défile toute seule : avec trois fichiers et les champs ouverts, elle dépasserait la fenêtre.
+Un nom en double n'est cherché que parmi les onglets **retenus** : deux noms identiques dont l'un est décoché ne posent aucun problème, puisqu'une seule feuille sera écrite. La liste du panneau est bornée en hauteur (`max-height`) et défile toute seule : avec trois fichiers et les champs ouverts, elle dépasserait la fenêtre.
 
 ## Aide et prise en main
 
@@ -173,21 +184,20 @@ Cette aide intégrée **remplace le guide utilisateur Word** diffusé jusqu'à l
 
 Aucune installation : utiliser le site en ligne **https://ryosaeba89.github.io/xldiff/**, ouvrir `index.html` dans un navigateur, ou héberger le dossier tel quel (serveur web statique).
 
-1. Sur la page d'accueil, répondre à la question « Que recherchez-vous ? » (différences ou doublons), puis choisir le mode le cas échéant.
-2. Glisser-déposer les deux fichiers — un troisième au besoin dans les deux modes avancés (sélection de feuille possible si le classeur en contient plusieurs).
-3. Cliquer sur **Comparer** (ou **Rechercher les doublons**).
+1. Sur la page d'accueil, choisir le comparatif simple (même export) ou avancé (fichiers différents).
+2. Glisser-déposer les deux fichiers — un troisième au besoin dans le comparatif avancé (sélection de feuille possible si le classeur en contient plusieurs).
+3. Cliquer sur **Comparer**.
 4. Consulter le résumé puis le détail par onglets, et éventuellement **Exporter** le résultat en `.xlsx` — en choisissant, dans le panneau qui s'ouvre, les onglets à mettre dans le fichier (tous cochés au départ). Les colonnes qu'aucune ligne ne renseigne ne sont ni affichées à l'écran, ni écrites dans le fichier.
 
 ## Architecture
 
 ```
 XLDiff/
-├── index.html              Page d'accueil (question « Que recherchez-vous ? » puis choix du mode)
+├── index.html              Page d'accueil (« Vos fichiers ont-ils les mêmes colonnes ? »)
 ├── pages/
-│   ├── simple.html         Différences, mode simple
-│   ├── advanced.html       Différences, mode avancé
-│   ├── doublons.html       Doublons, mode simple
-│   └── doublons-avance.html  Doublons, mode avancé
+│   ├── simple.html         Comparatif simple
+│   ├── advanced.html       Comparatif avancé (2 ou 3 fichiers)
+│   └── changelog.html      Nouveautés, pour les usagers
 ├── assets/
 │   ├── css/
 │   │   ├── theme.css       Variables, base, en-tête, boutons (commun)
@@ -198,8 +208,8 @@ XLDiff/
 │   │   ├── file-loader.js  Lecture des fichiers + zones de dépôt (XLDiffFiles)
 │   │   ├── diff-engine.js  Moteur d'analyse 2 ou 3 fichiers (XLDiffEngine)
 │   │   ├── results-view.js Rendu des résultats + export (XLDiffResults)
-│   │   ├── simple.js       Contrôleur des modes simples (diff ou doublons via window.XLDIFF_MODE)
-│   │   ├── advanced.js     Contrôleur des modes avancés (diff ou doublons via window.XLDIFF_MODE)
+│   │   ├── simple.js       Contrôleur du comparatif simple
+│   │   ├── advanced.js     Contrôleur du comparatif avancé
 │   │   └── help.js         Onboarding + aide de chaque page (XLDiffAide, via window.XLDIFF_PAGE)
 │   ├── screenshots/        Captures utilisées par ce README
 │   └── vendor/
@@ -257,7 +267,7 @@ Le traitement reste 100 % local dans le navigateur : aucun fichier comparé n'es
 
 La release est créée à la pose d'un tag `v…`, à partir des **sources de vérité** du dépôt : le numéro de version et `CHANGELOG.md`. Deux scripts l'assurent :
 
-- `scripts/verifie-version.js` — vérifie que les **neuf endroits** qui portent le numéro (`package.json`, `Cargo.toml`, `Cargo.lock`, `tauri.conf.json`, `CHANGELOG.md`, la page Nouveautés et les pieds de page) s'accordent avec le tag. Un oubli **arrête la livraison** au lieu de la traverser et d'aboutir à un site ou un exe qui annonce une version fausse.
+- `scripts/verifie-version.js` — vérifie que les **dix endroits** qui portent le numéro (`package.json`, `Cargo.toml`, `Cargo.lock`, `tauri.conf.json`, `CHANGELOG.md`, la page Nouveautés et les pieds de page des quatre pages) s'accordent avec le tag. Un oubli **arrête la livraison** au lieu de la traverser et d'aboutir à un site ou un exe qui annonce une version fausse.
 - `scripts/notes-de-version.js` — extrait de `CHANGELOG.md` la section de la version, qui devient le corps de la release. Les notes ne sont jamais recopiées à la main, donc la release publie exactement le texte du dépôt.
 
 Les deux se lancent en local, avant de poser le tag :
@@ -274,7 +284,7 @@ C'est délibéré. `xldiff.exe` est signé avec un certificat qui vit dans le ma
 L'exe signé est donc **versionné dans `release/xldiff.exe`**. GitHub l'attache à la Release. Publier une version tient alors en une suite :
 
 ```bash
-# 1. monter la version (les neuf endroits) et écrire le CHANGELOG
+# 1. monter la version (les dix endroits) et écrire le CHANGELOG
 node scripts/verifie-version.js
 
 # 2. compiler et signer
@@ -291,7 +301,8 @@ Tant que `release/xldiff.exe` n'est pas versionné, la release se publie quand m
 
 ## Notes techniques
 
-- La comparaison est une différence de multi-ensembles : les répétitions sont prises en compte (si une clé apparaît 3 fois dans A et 1 fois dans B, 2 lignes sont signalées « uniquement A »). Avec trois fichiers, chaque fichier est comparé au **minimum** des occurrences de la clé sur l'ensemble des fichiers — la règle à deux fichiers en est le cas particulier. La case « Ignorer les lignes en double au sein d'un même fichier » du comparatif avancé bascule en différence d'ensembles : cette même clé n'est alors plus une différence. La recherche de doublons est l'opération inverse (intersection) : la même clé compte pour min(3, 1) = 1 correspondance. À trois fichiers, une clé est retenue dès qu'elle est présente dans au moins deux fichiers, et le nombre d'occurrences retenues d'un fichier vaut min(occurrences ici, **maximum** des occurrences ailleurs).
+- La comparaison est une différence de multi-ensembles : les répétitions sont prises en compte (si une clé apparaît 3 fois dans A et 1 fois dans B, 2 lignes sont signalées « uniquement A », et la 3e forme un rapprochement). Avec trois fichiers, chaque fichier est comparé au **minimum** des occurrences de la clé sur l'ensemble des fichiers — la règle à deux fichiers en est le cas particulier. La case « Ignorer les lignes en double au sein d'un même fichier » du comparatif avancé bascule en différence d'ensembles : cette même clé n'est alors plus une différence (les rapprochements, et donc l'onglet des identiques, ne changent pas). Les rapprochements sont l'intersection : min(3, 1) = 1. L'onglet « Présentes dans 2 ou 3 fichiers » retient une clé dès qu'elle est présente dans au moins deux fichiers, et le nombre d'occurrences retenues d'un fichier vaut min(occurrences ici, **maximum** des occurrences ailleurs).
+- **Le moteur ne rend que des numéros pour les identiques** (`identiques`, un `Int32Array` de numéros de rapprochement rangés dans l'ordre du premier fichier) : sans colonne comparée, ce sont tous les rapprochements, soit 200 000 sur un gros fichier, et des objets par ligne coûteraient cher. L'affichage retrouve chaque ligne à la demande via `tuples` et les données sources que lui passent les deux contrôleurs.
 - **Rapprochement d'une clé non unique** : si la clé apparaît 2 fois dans A et 3 fois dans B, les occurrences sont appariées dans l'ordre du fichier (1re avec 1re, 2e avec 2e) et le surplus est signalé comme absence. Un homonyme parfait sur la clé est donc rapproché par ordre d'apparition — c'est le seul choix possible sans identifiant unique, et c'est aussi ce que fait le comptage multi-ensembles historique.
 - **Égalité des colonnes comparées** : espaces insécables ramenés à des espaces ordinaires, espaces multiples et de bordure supprimés, casse ignorée, dates normalisées au format `JJ/MM/AAAA` (une date lue dans un `.xlsx` arrive en objet `Date`, la même dans un `.csv` arrive en texte). Les colonnes de rapprochement, elles, restent comparées caractère par caractère.
 - Le numéro de ligne affiché correspond à la ligne du fichier Excel d'origine (l'en-tête étant la ligne 1).
@@ -314,4 +325,3 @@ Trois mécanismes y contribuent :
 3. **Export compressé** — feuilles construites en tableaux (`aoa_to_sheet`) plutôt qu'en objets et écriture avec `{ compression: true }`. Les feuilles par fichier reprennent les lignes déjà présentes dans « Présentes d'un seul côté » ; c'est le prix d'un export qui correspond à l'écran, et la compression l'absorbe largement.
 
 L'index du moteur utilise un chaînage des occurrences dans un seul `Int32Array` plutôt qu'un tableau de lignes par clé, et trace pour chaque ligne son rapprochement et sa présence (`trace`, `tuples`) — c'est ce qui permet d'exporter le fichier A annoté sans réanalyser.
-- Le tableau de résultats est rendu par blocs de 500 lignes pour rester fluide sur de gros volumes.

@@ -448,6 +448,8 @@
   border-radius: var(--rl) var(--rl) 0 0;
   padding: 8px 8px 0;
   display: flex;
+  /* jusqu'à sept onglets à trois fichiers : ils passent à la ligne */
+  flex-wrap: wrap;
   gap: 2px;
   box-shadow: var(--sh);
 }

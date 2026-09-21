@@ -2,6 +2,16 @@
 
 Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https://ryosaeba89.github.io/xldiff/pages/changelog.html>
 
+## Version 4.0 — 21 septembre 2026
+
+### Les lignes identiques ont leur onglet, la recherche de doublons n'a plus lieu d'être
+
+- **Un nouvel onglet « Identiques entre A et B »**, dans le comparatif simple comme dans le comparatif avancé, à l'écran comme dans le fichier exporté. Il liste les lignes présentes dans les deux fichiers, une ligne du tableau par ligne retrouvée, avec son numéro dans chaque fichier (« A12 / B40 »). Si vous comparez aussi des colonnes (l'adresse, par exemple), il ne garde que les lignes où ces colonnes concordent : les autres restent dans « Retrouvées mais différentes ».
+- **Avec trois fichiers** : l'onglet s'appelle « Identiques entre A, B et C » et ne garde que les lignes présentes dans les trois. Un onglet de plus, « Présentes dans 2 ou 3 fichiers », rassemble toutes les lignes qui se retrouvent dans au moins un autre fichier ; la colonne « Présente dans » dit lesquels (A + B, B + C, A + B + C).
+- **La recherche de doublons disparaît**, parce que la comparaison donne désormais le même résultat. Les pages « doublons simple » et « doublons avancé » sont supprimées, et l'accueil ne pose plus que la question « Vos fichiers ont-ils les mêmes colonnes ? ». Ce que vous y cherchiez est dans l'onglet « Identiques entre A et B » (et, si vous comparez des colonnes, dans « Retrouvées mais différentes » pour les lignes dont une valeur diffère) ; avec trois fichiers, dans « Présentes dans 2 ou 3 fichiers ». Le résultat a été vérifié ligne par ligne contre l'ancienne recherche : ce sont exactement les mêmes lignes.
+- **Le résumé et le message de fin** annoncent aussi le nombre de lignes identiques, et, avec trois fichiers, le nombre de lignes présentes dans au moins deux d'entre eux.
+- **Si vous aviez gardé un lien vers une page doublons**, il ne mène plus nulle part : repartez de l'accueil.
+
 ## Version 3.8 — 11 septembre 2026
 
 ### Les colonnes vides disparaissent de l'écran comme du fichier Excel

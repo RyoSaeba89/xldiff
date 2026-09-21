@@ -40,7 +40,7 @@
 (() => {
   // Bump uniquement quand le CONTENU d'une visite change : les
   // usagers qui l'ont déjà vue la reverront alors une fois.
-  const VERSION_VISITE = '3.3';
+  const VERSION_VISITE = '4.0';
 
   // ---------- Contenu, par page ----------
   //   visite   : étapes { cible, titre, texte }
@@ -56,23 +56,20 @@
       titre: 'Accueil',
       visite: [
         {
-          cible: '.choice-grid',
-          titre: 'Commencez par le type d\'analyse',
-          texte: 'Les <strong>différences</strong>, ce sont les lignes présentes dans un fichier et absentes de l\'autre. Les <strong>doublons</strong>, ce sont les lignes que l\'on retrouve dans plusieurs fichiers. <strong>Choisissez la carte</strong> qui correspond à votre besoin : la suite s\'affichera juste en dessous.',
-        },
-        {
-          cible: ['#modeSectionDiff.visible', '#modeSectionDupes.visible'],
+          cible: '.mode-grid',
           titre: 'Vos fichiers se ressemblent-ils ?',
-          texte: 'Si vos fichiers viennent du <strong>même export Excel</strong>, prenez le mode <strong>simple</strong> : tout est automatique. S\'ils viennent d\'outils différents, prenez le mode <strong>avancé</strong> : vous y associez vous-même les colonnes, et vous pouvez ajouter un troisième fichier.',
+          texte: 'Si vos fichiers viennent du <strong>même export Excel</strong>, prenez le mode <strong>simple</strong> : tout est automatique. S\'ils viennent d\'outils différents, prenez le mode <strong>avancé</strong> : vous y associez vous-même les colonnes, et vous pouvez ajouter un troisième fichier. <strong>Choisissez la carte</strong> qui correspond à vos fichiers.',
         },
       ],
       sections: [
         {
-          titre: 'Les deux analyses',
+          titre: 'Ce que vous obtenez',
           html: `<ul>
-            <li><strong>Les différences</strong> — les lignes présentes dans un fichier mais absentes d'un autre. C'est le choix pour contrôler ce qui a été ajouté ou retiré entre deux extractions.</li>
-            <li><strong>Les doublons</strong> — les lignes présentes à la fois dans plusieurs fichiers. C'est le choix pour repérer ce qui se recoupe entre deux listes.</li>
-          </ul>`,
+            <li><strong>Les lignes présentes d'un seul côté</strong> — ce qui a été ajouté ou retiré entre deux extractions.</li>
+            <li><strong>Les lignes identiques</strong> — ce qui se retrouve dans les deux fichiers, c'est-à-dire ce qui se recoupe entre deux listes.</li>
+            <li><strong>Les écarts de contenu</strong> (comparatif avancé) — les lignes retrouvées de part et d'autre, mais dont une valeur diffère, l'adresse par exemple.</li>
+          </ul>
+          <p>Une seule comparaison donne les trois.</p>`,
         },
         {
           titre: 'Simple ou avancé ?',
@@ -93,7 +90,11 @@
         },
         {
           q: 'Puis-je analyser trois fichiers ?',
-          r: 'Oui, dans les deux modes avancés (comparatif avancé et doublons avancé). Le troisième fichier est facultatif : déposez-en deux, et un troisième si vous en avez besoin.',
+          r: 'Oui, avec le comparatif avancé. Le troisième fichier est facultatif : déposez-en deux, et un troisième si vous en avez besoin.',
+        },
+        {
+          q: 'Où est passée la recherche de doublons ?',
+          r: 'Elle fait désormais partie de la comparaison. Les lignes présentes à la fois dans A et dans B sont dans l\'onglet <strong>Identiques entre A et B</strong>, en mode simple comme en mode avancé. Avec trois fichiers, l\'onglet <strong>Présentes dans 2 ou 3 fichiers</strong> liste aussi celles qui ne se retrouvent que dans deux d\'entre eux.',
         },
         {
           q: 'Combien de lignes XLDiff accepte-t-il ?',
@@ -138,6 +139,7 @@
           titre: 'Lire les résultats',
           html: `<ul>
             <li><strong>Présentes d'un seul côté</strong> — les lignes qui n'existent que dans A ou que dans B ; la colonne <em>Source</em> dit laquelle.</li>
+            <li><strong>Identiques entre A et B</strong> — les lignes présentes dans les deux fichiers, une ligne du tableau par paire retrouvée, avec le numéro de ligne de chaque côté (<em>A12 / B40</em>). Ce sont les lignes communes aux deux fichiers.</li>
             <li><strong>Uniquement dans A</strong> / <strong>Uniquement dans B</strong> — le détail fichier par fichier.</li>
             <li>Le numéro affiché est celui de la ligne dans le fichier Excel d'origine (l'en-tête est la ligne 1).</li>
           </ul>`,
@@ -154,67 +156,11 @@
         },
         {
           q: 'Une même ligne apparaît plusieurs fois',
-          r: 'C\'est normal : les répétitions sont comptées. Si une ligne existe 3 fois d\'un côté et 1 fois de l\'autre, les 2 exemplaires en trop sont signalés.',
+          r: 'C\'est normal : les répétitions sont comptées. Si une ligne existe 3 fois d\'un côté et 1 fois de l\'autre, les 2 exemplaires en trop sont signalés, et l\'exemplaire commun est dans <strong>Identiques entre A et B</strong>.',
         },
         {
-          q: 'Je ne veux qu\'une partie des onglets dans le fichier Excel',
-          r: 'Cliquez sur <strong>Exporter .xlsx</strong> : un panneau s\'ouvre sous le bouton et liste les onglets affichés, tous cochés. Décochez ceux dont vous n\'avez pas besoin, puis cliquez sur <strong>Exporter</strong>. La case <strong>Renommer les onglets avant l\'export</strong> permet au passage de choisir le nom de chaque feuille. À l\'ouverture suivante, tout est de nouveau coché et le renommage éteint. Les colonnes qu\'aucune ligne ne renseigne ne sont ni affichées, ni écrites dans le fichier : une ligne sous le tableau vous dit lesquelles.',
-        },
-      ],
-    },
-
-    doublons: {
-      titre: 'Doublons simple',
-      visite: [
-        {
-          cible: '.drop-row',
-          titre: 'Déposez vos deux fichiers',
-          texte: 'Glissez-déposez un fichier dans chaque zone, ou cliquez pour le choisir. Formats acceptés : <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>, <code>.htm</code>. Si le classeur contient plusieurs feuilles, un menu vous laissera choisir laquelle analyser.',
-        },
-        {
-          cible: '#btnCompare:not([disabled])',
-          titre: 'Vos fichiers sont prêts',
-          texte: 'Les colonnes communes ont été détectées toutes seules. Deux lignes sont <strong>en double</strong> si toutes leurs colonnes sont identiques — c\'est l\'inverse exact de la recherche de différences. Cliquez sur <strong>Rechercher les doublons</strong>.',
-        },
-        {
-          cible: '#results.visible',
-          titre: 'Lisez le résultat',
-          texte: 'Un <strong>résumé en phrases simples</strong>, puis le détail : les lignes en double vues côté A, puis côté B, avec leur numéro de ligne d\'origine. <strong>Exporter .xlsx</strong> enregistre la liste dans un fichier Excel, après vous avoir demandé quels onglets y mettre — ils sont tous cochés.',
-        },
-      ],
-      sections: [
-        {
-          titre: 'Ce que cherche ce mode',
-          html: `<p>Les <strong>lignes communes aux deux fichiers</strong> : celles qui figurent à la fois dans A et dans B. Il ne s'agit pas des lignes répétées à l'intérieur d'un même fichier.</p>`,
-        },
-        {
-          titre: 'Comment les doublons sont trouvés',
-          html: `<ul>
-            <li>Les colonnes portant le même nom dans les deux fichiers sont retenues automatiquement.</li>
-            <li>Deux lignes sont en double si <strong>toutes</strong> ces colonnes sont identiques.</li>
-            <li>Les répétitions comptent : une ligne présente 3 fois dans A et 1 fois dans B compte pour 1 doublon.</li>
-          </ul>`,
-        },
-        {
-          titre: 'Lire les résultats',
-          html: `<ul>
-            <li><strong>Tous les doublons</strong> — la liste complète, la colonne <em>Source</em> indiquant le fichier d'origine.</li>
-            <li><strong>Doublons côté A</strong> / <strong>côté B</strong> — la même information vue depuis chaque fichier, avec le numéro de ligne d'origine.</li>
-          </ul>`,
-        },
-      ],
-      faq: [
-        {
-          q: '« Aucune colonne commune » : que faire ?',
-          r: 'Vos fichiers ne viennent pas du même export. Utilisez les doublons avancé : vous y associez les colonnes vous-même.',
-        },
-        {
-          q: 'Je veux les doublons à l\'intérieur d\'un seul fichier',
-          r: 'XLDiff compare des fichiers entre eux ; il ne cherche pas les répétitions internes à un fichier. Un contournement : déposer le même fichier des deux côtés.',
-        },
-        {
-          q: 'Puis-je chercher sur trois fichiers ?',
-          r: 'Oui, avec les doublons avancé : le fichier C y est facultatif et la colonne « Présente dans » indique dans quels fichiers chaque ligne se retrouve.',
+          q: 'Je cherche les lignes communes aux deux fichiers',
+          r: 'Ouvrez l\'onglet <strong>Identiques entre A et B</strong> : il remplace l\'ancienne recherche de doublons, et s\'exporte comme les autres onglets.',
         },
         {
           q: 'Je ne veux qu\'une partie des onglets dans le fichier Excel',
@@ -249,7 +195,7 @@
         {
           cible: '#results.visible',
           titre: 'Lisez le résultat, puis exportez',
-          texte: 'Un résumé en phrases simples, puis le détail par onglets — avec trois fichiers, la colonne <strong>Présente dans</strong> dit où chaque ligne se trouve. Deux exports : <strong>Exporter .xlsx</strong> pour la liste — il vous demande d\'abord quels onglets exporter, tous cochés — et <strong>Exporter le fichier A annoté</strong> pour reprendre votre fichier A avec le verdict ajouté à droite.',
+          texte: 'Un résumé en phrases simples, puis le détail par onglets — les lignes absentes, les écarts de contenu, et les lignes <strong>identiques</strong> de part et d\'autre. Avec trois fichiers, la colonne <strong>Présente dans</strong> dit où chaque ligne se trouve. Deux exports : <strong>Exporter .xlsx</strong> pour la liste — il vous demande d\'abord quels onglets exporter, tous cochés — et <strong>Exporter le fichier A annoté</strong> pour reprendre votre fichier A avec le verdict ajouté à droite.',
         },
       ],
       sections: [
@@ -278,6 +224,8 @@
           html: `<ul>
             <li><strong>Présentes d'un seul côté</strong> (« Absentes d'au moins un fichier » à trois fichiers) — les lignes sans équivalent ailleurs. Elle ne comptent PAS les lignes retrouvées dont le contenu diffère, qui ont leur propre onglet.</li>
             <li><strong>Retrouvées mais différentes</strong> — les lignes présentes partout dont une colonne comparée diverge, affichées <em>valeur A → valeur B</em>.</li>
+            <li><strong>Identiques entre A et B</strong> (« Identiques entre A, B et C » à trois fichiers) — les lignes retrouvées partout sans le moindre écart sur les colonnes comparées ; sans colonne comparée, toutes les lignes retrouvées. Une ligne du tableau par ligne retrouvée, avec son numéro dans chaque fichier.</li>
+            <li><strong>Présentes dans 2 ou 3 fichiers</strong> — à trois fichiers seulement : les lignes qui se retrouvent dans au moins un autre fichier, même si elles manquent dans le troisième. La colonne <strong>Présente dans</strong> dit lesquels.</li>
             <li>Un onglet par fichier, et avec trois fichiers une colonne <strong>Présente dans</strong> (« A + B » = ligne absente de C).</li>
           </ul>`,
         },
@@ -301,7 +249,11 @@
         },
         {
           q: 'Comment comparer trois fichiers ?',
-          r: 'Déposez un fichier dans la zone C. Chaque fichier reçoit son onglet de lignes absentes ailleurs, et la colonne « Présente dans » indique où chaque ligne se trouve.',
+          r: 'Déposez un fichier dans la zone C. Chaque fichier reçoit son onglet de lignes absentes ailleurs, et la colonne « Présente dans » indique où chaque ligne se trouve. L\'onglet « Présentes dans 2 ou 3 fichiers » rassemble les lignes communes à au moins deux fichiers.',
+        },
+        {
+          q: 'Où est passée la recherche de doublons ?',
+          r: 'Elle fait désormais partie de la comparaison : les lignes communes sont dans l\'onglet <strong>Identiques entre A et B</strong>. Si vous comparez aussi des colonnes, une ligne commune dont une valeur diffère est dans <strong>Retrouvées mais différentes</strong> : les deux onglets réunis donnent l\'ancienne liste de doublons.',
         },
         {
           q: 'Une date apparaît en écart alors qu\'elle est identique',
@@ -314,71 +266,6 @@
       ],
     },
 
-    'doublons-avance': {
-      titre: 'Doublons avancé',
-      visite: [
-        {
-          cible: '.drop-row',
-          titre: 'Déposez vos fichiers',
-          texte: 'Deux fichiers suffisent ; le <strong>fichier C est facultatif</strong> et permet de chercher les doublons sur trois fichiers. Ils peuvent venir d\'outils différents et n\'ont pas besoin d\'avoir les mêmes colonnes. Les réglages apparaîtront ici même une fois les fichiers chargés.',
-        },
-        {
-          cible: '#sheetPanel.visible',
-          titre: 'Choisissez la feuille',
-          texte: 'Un de vos classeurs contient plusieurs feuilles (onglets Excel). XLDiff a pré-sélectionné la plus fournie : changez-la ici si ce n\'est pas la bonne.',
-        },
-        {
-          cible: '#mappingPanel.visible',
-          titre: 'Associez les colonnes',
-          texte: 'Indiquez quelles colonnes se correspondent d\'un fichier à l\'autre — par exemple <em>Nom</em> dans A et <em>Raison sociale</em> dans B. Deux lignes sont <strong>en double</strong> si toutes les colonnes associées sont identiques. Les colonnes de même nom sont déjà associées.',
-        },
-        {
-          cible: '#results.visible',
-          titre: 'Lisez le résultat',
-          texte: 'Un résumé en phrases simples, puis le détail par fichier. Avec trois fichiers, une ligne est en double dès qu\'elle se retrouve dans <strong>au moins un autre fichier</strong> : la colonne <strong>Présente dans</strong> dit lesquels. <strong>Exporter .xlsx</strong> vous demande quels onglets mettre dans le fichier Excel — ils sont tous cochés.',
-        },
-      ],
-      sections: [
-        {
-          titre: 'Ce que cherche ce mode',
-          html: `<p>Les <strong>lignes communes à plusieurs fichiers</strong>, quand ces fichiers n'ont pas les mêmes colonnes. Vous décidez vous-même ce qui fait qu'une ligne est « la même » en associant les colonnes.</p>`,
-        },
-        {
-          titre: 'Les étapes',
-          html: `<ol>
-            <li><strong>Choix des feuilles</strong> — n'apparaît que si un classeur contient plusieurs onglets.</li>
-            <li><strong>Association des colonnes</strong> — les colonnes qui doivent coïncider pour parler de doublon.</li>
-            <li><strong>Rechercher les doublons</strong> — puis lecture du résumé, du détail et de l'export.</li>
-          </ol>`,
-        },
-        {
-          titre: 'Avec trois fichiers',
-          html: `<ul>
-            <li>Une ligne est en double dès que sa clé existe dans <strong>au moins un autre fichier</strong> : c'est l'inverse exact de la recherche de différences.</li>
-            <li>La colonne <strong>Présente dans</strong> indique les fichiers concernés : « A + B », « B + C », « A + B + C ».</li>
-            <li>Un onglet par fichier montre ses propres lignes en double, avec leur numéro de ligne d'origine.</li>
-          </ul>`,
-        },
-      ],
-      faq: [
-        {
-          q: 'Les colonnes associées doivent-elles porter le même nom ?',
-          r: 'Non. C\'est tout l\'intérêt de ce mode : vous associez « Nom » d\'un côté à « Raison sociale » de l\'autre. Les colonnes de même nom sont simplement pré-associées pour vous faire gagner du temps.',
-        },
-        {
-          q: 'Une ligne se répète plusieurs fois dans un fichier',
-          r: 'Les répétitions sont comptées : si une ligne existe 3 fois dans A et 1 fois dans B, elle compte pour 1 doublon de chaque côté.',
-        },
-        {
-          q: 'Pourquoi ma ligne n\'est-elle pas vue comme un doublon ?',
-          r: 'Les colonnes associées sont comparées caractère par caractère : un espace en trop, un accent ou une casse différente suffisent à séparer deux lignes. Réduisez le nombre de colonnes associées pour un rapprochement plus large.',
-        },
-        {
-          q: 'Je ne veux qu\'une partie des onglets dans le fichier Excel',
-          r: 'Cliquez sur <strong>Exporter .xlsx</strong> : un panneau s\'ouvre sous le bouton et liste les onglets affichés, tous cochés. Décochez ceux dont vous n\'avez pas besoin, puis cliquez sur <strong>Exporter</strong>. La case <strong>Renommer les onglets avant l\'export</strong> permet au passage de choisir le nom de chaque feuille. À l\'ouverture suivante, tout est de nouveau coché et le renommage éteint. Les colonnes qu\'aucune ligne ne renseigne ne sont ni affichées, ni écrites dans le fichier : une ligne sous le tableau vous dit lesquelles.',
-        },
-      ],
-    },
   };
 
   const PAGE = window.XLDIFF_PAGE;
@@ -1067,7 +954,7 @@
   // vide ou sur un décor ne compte pas : seuls comptent le dépôt d'un
   // fichier, une frappe, et un clic sur un élément actif de la page.
   let interagi = false;
-  const ACTIFS = 'a, button, input, select, textarea, label, .choice-card, .drop-zone, .mode-card';
+  const ACTIFS = 'a, button, input, select, textarea, label, .drop-zone, .mode-card';
 
   function marquer(e) {
     if (e.type === 'drop' || e.type === 'change' || e.type === 'keydown') { interagi = true; return; }

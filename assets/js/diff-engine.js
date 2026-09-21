@@ -24,17 +24,23 @@
 //                une clé absente d'au moins un fichier remonte
 //                toutes ses occurrences.
 //      → { sides, bySide, onlyA, onlyB, onlyC, all, modified,
-//          matched, identical, compared, trace, tuples, tupleDiffs }
+//          matched, identical, compared, trace, tuples, tupleDiffs,
+//          identiques, partagees }
 //
 //    XLDiffEngine.diff(dataA, dataB, colsA, colsB, opts)
 //      → raccourci deux fichiers sans comparaison de contenu
 //        (forme historique : { onlyA, onlyB, all })
 //
-//    XLDiffEngine.common(sources)
-//      → lignes EN COMMUN à plusieurs fichiers (recherche de
-//        doublons), même forme d'entrée et de retour que analyze().
-//        Avec trois fichiers, une ligne est en double dès que sa
-//        clé existe dans au moins un autre fichier.
+//  LIGNES COMMUNES — elles ne font plus l'objet d'une analyse à part
+//  (l'ancienne « recherche de doublons ») : à deux fichiers, les
+//  rapprochements SONT les lignes communes, occurrence par occurrence.
+//    identiques : n° des rapprochements sans aucun écart sur les
+//                 colonnes comparées (tous, s'il n'y en a pas),
+//                 dans l'ordre des lignes du premier fichier ;
+//    partagees  : à trois fichiers seulement (null sinon), les lignes
+//                 dont la clé existe dans au moins un autre fichier,
+//                 { bySide, all } — deux fichiers sur trois suffisent,
+//                 ce qu'un rapprochement (présent PARTOUT) ne dit pas.
 //
 //  Chaque ligne retournée porte __rowNum (n° de ligne Excel,
 //  l'en-tête étant la ligne 1), __source ('A', 'B' ou 'C') et
@@ -144,6 +150,12 @@ const XLDiffEngine = (() => {
     const modified = [];
     let matched = 0;
 
+    // Lignes présentes dans au moins deux fichiers : n'a de sens propre
+    // qu'à trois fichiers (à deux, ce sont exactement les rapprochements)
+    const partagees = nb > 2 ? { bySide: {}, all: [] } : null;
+    if (partagees) sides.forEach(sd => { partagees.bySide[sd] = []; });
+    const compte = new Int32Array(nb);
+
     // Union des clés : celles du 1er fichier d'abord, puis les clés
     // inédites du 2e, etc.
     const keys = new Set();
@@ -156,11 +168,35 @@ const XLDiffEngine = (() => {
       for (let j = 0; j < nb; j++) {
         const e = idx[j].keys.get(k);
         const c = e ? e.c : 0;
+        compte[j] = c;
         if (c < minC) minC = c;
         if (c > 0) masque |= (1 << j);
         curseur[j] = e ? e.h : -1;
       }
       const presence = sides.filter((sd, j) => (masque >> j) & 1).join(' + ');
+
+      // Lignes partagées (trois fichiers) : dès que la clé existe dans
+      // au moins deux fichiers. Les occurrences retenues d'un fichier
+      // sont plafonnées au plus grand nombre d'occurrences trouvé
+      // ailleurs — 3 fois dans A, 1 fois dans B, 2 fois dans C : 2
+      // lignes côté A. À deux fichiers, la règle retombe sur min(cA, cB),
+      // c'est-à-dire exactement les rapprochements.
+      if (partagees && (masque & (masque - 1))) {
+        for (let j = 0; j < nb; j++) {
+          if (!compte[j]) continue;
+          let maxAutres = 0;
+          for (let i = 0; i < nb; i++) {
+            if (i !== j && compte[i] > maxAutres) maxAutres = compte[i];
+          }
+          let li = curseur[j];
+          for (let n = Math.min(compte[j], maxAutres); n > 0; n--) {
+            const row = sources[j].data[li];
+            row.__presence = presence;
+            partagees.bySide[sides[j]].push(row);
+            li = idx[j].next[li];
+          }
+        }
+      }
 
       // Rapprochement : la i-ème occurrence de la clé dans un fichier est
       // appariée avec la i-ème occurrence des autres (ordre du fichier).
@@ -237,6 +273,22 @@ const XLDiffEngine = (() => {
     const tuplesTyped = {};
     for (const sd of sides) tuplesTyped[sd] = Int32Array.from(tuples[sd]);
 
+    // Rapprochements sans écart, rangés dans l'ordre du premier fichier.
+    // Un tableau d'entiers et pas d'objets : sans colonne comparée, ce
+    // sont TOUS les rapprochements, soit 200 000 sur un gros fichier ;
+    // l'affichage retrouve les lignes à la demande via `tuples`.
+    const premier = tuplesTyped[sides[0]];
+    const identiques = new Int32Array(matched - modified.length);
+    for (let t = 0, n = 0; t < matched; t++) if (!tupleDiffs.has(t)) identiques[n++] = t;
+    identiques.sort((x, y) => premier[x] - premier[y]);
+
+    if (partagees) {
+      for (const sd of sides) {
+        partagees.bySide[sd].sort(byRowNum);
+        for (const r of partagees.bySide[sd]) partagees.all.push(r);
+      }
+    }
+
     return {
       sides,
       bySide,
@@ -251,6 +303,8 @@ const XLDiffEngine = (() => {
       trace,
       tuples: tuplesTyped,
       tupleDiffs,
+      identiques,
+      partagees,
     };
   }
 
@@ -263,87 +317,5 @@ const XLDiffEngine = (() => {
     ], [], opts);
   }
 
-  // Lignes communes à plusieurs fichiers (recherche de doublons), en
-  // sémantique multi-ensemble : une clé présente 3 fois dans A et 1 fois
-  // dans B ne compte que pour 1 correspondance de chaque côté.
-  //
-  // Avec trois fichiers, une ligne est en double dès que sa clé existe
-  // dans AU MOINS un autre fichier — c'est l'inverse exact de la
-  // recherche de différences, et la colonne « Présente dans » indique
-  // lesquels (« A + B », « B + C », « A + B + C »). Le nombre
-  // d'occurrences retenues dans un fichier est plafonné au plus grand
-  // nombre d'occurrences trouvé dans les autres fichiers.
-  //
-  // Le résultat reprend la forme de analyze() pour être affiché par
-  // XLDiffResults sans adaptation : bySide[côté] = lignes en double
-  // vues depuis ce fichier. À deux fichiers, onlyA et onlyB ont donc
-  // la même longueur, égale au nombre de correspondances.
-  function common(sources) {
-    const sides = sources.map(s => s.side);
-    const nb = sides.length;
-    const idx = sources.map(s => indexRows(s.data, s.cols, s.side));
-
-    const bySide = {};
-    sides.forEach(sd => { bySide[sd] = []; });
-
-    // Union des clés : celles du 1er fichier d'abord, puis les clés
-    // inédites du 2e, etc.
-    const keys = new Set();
-    for (const i of idx) for (const k of i.keys.keys()) keys.add(k);
-
-    const compte = new Int32Array(nb);
-    let matched = 0;
-
-    for (const k of keys) {
-      let presents = 0;
-      let masque = 0;
-      for (let j = 0; j < nb; j++) {
-        const e = idx[j].keys.get(k);
-        compte[j] = e ? e.c : 0;
-        if (compte[j] > 0) { presents++; masque |= (1 << j); }
-      }
-      if (presents < 2) continue; // clé propre à un seul fichier
-      const presence = sides.filter((sd, j) => (masque >> j) & 1).join(' + ');
-
-      let retenues = 0;
-      for (let j = 0; j < nb; j++) {
-        if (!compte[j]) continue;
-        let maxAutres = 0;
-        for (let i = 0; i < nb; i++) {
-          if (i !== j && compte[i] > maxAutres) maxAutres = compte[i];
-        }
-        const n = Math.min(compte[j], maxAutres);
-        if (n > retenues) retenues = n;
-        let li = idx[j].keys.get(k).h;
-        for (let i = 0; i < n; i++) {
-          const row = sources[j].data[li];
-          row.__presence = presence;
-          bySide[sides[j]].push(row);
-          li = idx[j].next[li];
-        }
-      }
-      matched += retenues;
-    }
-
-    const all = [];
-    for (const sd of sides) {
-      bySide[sd].sort(byRowNum);
-      for (const r of bySide[sd]) all.push(r);
-    }
-
-    return {
-      sides,
-      bySide,
-      onlyA: bySide.A || [],
-      onlyB: bySide.B || [],
-      onlyC: bySide.C || [],
-      all,
-      modified: [],
-      matched,
-      identical: matched,
-      compared: false,
-    };
-  }
-
-  return { analyze, diff, common, displayValue, normCell };
+  return { analyze, diff, displayValue, normCell };
 })();

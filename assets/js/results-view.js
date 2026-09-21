@@ -3,17 +3,18 @@
 //  Rendu des résultats : résumé en phrases simples, onglets,
 //  tableau virtualisé et exports .xlsx.
 //
-//  Deux modes d'affichage :
-//    'diff'  (défaut) — comparaison : différences entre fichiers
-//    'dupes'          — recherche de doublons : lignes communes à
-//                       deux fichiers, ou à au moins deux des trois
-//
-//  Deux natures de résultat en mode 'diff' :
+//  Deux natures d'écart :
 //    • écarts de présence — une ligne d'un fichier sans
 //      contrepartie dans un autre (un onglet par fichier) ;
 //    • lignes retrouvées mais différentes — une ligne retrouvée
 //      dans tous les fichiers, mais dont une colonne comparée
 //      diverge (un onglet, une ligne de tableau par rapprochement).
+//  Et les lignes communes, qui remplacent l'ancienne recherche de
+//  doublons :
+//    • « Identiques entre A et B » — les rapprochements sans écart,
+//      une ligne de tableau par rapprochement ;
+//    • « Présentes dans 2 ou 3 fichiers » — à trois fichiers
+//      seulement, une ligne source par ligne de tableau.
 //
 //  AFFICHAGE VIRTUALISÉ : seules les lignes visibles existent dans
 //  le DOM, encadrées par deux cales qui reproduisent la hauteur du
@@ -26,12 +27,12 @@
 //  cellule vide). role vaut 'key', 'cmp' ou 'other'.
 //
 //  API : XLDiffResults.init()
-//        XLDiffResults.show({ diff, columns, totals, mode, sources })
+//        XLDiffResults.show({ diff, columns, totals, sources })
 //        XLDiffResults.hide()               (résultats devenus périmés)
 //        XLDiffResults.setColumns(columns)
 //        XLDiffResults.exportResults(ancre, fait)
 //                                           (ouvre le choix des onglets)
-//        XLDiffResults.exportAnnotated()   (mode 'diff' seulement)
+//        XLDiffResults.exportAnnotated()
 // ============================================================
 
 const XLDiffResults = (() => {
@@ -39,7 +40,7 @@ const XLDiffResults = (() => {
   const MARGE = 12;        // lignes rendues au-delà de la zone visible
   const HAUTEUR_DEFAUT = 30;
   let dom = null;
-  let state = null; // { diff, columns, totals, sides, mode, activeTab, vue, sources, colsParOnglet }
+  let state = null; // { diff, columns, totals, sides, activeTab, vue, sources, colsParOnglet }
 
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -101,13 +102,12 @@ const XLDiffResults = (() => {
     window.addEventListener('resize', () => dessiner(true));
   }
 
-  function show({ diff, columns, totals, mode, sources }) {
+  function show({ diff, columns, totals, sources }) {
     state = {
       diff,
       columns,
       totals: totals || {},
       sides: diff.sides || ['A', 'B'],
-      mode: mode || 'diff',
       sources: sources || null,
       activeTab: 'all',
       vue: null,
@@ -145,111 +145,93 @@ const XLDiffResults = (() => {
   // ---------- Résumé en phrases simples ----------
 
   function renderSummary() {
-    const { diff, totals, sides, mode } = state;
+    const { diff, totals, sides } = state;
     const three = sides.length > 2;
     let headline = '';
     let headlineOk = false;
     const lines = [];
 
-    if (mode === 'dupes') {
-      // À deux fichiers, une correspondance = une ligne de A et une ligne
-      // de B : on annonce le nombre de correspondances. À trois fichiers,
-      // une ligne peut être en double avec l'un, l'autre ou les deux :
-      // on annonce le nombre de lignes listées, tous fichiers confondus.
-      const nTotal = diff.all.length;
-      if (nTotal === 0) {
-        headline = three
-          ? 'Aucun doublon : aucune ligne n\'est présente dans plus d\'un fichier.'
-          : 'Aucun doublon : aucune ligne n\'est présente à la fois dans les deux fichiers.';
-        headlineOk = true;
-      } else if (three) {
-        headline = `Il y a ${fmt(nTotal)} ligne${plur(nTotal)} en double, présente${plur(nTotal)} dans au moins deux des trois fichiers.`;
+    const nAbs = diff.all.length;
+    const nMod = diff.modified.length;
+
+    if (nAbs === 0 && nMod === 0) {
+      headline = three
+        ? 'Aucune différence : les trois fichiers contiennent exactement les mêmes lignes.'
+        : 'Aucune différence : les deux fichiers contiennent exactement les mêmes lignes.';
+      headlineOk = true;
+    } else if (nAbs === 0) {
+      headline = `Il y a ${fmt(nMod)} ligne${plur(nMod)} retrouvée${plur(nMod)} ${three ? "dans les trois fichiers" : "des deux côtés"} mais dont le contenu diffère.`;
+    } else {
+      // Les deux natures d'écart sont annoncées côte à côte, sans total :
+      // les additionner mêlerait des lignes absentes et des lignes
+      // présentes mais divergentes. L'ancienne phrase ne citait que les
+      // écarts de présence et taisait les écarts de contenu, ce qui
+      // faisait passer un résultat de 263 lignes pour 124.
+      const absentes = three
+        ? `${fmt(nAbs)} ligne${plur(nAbs)} absente${plur(nAbs)} d'au moins un fichier`
+        : `${fmt(nAbs)} ligne${plur(nAbs)} présente${plur(nAbs)} d'un seul côté`;
+      if (nMod === 0) {
+        headline = `Il y a ${absentes}.`;
       } else {
-        const n = diff.onlyA.length; // nombre de correspondances A ↔ B
-        headline = `Il y a ${fmt(n)} ligne${plur(n)} en double, présente${plur(n)} à la fois dans A et dans B.`;
+        const retrouvees = three
+          ? `retrouvée${plur(nMod)} dans les trois fichiers`
+          : `retrouvée${plur(nMod)} des deux côtés`;
+        headline = `Il y a ${absentes}, et ${fmt(nMod)} ligne${plur(nMod)} ${retrouvees} dont le contenu diffère.`;
       }
-      sides.forEach(sd => {
-        const n = diff.bySide[sd].length;
-        const t = totals[sd] || 0;
-        lines.push({
-          cls: 'sum-' + sd.toLowerCase(),
-          html: three
-            ? `Le fichier ${sd} contient ${fmt(t)} ligne${plur(t)}, dont ${fmt(n)} en double avec un autre fichier et ${fmt(t - n)} sans équivalent ailleurs.`
-            : `Le fichier ${sd} contient ${fmt(t)} ligne${plur(t)}, dont ${fmt(t - n)} sans équivalent dans ${sides.filter(o => o !== sd)[0]}.`,
-        });
+    }
+
+    // Lignes retrouvées dans tous les fichiers
+    if (diff.compared) {
+      lines.push({
+        cls: 'sum-eq',
+        html: `Il y a ${fmt(diff.matched)} ligne${plur(diff.matched)} retrouvée${plur(diff.matched)} dans ${three ? 'les trois' : 'les deux'} fichiers : ` +
+          `${fmt(diff.identical)} à l'identique, ${fmt(nMod)} dont le contenu diffère sur les colonnes comparées.`,
       });
     } else {
-      const nAbs = diff.all.length;
-      const nMod = diff.modified.length;
-
-      if (nAbs === 0 && nMod === 0) {
-        headline = three
-          ? 'Aucune différence : les trois fichiers contiennent exactement les mêmes lignes.'
-          : 'Aucune différence : les deux fichiers contiennent exactement les mêmes lignes.';
-        headlineOk = true;
-      } else if (nAbs === 0) {
-        headline = `Il y a ${fmt(nMod)} ligne${plur(nMod)} retrouvée${plur(nMod)} ${three ? "dans les trois fichiers" : "des deux côtés"} mais dont le contenu diffère.`;
-      } else {
-        // Les deux natures d'écart sont annoncées côte à côte, sans total :
-        // les additionner mêlerait des lignes absentes et des lignes
-        // présentes mais divergentes. L'ancienne phrase ne citait que les
-        // écarts de présence et taisait les écarts de contenu, ce qui
-        // faisait passer un résultat de 263 lignes pour 124.
-        const absentes = three
-          ? `${fmt(nAbs)} ligne${plur(nAbs)} absente${plur(nAbs)} d'au moins un fichier`
-          : `${fmt(nAbs)} ligne${plur(nAbs)} présente${plur(nAbs)} d'un seul côté`;
-        if (nMod === 0) {
-          headline = `Il y a ${absentes}.`;
-        } else {
-          const retrouvees = three
-            ? `retrouvée${plur(nMod)} dans les trois fichiers`
-            : `retrouvée${plur(nMod)} des deux côtés`;
-          headline = `Il y a ${absentes}, et ${fmt(nMod)} ligne${plur(nMod)} ${retrouvees} dont le contenu diffère.`;
-        }
-      }
-
-      // Lignes retrouvées dans tous les fichiers
-      if (diff.compared) {
-        lines.push({
-          cls: 'sum-eq',
-          html: `Il y a ${fmt(diff.matched)} ligne${plur(diff.matched)} retrouvée${plur(diff.matched)} dans ${three ? 'les trois' : 'les deux'} fichiers : ` +
-            `${fmt(diff.identical)} à l'identique, ${fmt(nMod)} dont le contenu diffère sur les colonnes comparées.`,
-        });
-      } else {
-        lines.push({
-          cls: 'sum-eq',
-          html: `Il y a ${fmt(diff.matched)} ligne${plur(diff.matched)} identique${plur(diff.matched)} entre ${joinFr(sides)}.`,
-        });
-      }
-
-      // Écarts de présence, un point par fichier
-      sides.forEach(sd => {
-        const n = diff.bySide[sd].length;
-        if (!n) return;
-        const others = sides.filter(o => o !== sd);
-        lines.push({
-          cls: 'sum-' + sd.toLowerCase(),
-          html: three
-            ? `Il y a ${fmt(n)} ligne${plur(n)} du fichier ${sd} absente${plur(n)} d'au moins un autre fichier (${joinFr(others)}).`
-            : `Il y a ${fmt(n)} ligne${plur(n)} uniquement dans ${sd} (absente${plur(n)} de ${others[0]}).`,
-        });
+      lines.push({
+        cls: 'sum-eq',
+        html: `Il y a ${fmt(diff.matched)} ligne${plur(diff.matched)} identique${plur(diff.matched)} entre ${joinFr(sides)}.`,
       });
+    }
 
-      // Volumétrie
-      if (three) {
-        lines.push({
-          cls: 'sum-n',
-          html: 'Nombre de lignes : ' + sides.map(sd => `fichier ${sd} ${fmt(totals[sd])}`).join(', ') + '.',
-        });
+    // Lignes communes à deux fichiers sur trois : ce que listait la
+    // recherche de doublons, et qu'un rapprochement — présent PARTOUT —
+    // ne dit pas
+    if (diff.partagees) {
+      const n = diff.partagees.all.length;
+      lines.push({
+        cls: 'sum-eq',
+        html: `Il y a ${fmt(n)} ligne${plur(n)} présente${plur(n)} dans au moins deux des trois fichiers, tous fichiers confondus.`,
+      });
+    }
+
+    // Écarts de présence, un point par fichier
+    sides.forEach(sd => {
+      const n = diff.bySide[sd].length;
+      if (!n) return;
+      const others = sides.filter(o => o !== sd);
+      lines.push({
+        cls: 'sum-' + sd.toLowerCase(),
+        html: three
+          ? `Il y a ${fmt(n)} ligne${plur(n)} du fichier ${sd} absente${plur(n)} d'au moins un autre fichier (${joinFr(others)}).`
+          : `Il y a ${fmt(n)} ligne${plur(n)} uniquement dans ${sd} (absente${plur(n)} de ${others[0]}).`,
+      });
+    });
+
+    // Volumétrie
+    if (three) {
+      lines.push({
+        cls: 'sum-n',
+        html: 'Nombre de lignes : ' + sides.map(sd => `fichier ${sd} ${fmt(totals[sd])}`).join(', ') + '.',
+      });
+    } else {
+      const delta = totals.B - totals.A;
+      if (delta === 0) {
+        lines.push({ cls: 'sum-n', html: `Les deux fichiers ont le même nombre de lignes (${fmt(totals.A)}).` });
       } else {
-        const delta = totals.B - totals.A;
-        if (delta === 0) {
-          lines.push({ cls: 'sum-n', html: `Les deux fichiers ont le même nombre de lignes (${fmt(totals.A)}).` });
-        } else {
-          const sens = delta > 0 ? 'de plus' : 'de moins';
-          const abs = Math.abs(delta);
-          lines.push({ cls: 'sum-n', html: `Il y a une différence de ${fmt(abs)} ligne${plur(abs)} : le fichier B en contient ${num(abs)} ${sens} que le fichier A (A : ${num(totals.A)}, B : ${num(totals.B)}).` });
-        }
+        const sens = delta > 0 ? 'de plus' : 'de moins';
+        const abs = Math.abs(delta);
+        lines.push({ cls: 'sum-n', html: `Il y a une différence de ${fmt(abs)} ligne${plur(abs)} : le fichier B en contient ${num(abs)} ${sens} que le fichier A (A : ${num(totals.A)}, B : ${num(totals.B)}).` });
       }
     }
 
@@ -260,17 +242,11 @@ const XLDiffResults = (() => {
 
   // ---------- Onglets ----------
 
+  // Les libellés servent aussi de noms de feuille : 31 caractères au
+  // plus, sans quoi Excel les tronque (cf. nomFeuille).
   function buildTabs() {
-    const { diff, sides, mode } = state;
+    const { diff, sides } = state;
     const three = sides.length > 2;
-
-    if (mode === 'dupes') {
-      const tabs = [{ id: 'all', label: 'Tous les doublons', count: diff.all.length }];
-      sides.forEach(sd => {
-        tabs.push({ id: 'only' + sd, label: `Doublons côté ${sd}`, count: diff.bySide[sd].length });
-      });
-      return tabs;
-    }
 
     // Cet onglet ne contient QUE les écarts de présence — jamais les
     // lignes retrouvées dont le contenu diffère, qui ont le leur. Il
@@ -283,6 +259,18 @@ const XLDiffResults = (() => {
     }];
     if (diff.compared) {
       tabs.push({ id: 'modified', label: 'Retrouvées mais différentes', count: diff.modified.length });
+    }
+    // Lignes retrouvées sans le moindre écart : l'ancienne recherche de
+    // doublons à deux fichiers, rapprochement par rapprochement. Il faut
+    // les données sources pour les afficher — le moteur ne rend que des
+    // numéros de rapprochement.
+    if (diff.identiques && state.sources) {
+      tabs.push({ id: 'identiques', label: `Identiques entre ${joinFr(sides)}`, count: diff.identiques.length });
+    }
+    // À trois fichiers, les lignes communes à deux fichiers seulement ne
+    // sont pas des rapprochements : elles ont leur propre onglet.
+    if (diff.partagees) {
+      tabs.push({ id: 'partagees', label: 'Présentes dans 2 ou 3 fichiers', count: diff.partagees.all.length });
     }
     sides.forEach(sd => {
       tabs.push({
@@ -315,6 +303,7 @@ const XLDiffResults = (() => {
 
     if (dom.wrapper) dom.wrapper.scrollTop = 0;
     if (state.activeTab === 'modified') prepareModified();
+    else if (state.activeTab === 'identiques') prepareIdentiques();
     else prepareRows();
   }
 
@@ -360,10 +349,18 @@ const XLDiffResults = (() => {
 
   // ---------- Écarts de présence : une ligne source par ligne de tableau ----------
 
+  // Lignes sources d'un onglet « une ligne par ligne de tableau »
+  function lignesOnglet(id) {
+    const { diff } = state;
+    if (id === 'all') return diff.all;
+    if (id === 'partagees') return diff.partagees.all;
+    return diff.bySide[id.slice(4)];
+  }
+
   function prepareRows() {
-    const { diff, sides, mode, activeTab } = state;
+    const { sides, activeTab } = state;
     const three = sides.length > 2;
-    const rows = activeTab === 'all' ? diff.all : diff.bySide[activeTab.slice(4)];
+    const rows = lignesOnglet(activeTab);
 
     // Les valeurs pesées sont celles-là mêmes que la cellule affichera,
     // et que `aoaPresence()` écrira dans la feuille.
@@ -387,7 +384,65 @@ const XLDiffResults = (() => {
         html += `<td title="${escAttr(v)}">${esc(v)}</td>`;
       }
       return html + '</tr>';
-    }, colspan, mode === 'dupes' ? 'Aucun doublon dans cette catégorie' : 'Aucune différence dans cette catégorie');
+    }, colspan, activeTab === 'partagees'
+      ? "Aucune ligne ne se retrouve dans plus d'un fichier."
+      : 'Aucune différence dans cette catégorie');
+  }
+
+  // ---------- Lignes communes : rapprochements sans écart ----------
+
+  // Lignes du rapprochement t, une par fichier, retrouvées dans les
+  // données sources : le moteur n'en garde que les indices.
+  function lignesRapprochement(t) {
+    const { diff, sides, sources } = state;
+    const rows = {};
+    for (const sd of sides) rows[sd] = sources[sd].data[diff.tuples[sd][t]];
+    return rows;
+  }
+
+  // Valeur d'une colonne pour un rapprochement : celle du premier
+  // fichier qui porte la colonne. Sur une ligne identique, les autres
+  // fichiers disent la même chose — à la casse et aux espaces près
+  // pour les colonnes comparées, cf. XLDiffEngine.normCell.
+  function valeurRapprochement(rows, col) {
+    for (const sd of state.sides) {
+      const c = col.cols[sd];
+      if (c != null) return val(rows[sd][c]);
+    }
+    return '';
+  }
+
+  function refLignes(rows) {
+    return state.sides.map(sd => `${sd}${rows[sd].__rowNum || ''}`).join(' / ');
+  }
+
+  function prepareIdentiques() {
+    const { diff } = state;
+    const liste = diff.identiques;
+
+    // Une seule résolution de ligne par rapprochement pendant le
+    // balayage : il lit les cellules ligne après ligne.
+    let derniere = -1;
+    let rows = null;
+    const columns = colonnesVisibles('identiques', liste.length, (l, c) => {
+      if (l !== derniere) { derniere = l; rows = lignesRapprochement(liste[l]); }
+      return valeurRapprochement(rows, state.columns[c]);
+    });
+
+    dom.thead.innerHTML = '<tr><th>Lignes</th>' +
+      columns.map(c => `<th>${esc(c.label)}</th>`).join('') + '</tr>';
+
+    monter(liste.length, i => {
+      const r = lignesRapprochement(liste[i]);
+      let html = `<tr><td class="row-num">${esc(refLignes(r))}</td>`;
+      for (const col of columns) {
+        const v = valeurRapprochement(r, col);
+        html += `<td title="${escAttr(v)}">${esc(v)}</td>`;
+      }
+      return html + '</tr>';
+    }, columns.length + 1, diff.compared
+      ? 'Aucune ligne identique : toutes les lignes retrouvées diffèrent sur au moins une colonne comparée.'
+      : 'Aucune ligne identique : aucune ligne ne se retrouve dans tous les fichiers.');
   }
 
   // ---------- Lignes retrouvées mais différentes ----------
@@ -411,11 +466,7 @@ const XLDiffResults = (() => {
       const col = state.columns[c];
       const d = ecarts.get(col.label);
       if (d) return sides.map(sd => val(d.values[sd])).join(' ');
-      for (const sd of sides) {
-        const cc = col.cols[sd];
-        if (cc != null) return val(pair.rows[sd][cc]);
-      }
-      return '';
+      return valeurRapprochement(pair.rows, col);
     });
 
     dom.thead.innerHTML = '<tr><th>Lignes</th>' +
@@ -424,7 +475,7 @@ const XLDiffResults = (() => {
     monter(diff.modified.length, i => {
       const pair = diff.modified[i];
       const byLabel = new Map(pair.diffs.map(d => [d.label, d]));
-      const ref = sides.map(sd => `${sd}${pair.rows[sd].__rowNum || ''}`).join(' / ');
+      const ref = refLignes(pair.rows);
       let html = `<tr class="row-diff"><td class="row-num">${esc(ref)}</td>`;
 
       for (const col of columns) {
@@ -434,11 +485,7 @@ const XLDiffResults = (() => {
           const plain = sides.map(sd => val(d.values[sd])).join(' → ');
           html += `<td class="cell-diff" title="${escAttr(plain)}">${parts.join('<span class="v-arrow"> → </span>')}</td>`;
         } else {
-          let v = '';
-          for (const sd of sides) {
-            const c = col.cols[sd];
-            if (c != null) { v = val(pair.rows[sd][c]); break; }
-          }
+          const v = valeurRapprochement(pair.rows, col);
           html += `<td title="${escAttr(v)}">${esc(v)}</td>`;
         }
       }
@@ -608,12 +655,7 @@ const XLDiffResults = (() => {
             ligne.push(c == null ? '' : val(p.rows[sd][c]));
           }
         } else {
-          let v = '';
-          for (const sd of sides) {
-            const c = col.cols[sd];
-            if (c != null) { v = val(p.rows[sd][c]); break; }
-          }
-          ligne.push(v);
+          ligne.push(valeurRapprochement(p.rows, col));
         }
       }
       ligne.push(p.diffs.map(d => d.label).join(', '));
@@ -622,13 +664,27 @@ const XLDiffResults = (() => {
     return aoa;
   }
 
+  // Lignes identiques : une ligne par rapprochement, le numéro de ligne
+  // de chaque fichier en tête, puis une seule valeur par colonne —
+  // comme à l'écran.
+  function aoaIdentiques() {
+    const { diff, columns, sides } = state;
+    const aoa = [sides.map(sd => `Ligne ${sd}`).concat(columns.map(c => c.label))];
+    for (let i = 0; i < diff.identiques.length; i++) {
+      const rows = lignesRapprochement(diff.identiques[i]);
+      const ligne = sides.map(sd => rows[sd].__rowNum || '');
+      for (const col of columns) ligne.push(valeurRapprochement(rows, col));
+      aoa.push(ligne);
+    }
+    return aoa;
+  }
+
   // Un onglet, une feuille : c'est buildTabs() qui décide du libellé, du
   // contenu et de l'ordre, pour l'écran comme pour le classeur.
   function aoaOnglet(onglet) {
-    const { diff } = state;
-    return onglet.id === 'modified'
-      ? aoaModifiees()
-      : aoaPresence(onglet.id === 'all' ? diff.all : diff.bySide[onglet.id.slice(4)]);
+    if (onglet.id === 'modified') return aoaModifiees();
+    if (onglet.id === 'identiques') return aoaIdentiques();
+    return aoaPresence(lignesOnglet(onglet.id));
   }
 
   // Le classeur exporté reprend un à un les onglets retenus : même
@@ -648,7 +704,7 @@ const XLDiffResults = (() => {
       const aoa = retirerColonnesVides(aoaOnglet(onglet));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), nomFeuille(nom));
     }
-    ecrire(wb, `${state.mode === 'dupes' ? 'xldiff_doublons' : 'xldiff'}_${horodatage()}.xlsx`);
+    ecrire(wb, `xldiff_${horodatage()}.xlsx`);
   }
 
   // ---------- Choix des onglets à exporter ----------
@@ -903,7 +959,7 @@ const XLDiffResults = (() => {
   }
 
   function exportAnnotated() {
-    if (!state || !state.sources || state.mode !== 'diff') return;
+    if (!state || !state.sources) return;
     const { diff, columns, sides, sources } = state;
     const sideA = sides[0];
     const autres = sides.slice(1);
