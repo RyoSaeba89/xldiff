@@ -235,6 +235,20 @@ const XLDiffResults = (() => {
       }
     }
 
+    // Ce que la comparaison a dû trancher ou n'a pas pu lire (cf.
+    // profilColonne dans le moteur) : l'usager doit le savoir.
+    const AVERTISSEMENTS = {
+      nonProuve: () => 'aucune date ne dit si le jour vient avant le mois. Elles ont été lues jour/mois (03/09/2020 = 3 septembre).',
+      contradictoire: () => "certaines dates sont écrites jour/mois, d'autres mois/jour. Elles ont été comparées telles qu'elles sont écrites, sans être lues comme des dates.",
+      dieses: a => `${fmt(a.n)} valeur${plur(a.n)} ${a.n > 1 ? 'sont écrites' : 'est écrite'} « ##### » dans le fichier : la colonne était trop étroite dans Excel au moment de l'export. Élargissez-la dans Excel, puis exportez à nouveau.`,
+    };
+    for (const a of diff.avertissements || []) {
+      lines.push({
+        cls: 'sum-avert',
+        html: `Fichier ${a.side}, colonne « ${esc(a.col)} » : ${AVERTISSEMENTS[a.type](a)}`,
+      });
+    }
+
     dom.summaryBox.innerHTML =
       `<div class="summary-headline${headlineOk ? ' ok' : ''}">${headlineOk ? '✓ ' : ''}${headline}</div>` +
       `<ul class="summary-lines">${lines.map(l => `<li class="${l.cls}">${l.html}</li>`).join('')}</ul>`;
@@ -402,8 +416,9 @@ const XLDiffResults = (() => {
 
   // Valeur d'une colonne pour un rapprochement : celle du premier
   // fichier qui porte la colonne. Sur une ligne identique, les autres
-  // fichiers disent la même chose — à la casse et aux espaces près
-  // pour les colonnes comparées, cf. XLDiffEngine.normCell.
+  // fichiers disent la même chose, à la forme près : casse, accents,
+  // espaces, zéros en tête, écriture des dates et des nombres
+  // (cf. XLDiffEngine.canon).
   function valeurRapprochement(rows, col) {
     for (const sd of state.sides) {
       const c = col.cols[sd];

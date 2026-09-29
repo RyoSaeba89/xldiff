@@ -159,6 +159,14 @@
           r: 'C\'est normal : les répétitions sont comptées. Si une ligne existe 3 fois d\'un côté et 1 fois de l\'autre, les 2 exemplaires en trop sont signalés, et l\'exemplaire commun est dans <strong>Identiques entre A et B</strong>.',
         },
         {
+          q: '« 00123 » et « 123 » sont traités comme identiques',
+          r: 'C\'est voulu : ils désignent la même chose. Selon le fichier, Excel enregistre ce code en texte (00123) ou en nombre affiché avec des zéros (123 au format 00000) ; les zéros en tête ne comptent donc pas, pas plus que les majuscules, les accents, les espaces en trop ou l\'écriture des dates et des nombres. Le tableau montre la valeur telle qu\'elle est dans chaque fichier.',
+        },
+        {
+          q: 'Que signifie une ligne ⚠ dans le résumé ?',
+          r: 'XLDiff a dû trancher, ou n\'a pas pu lire une colonne. Soit aucune date de la colonne ne dit si le jour vient avant le mois (elles sont alors lues jour/mois) ; soit la colonne mélange les deux ordres (ses dates sont alors comparées telles qu\'elles sont écrites) ; soit la colonne contient des « ##### », qu\'Excel écrit à la place des valeurs quand une colonne est trop étroite au moment de l\'export.',
+        },
+        {
           q: 'Je cherche les lignes communes aux deux fichiers',
           r: 'Ouvrez l\'onglet <strong>Identiques entre A et B</strong> : il remplace l\'ancienne recherche de doublons, et s\'exporte comme les autres onglets.',
         },
@@ -210,7 +218,7 @@
         },
         {
           titre: 'Les deux sortes de colonnes',
-          html: `<p>Les colonnes de <strong>rapprochement</strong> servent à <em>retrouver</em> la ligne : elles sont comparées caractère par caractère. Les colonnes <strong>à comparer</strong> servent à <em>contrôler</em> son contenu : là, les majuscules, les espaces en trop et le format des dates sont ignorés.</p>`,
+          html: `<p>Les colonnes de <strong>rapprochement</strong> servent à <em>retrouver</em> la ligne, les colonnes <strong>à comparer</strong> à <em>contrôler</em> son contenu. Dans les deux cas, deux valeurs sont égales si elles désignent la même chose : les majuscules, les accents, les espaces en trop, les zéros en tête (00123 = 123) et l'écriture des dates et des nombres sont ignorés. Le tableau montre toujours la valeur telle qu'elle est dans votre fichier.</p>`,
         },
         {
           titre: 'Les options',
@@ -257,7 +265,15 @@
         },
         {
           q: 'Une date apparaît en écart alors qu\'elle est identique',
-          r: 'Sur les colonnes comparées, les dates sont ramenées au format JJ/MM/AAAA avant comparaison, justement pour éviter ce cas. Si l\'écart persiste, la valeur est sans doute du texte d\'un côté et une vraie date de l\'autre, avec un contenu réellement différent.',
+          r: 'Les dates sont reconnues quelle que soit leur écriture (03/09/2020, 3/9/20, 2020-09-03, vraie date Excel), et les heures sont comparées à la minute. Si l\'écart persiste, regardez le résumé : une ligne marquée ⚠ signale une colonne dont les dates mélangent l\'ordre jour/mois et l\'ordre mois/jour, ou dont les valeurs sont des « ##### ».',
+        },
+        {
+          q: '« 00123 » et « 123 » sont traités comme identiques',
+          r: 'C\'est voulu : ils désignent la même chose. Selon le fichier, Excel enregistre ce code en texte (00123) ou en nombre affiché avec des zéros (123 au format 00000) ; les zéros en tête ne comptent donc pas. Le tableau montre la valeur telle qu\'elle est dans chaque fichier.',
+        },
+        {
+          q: 'Que signifie une ligne ⚠ dans le résumé ?',
+          r: 'XLDiff a dû trancher, ou n\'a pas pu lire une colonne. Soit aucune date de la colonne ne dit si le jour vient avant le mois (elles sont alors lues jour/mois) ; soit la colonne mélange les deux ordres (ses dates sont alors comparées telles qu\'elles sont écrites) ; soit la colonne contient des « ##### », qu\'Excel écrit à la place des valeurs quand une colonne est trop étroite au moment de l\'export.',
         },
         {
           q: 'Je ne veux qu\'une partie des onglets dans le fichier Excel',

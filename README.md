@@ -1,6 +1,6 @@
 # XLDiff — Comparateur de fichiers Excel
 
-**Version 4.0**
+**Version 4.1**
 
 Outil web 100 % local pour analyser deux ou trois fichiers Excel. Aucune donnée n'est envoyée sur le réseau : tout le traitement s'effectue dans le navigateur.
 
@@ -56,6 +56,34 @@ Depuis la v4.0, les deux comparatifs ont un onglet **« Identiques entre A et B 
 - **à trois fichiers**, ce n'est pas le cas : un doublon n'exigeait la présence que dans **deux** fichiers sur trois, un rapprochement l'exige dans les trois. D'où un onglet de plus, **« Présentes dans 2 ou 3 fichiers »**, qui reprend exactement l'ancienne règle : une ligne y figure dès que sa clé existe dans au moins un autre fichier, la colonne « Présente dans » dit lesquels (`A + B`, `B + C`, `A + B + C`), et le nombre d'occurrences retenues d'un fichier est plafonné au plus grand nombre d'occurrences trouvé ailleurs (3 fois dans A, 1 fois dans B, 2 fois dans C → 2 lignes côté A). Le libellé tient en 31 caractères, la limite d'un nom de feuille Excel.
 
 Le test de non-régression compare la nouvelle analyse à l'ancienne fonction `common()`, extraite du dépôt (`git show`) : 5 603 contrôles, ligne par ligne, sans écart. Le comparatif simple couvre l'ancien *doublons simple* : ses colonnes communes forment la clé, comme elles formaient celle des doublons.
+
+## Égalité des valeurs (v4.1)
+
+Deux valeurs sont égales si elles désignent la même chose, quelle que soit leur écriture. La règle est la même pour les colonnes de rapprochement et pour les colonnes comparées. **À l'écran et dans les exports, chaque valeur reste celle de son fichier** : la forme unifiée ne sert qu'à comparer.
+
+| Ce qui est ignoré | Exemple : ces valeurs sont égales |
+|---|---|
+| Les zéros en tête | `00123` (texte), `123` au format `00000`, `123` dans un `.csv` |
+| L'écriture des dates | vraie date Excel, `03/09/2020`, `3/9/20`, `2020-09-03`, `09/03/2020` dans un export américain |
+| Les secondes | `03/09/2020 10:14:59` et `03/09/2020 10:15` (comparaison à la minute) |
+| L'écriture des nombres | `0,5`, `0.5`, `50 %` ; `1 234,50`, `1234.5`, `1,234.50` |
+| Majuscules, accents, espaces | `Élise  D’Artagnan `, `ELISE D'ARTAGNAN` ; `Cœur`, `COEUR` |
+
+**Rien n'est deviné valeur par valeur.** L'ordre jour/mois des dates écrites en texte, et le séparateur décimal des nombres écrits en texte, se décident **par colonne et par fichier**, sur la preuve portée par la colonne entière :
+
+- une date dont le 1er nombre dépasse 12 (`13/09/2020`) prouve l'ordre jour/mois ; le 2e (`09/13/2020`), l'ordre mois/jour — les dates d'un export américain sont donc lues correctement ;
+- **aucune preuve** (tous les jours ≤ 12) : la colonne est lue jour/mois, et le résumé le dit (« Fichier B, colonne « Date » : aucune date ne dit si le jour vient avant le mois… ») ;
+- **preuves contradictoires** : les dates de la colonne restent du texte, et le résumé le dit aussi ;
+- `0,5` ou `1.234,5` prouvent la virgule décimale, `12.5` ou `1,234.5` le point ; `1,234` seul ne prouve rien. Sans preuve, la virgule.
+
+**Lecture fidèle des fichiers.** SheetJS ne devine plus rien : les `.csv` et `.htm` sont lus en texte brut, donc `00123` garde ses zéros, `03/09/2020` n'est plus pris pour le 9 mars, `0,5` ne devient plus `5` et un numéro de 19 chiffres n'est plus arrondi. Les classeurs sont lus en UTC (SheetJS 0.20.3, option `UTC` à la lecture **et** dans `sheet_to_json`) : une date Excel arrive le bon jour, à la bonne heure — la 0.18.5 l'affichait la veille à 23:59 (21 secondes de décalage, dues au calcul de SheetJS avec le fuseau du poste). Un nombre qu'Excel affiche avec des zéros en tête (format `00000`) est repris tel qu'Excel l'affiche. Les fichiers texte sont décodés par XLDiff lui-même (BOM, puis charset déclaré d'une page HTML, puis UTF-8 s'il est valide, windows-1252 à défaut) : SheetJS ignorait `codepage` sur un `.csv` lu en octets, si bien que `œ`, `’` et `€` d'un `.csv` d'Excel devenaient des caractères invisibles et qu'un `.csv` UTF-8 sans BOM sortait en `Ã©lise`.
+
+**Ce qui reste impossible à rattraper**, parce que l'information n'est plus dans le fichier :
+
+- un numéro de plus de 15 chiffres saisi **comme nombre** dans Excel (carte bancaire, par exemple) : Excel l'a arrondi à la saisie ;
+- une page web exportée par Excel avec une colonne trop étroite : Excel y écrit `#####`, sans la valeur. Le résumé signale ces colonnes (« 2 valeurs sont écrites « ##### » dans le fichier… »).
+
+Vérifié sur 15 fichiers portant les mêmes lignes, dont 6 écrits par Excel lui-même (`.xlsx`, `.xls`, `.csv`, `.csv` UTF-8, texte Unicode, page web) : tous se rapprochent deux à deux, sans avertissement. Sur 600 tirages aléatoires où l'écriture ne change rien, le moteur rend exactement le résultat de la v4.0. Coût : 2,5 s au lieu de 1,1 s pour rapprocher deux fichiers de 200 000 lignes sur trois colonnes, grâce à une mémoire des formes déjà calculées par colonne.
 
 ## Résultats
 
@@ -213,7 +241,7 @@ XLDiff/
 │   │   └── help.js         Onboarding + aide de chaque page (XLDiffAide, via window.XLDIFF_PAGE)
 │   ├── screenshots/        Captures utilisées par ce README
 │   └── vendor/
-│       └── xlsx.full.min.js  SheetJS 0.18.5 (embarqué, aucune dépendance réseau)
+│       └── xlsx.full.min.js  SheetJS 0.20.3 (embarqué, aucune dépendance réseau)
 └── README.md
 ```
 
@@ -304,7 +332,7 @@ Tant que `release/xldiff.exe` n'est pas versionné, la release se publie quand m
 - La comparaison est une différence de multi-ensembles : les répétitions sont prises en compte (si une clé apparaît 3 fois dans A et 1 fois dans B, 2 lignes sont signalées « uniquement A », et la 3e forme un rapprochement). Avec trois fichiers, chaque fichier est comparé au **minimum** des occurrences de la clé sur l'ensemble des fichiers — la règle à deux fichiers en est le cas particulier. La case « Ignorer les lignes en double au sein d'un même fichier » du comparatif avancé bascule en différence d'ensembles : cette même clé n'est alors plus une différence (les rapprochements, et donc l'onglet des identiques, ne changent pas). Les rapprochements sont l'intersection : min(3, 1) = 1. L'onglet « Présentes dans 2 ou 3 fichiers » retient une clé dès qu'elle est présente dans au moins deux fichiers, et le nombre d'occurrences retenues d'un fichier vaut min(occurrences ici, **maximum** des occurrences ailleurs).
 - **Le moteur ne rend que des numéros pour les identiques** (`identiques`, un `Int32Array` de numéros de rapprochement rangés dans l'ordre du premier fichier) : sans colonne comparée, ce sont tous les rapprochements, soit 200 000 sur un gros fichier, et des objets par ligne coûteraient cher. L'affichage retrouve chaque ligne à la demande via `tuples` et les données sources que lui passent les deux contrôleurs.
 - **Rapprochement d'une clé non unique** : si la clé apparaît 2 fois dans A et 3 fois dans B, les occurrences sont appariées dans l'ordre du fichier (1re avec 1re, 2e avec 2e) et le surplus est signalé comme absence. Un homonyme parfait sur la clé est donc rapproché par ordre d'apparition — c'est le seul choix possible sans identifiant unique, et c'est aussi ce que fait le comptage multi-ensembles historique.
-- **Égalité des colonnes comparées** : espaces insécables ramenés à des espaces ordinaires, espaces multiples et de bordure supprimés, casse ignorée, dates normalisées au format `JJ/MM/AAAA` (une date lue dans un `.xlsx` arrive en objet `Date`, la même dans un `.csv` arrive en texte). Les colonnes de rapprochement, elles, restent comparées caractère par caractère.
+- **Égalité des valeurs** : une seule fonction, `XLDiffEngine.canon(valeur, profil)`, donne la forme de comparaison, pour les clés comme pour les colonnes comparées ; `profilColonne(data, col)` établit une fois par colonne l'ordre des dates et le séparateur décimal. Voir *[Égalité des valeurs](#égalité-des-valeurs-v41)*.
 - Le numéro de ligne affiché correspond à la ligne du fichier Excel d'origine (l'en-tête étant la ligne 1).
 
 ## Tenue en charge (v2.5)

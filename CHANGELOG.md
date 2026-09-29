@@ -2,6 +2,20 @@
 
 Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https://ryosaeba89.github.io/xldiff/pages/changelog.html>
 
+## Version 4.1 — 29 septembre 2026
+
+### Une même valeur est reconnue, quelle que soit son écriture
+
+- **« 00123 » et 123 sont enfin la même valeur** : que le code soit saisi en texte, en nombre au format 00000 ou lu dans un .csv. Les zéros en tête ne comptent plus, dans les colonnes de rapprochement comme dans les colonnes comparées. Un nombre qu'Excel affiche avec ses zéros s'affiche aussi avec ses zéros dans XLDiff.
+- **Les dates arrivent au bon jour** : une vraie date Excel s'affichait la veille à 23:59 ; elle s'affiche désormais comme dans Excel, heure comprise. Une date est reconnue quelle que soit son écriture (03/09/2020, 3/9/20, 2020-09-03), et les heures sont comparées à la minute.
+- **Les dates à l'américaine sont reconnues** : l'ordre jour/mois se décide sur toute la colonne : une date comme 13/09/2020 prouve l'ordre jour/mois, 09/13/2020 l'ordre mois/jour. Si aucune date de la colonne ne permet de trancher, elles sont lues jour/mois et le résumé le signale. Si la colonne mélange les deux ordres, ses dates sont comparées telles qu'elles sont écrites, et le résumé le signale aussi.
+- **Les .csv et les .htm sont lus tels qu'ils sont écrits** : 03/09/2020 n'est plus pris pour le 9 mars, 0,5 ne devient plus 5, un numéro de 19 chiffres n'est plus arrondi. Les nombres sont reconnus quelle que soit leur écriture : 0,5, 0.5, 50 %, 1 234,50, 1,234.50.
+- **Les accents et les apostrophes ne séparent plus deux lignes** : « Élise D’Artagnan » et « ELISE D'ARTAGNAN » sont la même valeur, « Cœur » et « COEUR » aussi.
+- **Les colonnes de rapprochement deviennent aussi tolérantes que les colonnes comparées** : majuscules, accents et espaces en trop n'empêchent plus de retrouver une ligne.
+- **Les caractères spéciaux des .csv sont lus correctement** : œ, ’ et € d'un .csv enregistré par Excel ne disparaissent plus. Un .csv en UTF-8 ne s'affiche plus en « Ã©lise », et le « Texte Unicode » d'Excel est lu lui aussi.
+- **Les « ##### » sont signalés** : une page web exportée par Excel alors qu'une colonne était trop étroite ne contient que des dièses à la place des valeurs. Le résumé le dit, pour que ces lignes ne passent pas pour de vraies différences.
+- **À l'écran et dans les exports, chaque valeur reste celle de votre fichier** : la comparaison est tolérante, l'affichage est fidèle.
+
 ## Version 4.0 — 21 septembre 2026
 
 ### Les lignes identiques ont leur onglet, la recherche de doublons n'a plus lieu d'être

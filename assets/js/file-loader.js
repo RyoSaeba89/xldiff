@@ -8,6 +8,15 @@
 //  le fichier si l'utilisateur change de feuille. Une barre de
 //  progression est affichée dans la zone de dépôt pendant la lecture.
 //
+//  LECTURE FIDÈLE — SheetJS ne devine rien. Les .csv et .htm sont lus
+//  en texte brut (option raw) : « 00123 » garde ses zéros, « 03/09/2020 »
+//  n'est pas pris pour le 9 mars, « 0,5 » ne devient pas 5, un numéro
+//  de 19 chiffres n'est pas arrondi. Les classeurs sont lus en UTC
+//  (lecture ET conversion en lignes) : une date Excel arrive le bon
+//  jour, à la bonne heure, quel que soit le fuseau du poste. C'est le
+//  moteur qui interprète ensuite chaque colonne (dates, nombres), sur
+//  la colonne entière — cf. profilColonne dans diff-engine.js.
+//
 //  API : XLDiffFiles.createSlot({ side, dropEl, inputEl, infoEl,
 //        sheetsEl, onChange }) → slot { loaded, data, headers,
 //        fileName, sheetName, sheetNames, file }
@@ -41,6 +50,34 @@ const XLDiffFiles = (() => {
       }
     }
     return best;
+  }
+
+  // Fichier texte (.csv, .htm, .txt…) décodé par XLDiff lui-même, ou
+  // null pour un classeur binaire (.xlsx, .xls). SheetJS ignore l'option
+  // codepage sur un .csv lu en octets : les caractères propres à
+  // windows-1252 (œ, ’, €) y devenaient des caractères de contrôle
+  // invisibles, un .csv UTF-8 sans BOM sortait en « Ã©lise », un UTF-16
+  // était illisible. Ordre de décision :
+  //   1. un BOM dit l'encodage (UTF-8, UTF-16 LE ou BE) ;
+  //   2. une page HTML qui déclare son charset est crue sur parole ;
+  //   3. sinon UTF-8 s'il est valide, windows-1252 à défaut — la
+  //      norme des exports d'Excel en français.
+  function lireTexte(u) {
+    const binaire =
+      (u[0] === 0x50 && u[1] === 0x4b) ||                             // zip : xlsx, xlsb, ods
+      (u[0] === 0xd0 && u[1] === 0xcf && u[2] === 0x11 && u[3] === 0xe0) || // OLE : xls
+      (u[0] === 0x09 && (u[1] === 0x00 || u[1] === 0x02 || u[1] === 0x04 || u[1] === 0x08)); // BIFF 2 à 4
+    if (binaire) return null;
+    const dec = (enc, octets, fatal) => new TextDecoder(enc, fatal ? { fatal: true } : undefined).decode(octets);
+    if (u[0] === 0xef && u[1] === 0xbb && u[2] === 0xbf) return dec('utf-8', u.subarray(3));
+    if (u[0] === 0xff && u[1] === 0xfe) return dec('utf-16le', u.subarray(2));
+    if (u[0] === 0xfe && u[1] === 0xff) return dec('utf-16be', u.subarray(2));
+    const debut = dec('windows-1252', u.subarray(0, 4096));
+    const m = /<meta[^>]+charset\s*=\s*["']?([\w-]+)/i.exec(debut);
+    if (m) {
+      try { return dec(m[1], u); } catch (e) { /* charset inconnu : on devine */ }
+    }
+    try { return dec('utf-8', u, true); } catch (e) { return dec('windows-1252', u); }
   }
 
   // Décode les octets en chaîne HTML avec détection du charset
@@ -145,15 +182,10 @@ const XLDiffFiles = (() => {
         }
 
         const cell = cells[ci];
-        let val = (cell.textContent || '').replace(/\u00a0/g, ' ').trim();
-
-        // Détection des nombres (y compris format français avec virgule)
-        if (val !== '') {
-          const numStr = val.replace(/\s/g, '').replace(',', '.');
-          if (/^-?\d+(\.\d+)?$/.test(numStr)) {
-            val = parseFloat(numStr);
-          }
-        }
+        // Le texte tel qu'il est écrit : pas de conversion en nombre,
+        // qui ferait perdre les zéros en tête et arrondirait les longs
+        // numéros (cf. LECTURE FIDÈLE en tête de fichier).
+        const val = (cell.textContent || '').replace(/\u00a0/g, ' ').trim();
 
         const colspan = parseInt(cell.getAttribute('colspan')) || 1;
         const rowspan = parseInt(cell.getAttribute('rowspan')) || 1;
@@ -286,9 +318,10 @@ const XLDiffFiles = (() => {
 
         // ── Stratégie 1 : SheetJS avec codepage windows-1252 ──
         try {
-          const lecture = { type: 'array', cellDates: true, codepage: 1252 };
+          const texte = lireTexte(data);
+          const lecture = { type: texte == null ? 'array' : 'string', cellDates: true, UTC: true, raw: true, codepage: 1252 };
           if (preferredSheet) lecture.sheets = [preferredSheet];
-          const wb1 = XLSX.read(data, lecture);
+          const wb1 = XLSX.read(texte == null ? data : texte, lecture);
           const best = preferredSheet || findBestSheet(wb1);
           if (best) {
             log.push('✓ SheetJS (cp1252): feuille "' + best + '"');
@@ -308,7 +341,7 @@ const XLDiffFiles = (() => {
 
             // SheetJS sur la chaîne HTML
             try {
-              const wb2 = XLSX.read(html, { type: 'string', cellDates: true, codepage: 1252 });
+              const wb2 = XLSX.read(html, { type: 'string', cellDates: true, UTC: true, raw: true, codepage: 1252 });
               const best2 = findBestSheet(wb2);
               if (best2) {
                 log.push('✓ SheetJS string+cp1252: feuille "' + best2 + '"');
@@ -355,7 +388,7 @@ const XLDiffFiles = (() => {
               if (ts >= 0 && te > ts) {
                 const tableHtml = '<html><body>' + html.substring(ts, te + 8) + '</body></html>';
                 try {
-                  const wb5 = XLSX.read(tableHtml, { type: 'string', cellDates: true, codepage: 1252 });
+                  const wb5 = XLSX.read(tableHtml, { type: 'string', cellDates: true, UTC: true, raw: true, codepage: 1252 });
                   const best5 = findBestSheet(wb5);
                   if (best5) { wb = wb5; bestSheet = best5; log.push('✓ Sous-chaîne table'); }
                 } catch (ex) {}
@@ -456,9 +489,22 @@ const XLDiffFiles = (() => {
     // non, donc l'indice i correspond exactement à la ligne range.s.r+2+i.
     // Sans ça, une seule ligne vide au milieu du fichier décale toutes les
     // suivantes dans la colonne « Ligne » et dans les exports.
+    //
+    // Un nombre qu'Excel affiche avec des zéros en tête (format 00000) est
+    // repris tel qu'Excel l'affiche : l'usager retrouve « 00123 » à
+    // l'écran et dans les exports, et non 123. Le texte affiché ne sert
+    // que s'il désigne bien le même nombre.
     function parseSheetData(sheet, range) {
       if (!sheet) { slot.data = []; slot.headers = []; return; }
-      const brut = XLSX.utils.sheet_to_json(sheet, { defval: '', blankrows: true });
+      for (const ref in sheet) {
+        if (ref.charCodeAt(0) === 33) continue; // '!ref', '!merges'…
+        const cell = sheet[ref];
+        if (cell && cell.t === 'n' && typeof cell.w === 'string' && /^0+\d/.test(cell.w) && Number(cell.w) === cell.v) {
+          cell.t = 's';
+          cell.v = cell.w;
+        }
+      }
+      const brut = XLSX.utils.sheet_to_json(sheet, { defval: '', blankrows: true, UTC: true });
       const premiere = range.s.r + 2; // ligne Excel de la 1re ligne de données
       const data = [];
       let headers = [];

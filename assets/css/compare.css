@@ -425,6 +425,17 @@
 .summary-lines li.sum-a::before { background: var(--g1); }
 .summary-lines li.sum-b::before { background: var(--orange); }
 .summary-lines li.sum-c::before { background: var(--blue); }
+.summary-lines li.sum-avert { color: var(--text); }
+.summary-lines li.sum-avert::before {
+  content: '\26A0';
+  background: none;
+  width: auto;
+  height: auto;
+  top: 0;
+  left: 2px;
+  color: var(--orange);
+  font-size: 12px;
+}
 .summary-lines li strong { color: var(--text); font-weight: 700; }
 .summary-lines li.sum-eq strong { color: var(--ga); }
 .summary-lines li.sum-a strong { color: var(--g1); }
