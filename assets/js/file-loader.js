@@ -30,26 +30,81 @@ const XLDiffFiles = (() => {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // Trouve la première feuille contenant de vraies données
-  // (ignore les feuilles vides ou de navigation des exports frameset)
+  // Trouve la feuille qui porte les données : un en-tête et au moins une
+  // ligne. Une feuille d'une seule colonne est un fichier valable (une
+  // liste de matricules, de codes…) ; elle n'est retenue que s'il n'y a
+  // aucune feuille à plusieurs colonnes, pour ne pas préférer une liste
+  // de valeurs ou une feuille de navigation (exports frameset) au vrai
+  // tableau du classeur.
   function findBestSheet(wb) {
     if (!wb || !wb.SheetNames.length) return null;
-    let best = null;
-    let bestRows = 0;
+    let best = null, bestRows = 0;
+    let seule = null, seuleRows = 0; // meilleure feuille d'une seule colonne
     for (const name of wb.SheetNames) {
       const sheet = wb.Sheets[name];
       // sheet peut être absent : la lecture ciblée ne matérialise qu'une feuille
       if (!sheet || !sheet['!ref']) continue;
       const json = XLSX.utils.sheet_to_json(sheet, { defval: '', header: 1 });
-      if (json.length >= 2) {
-        const cols = Math.max(...json.slice(0, 5).map(r => (Array.isArray(r) ? r : Object.values(r)).filter(v => v !== '').length));
-        if (cols >= 2 && json.length > bestRows) {
-          bestRows = json.length;
-          best = name;
-        }
+      if (json.length < 2) continue;
+      const cols = Math.max(...json.slice(0, 5).map(r => (Array.isArray(r) ? r : Object.values(r)).filter(v => v !== '').length));
+      if (cols >= 2) {
+        if (json.length > bestRows) { bestRows = json.length; best = name; }
+      } else if (cols === 1 && json.length > seuleRows) {
+        seuleRows = json.length; seule = name;
       }
     }
-    return best;
+    return best || seule;
+  }
+
+  // Séparateur d'un fichier texte délimité (.csv, .txt), lu sur la ligne
+  // d'en-tête. SheetJS le devine en comptant les « ; , tabulation | » des
+  // 1 024 premiers caractères, valeurs comprises : un fichier d'une seule
+  // colonne dont une valeur contient une virgule (« Dupont, Jean »,
+  // « 12, rue de la Paix ») était coupé en deux, et des nombres à virgule
+  // pouvaient l'emporter sur les points-virgules d'un export français.
+  // Or la ligne d'en-tête est celle qui nomme les colonnes :
+  //   • aucun séparateur dans l'en-tête → une seule colonne, rien n'est
+  //     découpé ;
+  //   • un seul → c'est lui ;
+  //   • plusieurs → celui qui revient autant de fois sur les lignes
+  //     suivantes, à égalité le plus fréquent dans l'en-tête, puis le
+  //     point-virgule (le séparateur d'Excel en français).
+  // Les guillemets protègent leur contenu, sauts de ligne compris.
+  // null : laisser SheetJS décider (page HTML, ligne « sep= » d'Excel).
+  const SEPARATEURS = [';', '\t', ',', '|'];
+  const AUCUN_SEPARATEUR = '\u0000'; // caractère absent de tout texte
+  function separateurTexte(texte) {
+    const debut = texte.slice(0, 65536);
+    if (/^\s*</.test(debut) || /^sep=/i.test(debut)) return null;
+    const lignes = []; // compte de chaque séparateur, ligne par ligne
+    let compte = [0, 0, 0, 0], plein = false, guillemets = false;
+    for (let i = 0; i < debut.length && lignes.length < 200; i++) {
+      const c = debut[i];
+      if (c === '"') { guillemets = !guillemets; plein = true; continue; }
+      if (guillemets) continue;
+      if (c === '\n' || c === '\r') {
+        if (plein) lignes.push(compte);
+        compte = [0, 0, 0, 0]; plein = false;
+        continue;
+      }
+      const k = SEPARATEURS.indexOf(c);
+      if (k >= 0) compte[k]++;
+      if (c !== ' ') plein = true;
+    }
+    // la dernière ligne n'est complète que si l'extrait couvre le fichier
+    if (plein && debut.length === texte.length) lignes.push(compte);
+    if (!lignes.length) return null;
+    const entete = lignes[0];
+    const suite = lignes.slice(1);
+    let choix = -1, meilleur = null;
+    for (let k = 0; k < SEPARATEURS.length; k++) {
+      if (!entete[k]) continue;
+      const score = [suite.filter(l => l[k] === entete[k]).length, entete[k]];
+      if (!meilleur || score[0] > meilleur[0] || (score[0] === meilleur[0] && score[1] > meilleur[1])) {
+        meilleur = score; choix = k;
+      }
+    }
+    return choix < 0 ? AUCUN_SEPARATEUR : SEPARATEURS[choix];
   }
 
   // Fichier texte (.csv, .htm, .txt…) décodé par XLDiff lui-même, ou
@@ -125,14 +180,19 @@ const XLDiffFiles = (() => {
         }
       }
 
-      // Heuristique : un vrai tableau de données a plusieurs colonnes
-      // et du contenu texte significatif (élimine la navigation)
+      // Heuristique : un vrai tableau de données a un en-tête, au moins
+      // une ligne et du contenu texte significatif (élimine la navigation)
       const avgCellText = totalCells > 0 ? totalTextLen / totalCells : 0;
-      if (maxCols >= 2 && rows.length >= 2 && avgCellText > 0.5) {
+      if (maxCols >= 1 && rows.length >= 2 && avgCellText > 0.5) {
         candidates.push({ table, rows: rows.length, cols: maxCols, score: rows.length * maxCols });
       }
     }
 
+    // Un tableau d'une seule colonne n'est retenu qu'à défaut de tableau
+    // à plusieurs colonnes : une liste de liens de navigation en a une
+    // aussi (même règle que findBestSheet)
+    const larges = candidates.filter(c => c.cols >= 2);
+    if (larges.length) candidates.splice(0, candidates.length, ...larges);
     if (candidates.length === 0) return null;
 
     candidates.sort((a, b) => b.score - a.score);
@@ -149,7 +209,7 @@ const XLDiffFiles = (() => {
 
       const headerRow = aoa[0];
       const nonEmptyHeaders = headerRow.filter(h => String(h).trim() !== '');
-      if (nonEmptyHeaders.length < 2) return;
+      if (nonEmptyHeaders.length < Math.min(2, dt.cols)) return;
 
       const name = candidates.length === 1 ? 'Feuille1' : `Feuille${idx + 1}`;
       try {
@@ -284,6 +344,10 @@ const XLDiffFiles = (() => {
 
     inputEl.addEventListener('change', e => {
       if (e.target.files.length) loadFile(e.target.files[0]);
+      // Sans remise à zéro, choisir de nouveau le même fichier (corrigé
+      // entre-temps dans Excel) ne déclenche aucun `change` : rien ne se
+      // passerait.
+      inputEl.value = '';
     });
 
     dropEl.addEventListener('dragover', e => {
@@ -297,31 +361,81 @@ const XLDiffFiles = (() => {
       if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
     });
 
+    // Fichier refusé : la zone de dépôt redevient vide. Sans ça, elle
+    // affichait l'erreur mais le slot gardait le fichier PRÉCÉDENT, et
+    // « Comparer » analysait en silence un fichier qui n'était plus celui
+    // que l'usager venait de déposer.
+    function echec(html) {
+      progressionFin();
+      infoEl.innerHTML = html;
+      const avait = slot.loaded;
+      Object.assign(slot, {
+        file: null, sheetNames: [], sheetName: null, rowCount: 0, colCount: 0,
+        data: [], headers: [], fileName: '', loaded: false,
+      });
+      dropEl.classList.remove('loaded-a', 'loaded-b', 'loaded-c');
+      if (sheetsEl) { sheetsEl.classList.remove('visible'); sheetsEl.innerHTML = ''; }
+      if (avait && onChange) onChange(slot);
+    }
+
+    // Message d'un fichier refusé, selon ce qui a empêché de le retenir
+    function messageEchec(cause) {
+      const titre = t => `<strong class="error">⚠ ${t}</strong><br>`;
+      const detail = t => `<span style="font-size:11px">${t}</span>`;
+      if (cause === 'vide') {
+        return titre('Aucune ligne à comparer dans ce fichier') +
+          detail('Il faut une ligne de titres de colonnes, puis au moins une ligne en dessous.');
+      }
+      if (cause === 'protege') {
+        return titre('Ce fichier est protégé par un mot de passe') +
+          detail('Ouvrez-le dans Excel, retirez le mot de passe, enregistrez-le, puis déposez-le de nouveau.');
+      }
+      return titre('Impossible de lire ce fichier') +
+        detail('Il est peut-être abîmé, ou d\'un format que XLDiff ne connaît pas. Ouvrez-le dans Excel et enregistrez-le en <b>.xlsx</b>.');
+    }
+
+    // Deux dépôts rapprochés dans la même zone : seule la dernière lecture
+    // compte, même si la première (un fichier plus gros) finit après.
+    let lectureEnCours = 0;
+
     function loadFile(file, preferredSheet) {
-      slot.file = file;
+      const jeton = ++lectureEnCours;
+      const perimee = () => jeton !== lectureEnCours;
       const reader = new FileReader();
       progression('Lecture du fichier…', 0);
       reader.onprogress = ev => {
+        if (perimee()) return;
         if (ev.lengthComputable) progression('Lecture du fichier…', (ev.loaded / ev.total) * 100);
       };
       reader.onerror = () => {
-        progressionFin();
-        infoEl.innerHTML = '<strong class="error">⚠ Lecture impossible</strong>';
+        if (perimee()) return;
+        echec('<strong class="error">⚠ Lecture impossible</strong><br>' +
+          '<span style="font-size:11px">Le fichier a peut-être été déplacé, ou il est ouvert dans une autre application.</span>');
       };
       reader.onload = async e => {
+        if (perimee()) return;
         const data = new Uint8Array(e.target.result);
         progression('Analyse du classeur…', null);
         await respirer();
+        if (perimee()) return;
         const log = [];
         let wb = null;
         let bestSheet = null;
+        // Ce qui a empêché de retenir le fichier, pour le dire à l'usager :
+        // 'illisible' (rien n'a pu le lire), 'vide' (lu, mais aucune feuille
+        // n'a de ligne sous ses titres), 'protege' (mot de passe)
+        let cause = 'illisible';
+        let texte = null; // null : classeur binaire
+        try { texte = lireTexte(data); } catch (ex) { log.push('✗ Décodage du texte : ' + ex.message); }
 
         // ── Stratégie 1 : SheetJS avec codepage windows-1252 ──
         try {
-          const texte = lireTexte(data);
           const lecture = { type: texte == null ? 'array' : 'string', cellDates: true, UTC: true, raw: true, codepage: 1252 };
           if (preferredSheet) lecture.sheets = [preferredSheet];
+          const sep = texte == null ? null : separateurTexte(texte);
+          if (sep) lecture.FS = sep;
           const wb1 = XLSX.read(texte == null ? data : texte, lecture);
+          cause = 'vide';
           const best = preferredSheet || findBestSheet(wb1);
           if (best) {
             log.push('✓ SheetJS (cp1252): feuille "' + best + '"');
@@ -331,10 +445,15 @@ const XLDiffFiles = (() => {
           }
         } catch (ex) {
           log.push('✗ SheetJS: ' + ex.message);
+          if (/password|encrypt/i.test(ex.message)) cause = 'protege';
         }
 
         // ── Stratégie 2 : replis pour les fichiers HTML ──
-        if (!wb) {
+        // Jamais sur un classeur binaire (.xlsx, .xls) : ses octets lus
+        // comme du texte contiennent forcément des « < », et un classeur
+        // sans ligne de données se chargeait alors en lignes de caractères
+        // illisibles au lieu d'être refusé.
+        if (!wb && texte != null) {
           const html = decodeHtml(data);
           if (html && html.includes('<')) {
             log.push('  Fichier HTML (' + html.length + ' caractères)');
@@ -342,6 +461,7 @@ const XLDiffFiles = (() => {
             // SheetJS sur la chaîne HTML
             try {
               const wb2 = XLSX.read(html, { type: 'string', cellDates: true, UTC: true, raw: true, codepage: 1252 });
+              cause = 'vide';
               const best2 = findBestSheet(wb2);
               if (best2) {
                 log.push('✓ SheetJS string+cp1252: feuille "' + best2 + '"');
@@ -404,10 +524,9 @@ const XLDiffFiles = (() => {
             if (!wb && (html.includes('<frameset') || html.includes('WorksheetSource'))) {
               const hrefMatch = html.match(/href=["']?([^"'\s>]*sheet\d+\.htm[^"'\s>]*)/i);
               const sheetPath = hrefMatch ? decodeURIComponent(hrefMatch[1]) : 'sheet001.htm';
-              infoEl.innerHTML = `<strong class="warn">⚠ Frameset sans données intégrées</strong><br>
-                <span style="font-size:11px">Chargez <b>${esc(sheetPath)}</b> ou ré-enregistrez en <b>.xlsx</b>.</span>`;
+              echec(`<strong class="warn">⚠ Frameset sans données intégrées</strong><br>
+                <span style="font-size:11px">Chargez <b>${esc(sheetPath)}</b> ou ré-enregistrez en <b>.xlsx</b>.</span>`);
               promptForHtmFile();
-              progressionFin();
               console.log('[XLDiff] ' + file.name + ':\n' + log.join('\n'));
               return;
             }
@@ -417,14 +536,14 @@ const XLDiffFiles = (() => {
         console.log('[XLDiff] ' + file.name + ':\n' + log.join('\n'));
 
         if (!wb) {
-          progressionFin();
-          infoEl.innerHTML = `<strong class="error">⚠ Impossible de lire ce fichier</strong><br>
-            <span style="font-size:11px">Console F12 pour le diagnostic. Ré-enregistrez en <b>.xlsx</b>.</span>`;
+          echec(messageEchec(cause));
           return;
         }
 
         progression('Conversion des lignes…', null);
         await respirer();
+        if (perimee()) return;
+        slot.file = file;
         applyWorkbook(file, wb, bestSheet);
         progressionFin();
       };
@@ -441,14 +560,15 @@ const XLDiffFiles = (() => {
 
       const sheet = wb.Sheets[slot.sheetName];
       const range = XLSX.utils.decode_range(sheet ? (sheet['!ref'] || 'A1') : 'A1');
-      slot.colCount = range.e.c + 1;
 
       // Les lignes d'abord : le nombre annoncé dans la zone de dépôt est
       // celui des lignes réellement retenues, donc le même que celui du
       // résumé des résultats. La plage du classeur, elle, déborde souvent
-      // sur des lignes vides.
+      // sur des lignes vides. Même chose pour les colonnes : celles que
+      // proposent les menus.
       parseSheetData(sheet, range);
       slot.rowCount = slot.data.length;
+      slot.colCount = slot.headers.length;
       updateFileInfo();
       renderSheetSelector();
       if (onChange) onChange(slot);
@@ -504,10 +624,23 @@ const XLDiffFiles = (() => {
           cell.v = cell.w;
         }
       }
-      const brut = XLSX.utils.sheet_to_json(sheet, { defval: '', blankrows: true, UTC: true });
-      const premiere = range.s.r + 2; // ligne Excel de la 1re ligne de données
+      // Les titres sont sur la première ligne NON VIDE : une ligne blanche
+      // en tête de fichier (fréquente dans les exports) faisait prendre les
+      // vrais titres pour une ligne de données, et toutes les colonnes
+      // devenaient « sans titre ».
+      let ligneTitres = range.s.r;
+      while (ligneTitres < range.e.r && ligneVide(sheet, ligneTitres, range)) ligneTitres++;
+      const titres = titresColonnes(sheet, ligneTitres, range);
+      // Les titres étant fournis, la conversion commence à la ligne qui
+      // suit celle des titres
+      const brut = range.e.r > ligneTitres
+        ? XLSX.utils.sheet_to_json(sheet, {
+          header: titres.noms, defval: '', blankrows: true, UTC: true,
+          range: { s: { r: ligneTitres + 1, c: range.s.c }, e: range.e },
+        })
+        : [];
+      const premiere = ligneTitres + 2; // ligne Excel de la 1re ligne de données
       const data = [];
-      let headers = [];
       for (let i = 0; i < brut.length; i++) {
         const row = brut[i];
         let vide = true;
@@ -515,13 +648,51 @@ const XLDiffFiles = (() => {
           if (row[k] !== '' && row[k] != null) { vide = false; break; }
         }
         if (vide) continue;
-        // avant d'ajouter __rowNum, qui n'est pas une colonne du fichier
-        if (!headers.length) headers = Object.keys(row);
         row.__rowNum = premiere + i;
         data.push(row);
       }
+      // Une colonne sans titre ni la moindre valeur n'est qu'un reste de
+      // mise en forme : elle n'encombre pas les menus de colonnes
+      const headers = !data.length ? [] : titres.noms.filter((nom, c) =>
+        !titres.sansTitre[c] || data.some(r => r[nom] !== '' && r[nom] != null));
       slot.data = data;
       slot.headers = headers;
+    }
+
+    function texteCellule(sheet, r, c) {
+      const cell = sheet[XLSX.utils.encode_cell({ r, c })];
+      return cell == null ? '' : String(XLSX.utils.format_cell(cell));
+    }
+
+    function ligneVide(sheet, r, range) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        if (texteCellule(sheet, r, c).trim() !== '') return false;
+      }
+      return true;
+    }
+
+    // Titres des colonnes, lus sur la ligne r, comme le fait SheetJS
+    // (doublons suffixés « _1 », « _2 »…), à une différence près : une
+    // colonne sans titre s'appelle « Colonne C (sans titre) », avec sa
+    // lettre Excel, et non « __EMPTY » — c'est ce nom que l'usager voit
+    // dans les menus, le tableau et les exports.
+    function titresColonnes(sheet, r, range) {
+      const noms = [], sansTitre = [], deja = {};
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        let base = texteCellule(sheet, r, c);
+        const vide = base.trim() === '';
+        if (vide) base = `Colonne ${XLSX.utils.encode_col(c)} (sans titre)`;
+        let nom = base;
+        let n = deja[base] || 0;
+        if (n) {
+          do { nom = base + '_' + n++; } while (deja[nom]);
+          deja[nom] = 1;
+        }
+        deja[base] = n || 1;
+        noms.push(nom);
+        sansTitre.push(vide);
+      }
+      return { noms, sansTitre };
     }
 
     // Sélecteur supplémentaire pour charger le .htm d'une feuille de frameset

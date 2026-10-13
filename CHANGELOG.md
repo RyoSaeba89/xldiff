@@ -2,6 +2,21 @@
 
 Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https://ryosaeba89.github.io/xldiff/pages/changelog.html>
 
+## Version 4.2 — 13 octobre 2026
+
+### Les fichiers d'une seule colonne sont acceptés, et un fichier refusé dit pourquoi
+
+- **Un fichier d'une seule colonne passe dans le comparatif** : une liste de matricules ou de codes, en .xlsx, .xls, .csv ou .htm, était refusée avec « Impossible de lire ce fichier ». Si le classeur contient aussi une feuille à plusieurs colonnes, c'est elle qui est proposée d'abord.
+- **Les .csv ne sont plus découpés au mauvais endroit** : le séparateur est lu sur la ligne des titres. Dans un .csv d'une seule colonne, « 12, rue de la Paix » n'est plus coupé en deux ; un .csv à points-virgules rempli de nombres à virgule (12,5) n'est plus lu comme une seule colonne.
+- **Un fichier refusé dit pourquoi**, avec la marche à suivre : aucune ligne sous les titres, fichier protégé par un mot de passe, ou fichier abîmé. Un .xls sans ligne de données ne se charge plus en caractères illisibles.
+- **Un fichier refusé ne laisse plus l'ancien en place** : sa zone redevient vide et le bouton Comparer se désactive. Avant, la comparaison portait sans le dire sur le fichier déposé précédemment.
+- **Choisir de nouveau le même fichier fonctionne**, par exemple après l'avoir corrigé dans Excel.
+- **Les titres des colonnes sont lus sur la première ligne non vide** : une ligne blanche en tête de fichier faisait prendre les titres pour une ligne de données.
+- **Les colonnes sans titre ont un nom lisible** : « Colonne C (sans titre) » au lieu de « __EMPTY », dans les menus, le tableau et les exports. Une colonne sans titre ni valeur n'apparaît plus dans les menus.
+- **Comparatif simple** : le message sous le bouton Comparer dit combien de colonnes présentes dans un seul fichier sont ignorées, au lieu d'annoncer une comparaison sur « toutes les colonnes ».
+- **Le résumé n'annonce plus que ce qui a été vérifié** : quand certaines colonnes n'ont pas été comparées, il dit « Aucune différence : chaque ligne de A se retrouve dans B, et inversement » plutôt que « les deux fichiers contiennent exactement les mêmes lignes ».
+- **Fichier A annoté** : avec la case « Ignorer les lignes en double au sein d'un même fichier » cochée, une ligne en double est marquée « En double dans A (ignorée) », comme à l'écran où elle ne compte pas comme une différence.
+
 ## Version 4.1 — 29 septembre 2026
 
 ### Une même valeur est reconnue, quelle que soit son écriture

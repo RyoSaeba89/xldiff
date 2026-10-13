@@ -31,7 +31,7 @@
 //                toutes ses occurrences.
 //      → { sides, bySide, onlyA, onlyB, onlyC, all, modified,
 //          matched, identical, compared, trace, tuples, tupleDiffs,
-//          identiques, partagees, avertissements }
+//          identiques, partagees, avertissements, ignoreDuplicates }
 //      avertissements : [{ side, col, type, n }] — colonnes de dates
 //                en texte dont l'ordre jour/mois n'est pas prouvé
 //                ('nonProuve', lues jour/mois) ou se contredit
@@ -585,6 +585,7 @@ const XLDiffEngine = (() => {
       identiques,
       partagees,
       avertissements,
+      ignoreDuplicates,
     };
   }
 

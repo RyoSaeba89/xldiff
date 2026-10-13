@@ -42,7 +42,14 @@
       XLDiffResults.hide();
       btnExport.disabled = true;
     }
-    if (!slotA.loaded || !slotB.loaded) return;
+    // Un fichier refusé vide sa zone : le bouton ne doit pas rester actif
+    // sur le fichier qui l'occupait avant
+    if (!slotA.loaded || !slotB.loaded) {
+      btnCompare.disabled = true;
+      statusText.className = 'status-text';
+      statusText.textContent = '';
+      return;
+    }
     const setA = new Set(slotA.headers);
     commonHeaders = slotB.headers.filter(h => setA.has(h));
 
@@ -55,7 +62,23 @@
 
     btnCompare.disabled = false;
     statusText.className = 'status-text';
-    statusText.textContent = `${commonHeaders.length} colonnes communes détectées — la comparaison portera sur toutes les colonnes.`;
+    // Les colonnes d'un seul fichier ne sont pas comparées : le statut le
+    // dit, au lieu d'annoncer une comparaison sur « toutes les colonnes ».
+    const setB = new Set(slotB.headers);
+    const ignorees = slotA.headers.filter(h => !setB.has(h)).length +
+      slotB.headers.filter(h => !setA.has(h)).length;
+    let txt = commonHeaders.length === 1
+      ? `1 colonne commune détectée (${commonHeaders[0]}) — la comparaison portera sur `
+      : `${commonHeaders.length} colonnes communes détectées — la comparaison portera sur `;
+    if (!ignorees) {
+      txt += commonHeaders.length === 1 ? 'cette colonne.' : 'toutes les colonnes.';
+    } else {
+      txt += commonHeaders.length === 1 ? 'cette colonne. ' : 'ces colonnes. ';
+      txt += ignorees === 1
+        ? '1 colonne présente dans un seul fichier est ignorée.'
+        : `${ignorees} colonnes présentes dans un seul fichier sont ignorées.`;
+    }
+    statusText.textContent = txt;
   }
 
   function compare() {

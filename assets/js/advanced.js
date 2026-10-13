@@ -84,6 +84,10 @@
     XLDiffResults.hide();
     btnExport.disabled = true;
     if (btnExportAnnote) btnExportAnnote.disabled = true;
+    // Comparaison impossible (fichier retiré ou refusé, plus aucune
+    // colonne de rapprochement) : updateReady() a déjà dit ce qui manque,
+    // inviter à « relancer » contredirait le bouton grisé.
+    if (btnCompare.disabled) return;
     statusText.className = 'status-text warn';
     statusText.textContent = 'Les réglages ont changé — relancez la comparaison pour mettre les résultats à jour.';
   }

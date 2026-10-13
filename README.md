@@ -1,6 +1,6 @@
 # XLDiff — Comparateur de fichiers Excel
 
-**Version 4.1**
+**Version 4.2**
 
 Outil web 100 % local pour analyser deux ou trois fichiers Excel. Aucune donnée n'est envoyée sur le réseau : tout le traitement s'effectue dans le navigateur.
 
@@ -17,7 +17,7 @@ La page d'accueil pose une seule question, « **Vos fichiers ont-ils les mêmes 
 ## Deux modes de comparaison
 
 ### Comparatif simple
-Pour deux fichiers issus du **même export Excel** (mêmes colonnes). Les colonnes communes sont détectées automatiquement et la comparaison porte sur toutes les colonnes — aucun réglage nécessaire.
+Pour deux fichiers issus du **même export Excel** (mêmes colonnes). Les colonnes communes sont détectées automatiquement et la comparaison porte sur toutes ces colonnes — aucun réglage nécessaire. Une colonne présente dans un seul des deux fichiers est ignorée, et le message sous le bouton **Comparer** dit combien.
 
 ### Comparatif avancé
 Pour deux ou trois fichiers **différents** (le **fichier C est facultatif**), en trois étapes :
@@ -207,6 +207,16 @@ Cette aide intégrée **remplace le guide utilisateur Word** diffusé jusqu'à l
 ## Formats supportés
 
 `.xlsx`, `.xls`, `.csv`, `.htm` / `.html` (exports Excel au format HTML, y compris les exports d'anciens outils — plusieurs stratégies de lecture de repli sont implémentées).
+
+Règles de lecture (v4.2, `file-loader.js`) :
+
+- **Il faut une ligne de titres et au moins une ligne en dessous** ; une seule colonne suffit. Dans un classeur, une feuille à plusieurs colonnes est préférée à une feuille d'une seule colonne (liste de valeurs, navigation d'un export) ; l'usager peut toujours choisir l'autre.
+- **Les titres sont lus sur la première ligne non vide.** Une colonne sans titre s'appelle « Colonne C (sans titre) » ; sans titre ni valeur, elle n'est pas proposée.
+- **Séparateur d'un `.csv`** : lu sur la ligne des titres, pas deviné sur les valeurs (SheetJS compte les `; , tabulation |` des 1 024 premiers caractères, valeurs comprises, ce qui coupait « 12, rue de la Paix »). Aucun séparateur dans les titres → une seule colonne ; plusieurs candidats → celui qui revient autant de fois sur les lignes suivantes, puis le plus fréquent, puis le point-virgule. Une ligne `sep=` d'Excel reste prioritaire.
+- **Les replis HTML ne s'appliquent qu'aux fichiers texte** : un classeur binaire lu comme du texte se chargeait en caractères illisibles.
+- **Un fichier refusé vide sa zone** et dit pourquoi (aucune ligne sous les titres, mot de passe, fichier illisible) : la page ne compare jamais le fichier déposé précédemment.
+
+Vérifié sur 12 fichiers d'une colonne écrits par Excel lui-même (`.xlsx`, `.xls`, `.csv` local et UTF-8, texte Unicode, page web), et sur 400 tableaux aléatoires à plusieurs colonnes : aucun écart avec la lecture de la v4.1.
 
 ## Utilisation
 

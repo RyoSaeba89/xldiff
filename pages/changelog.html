@@ -63,6 +63,27 @@
 
     <div class="release">
       <div class="release-header">
+        <span class="release-tag">Version 4.2</span>
+        <span class="release-date">13 octobre 2026</span>
+      </div>
+
+      <h3>Les fichiers d'une seule colonne sont acceptés, et un fichier refusé dit pourquoi</h3>
+      <ul>
+        <li><strong>Un fichier d'une seule colonne passe dans le comparatif</strong> : une liste de matricules ou de codes, en .xlsx, .xls, .csv ou .htm, était refusée avec « Impossible de lire ce fichier ». Si le classeur contient aussi une feuille à plusieurs colonnes, c'est elle qui est proposée d'abord.</li>
+        <li><strong>Les .csv ne sont plus découpés au mauvais endroit</strong> : le séparateur est lu sur la ligne des titres. Dans un .csv d'une seule colonne, « 12, rue de la Paix » n'est plus coupé en deux ; un .csv à points-virgules rempli de nombres à virgule (12,5) n'est plus lu comme une seule colonne.</li>
+        <li><strong>Un fichier refusé dit pourquoi</strong>, avec la marche à suivre : aucune ligne sous les titres, fichier protégé par un mot de passe, ou fichier abîmé. Un .xls sans ligne de données ne se charge plus en caractères illisibles.</li>
+        <li><strong>Un fichier refusé ne laisse plus l'ancien en place</strong> : sa zone redevient vide et le bouton Comparer se désactive. Avant, la comparaison portait sans le dire sur le fichier déposé précédemment.</li>
+        <li><strong>Choisir de nouveau le même fichier fonctionne</strong>, par exemple après l'avoir corrigé dans Excel.</li>
+        <li><strong>Les titres des colonnes sont lus sur la première ligne non vide</strong> : une ligne blanche en tête de fichier faisait prendre les titres pour une ligne de données.</li>
+        <li><strong>Les colonnes sans titre ont un nom lisible</strong> : « Colonne C (sans titre) » au lieu de « __EMPTY », dans les menus, le tableau et les exports. Une colonne sans titre ni valeur n'apparaît plus dans les menus.</li>
+        <li><strong>Comparatif simple</strong> : le message sous le bouton Comparer dit combien de colonnes présentes dans un seul fichier sont ignorées, au lieu d'annoncer une comparaison sur « toutes les colonnes ».</li>
+        <li><strong>Le résumé n'annonce plus que ce qui a été vérifié</strong> : quand certaines colonnes n'ont pas été comparées, il dit « Aucune différence : chaque ligne de A se retrouve dans B, et inversement » plutôt que « les deux fichiers contiennent exactement les mêmes lignes ».</li>
+        <li><strong>Fichier A annoté</strong> : avec la case « Ignorer les lignes en double au sein d'un même fichier » cochée, une ligne en double est marquée « En double dans A (ignorée) », comme à l'écran où elle ne compte pas comme une différence.</li>
+      </ul>
+    </div>
+
+    <div class="release">
+      <div class="release-header">
         <span class="release-tag">Version 4.1</span>
         <span class="release-date">29 septembre 2026</span>
       </div>
@@ -355,7 +376,7 @@
   </div>
 </div>
 
-<div class="footer">XLDiff v4.1 — RyoSaeba89</div>
+<div class="footer">XLDiff v4.2 — RyoSaeba89</div>
 
 </body>
 </html>

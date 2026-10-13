@@ -144,6 +144,20 @@ const XLDiffResults = (() => {
 
   // ---------- Résumé en phrases simples ----------
 
+  // Chaque colonne de chaque fichier a-t-elle servi au rapprochement ou à
+  // la comparaison ? Les colonnes ajoutées par « Afficher toutes les
+  // colonnes » (rôle 'other') sont montrées, pas vérifiées.
+  function toutesColonnesVerifiees() {
+    const { columns, sides, sources } = state;
+    if (!sources) return true;
+    return sides.every(sd => {
+      const src = sources[sd];
+      if (!src || !src.headers) return true;
+      const verifiees = new Set(columns.filter(c => c.role !== 'other').map(c => c.cols[sd]));
+      return src.headers.every(h => verifiees.has(h));
+    });
+  }
+
   function renderSummary() {
     const { diff, totals, sides } = state;
     const three = sides.length > 2;
@@ -155,9 +169,19 @@ const XLDiffResults = (() => {
     const nMod = diff.modified.length;
 
     if (nAbs === 0 && nMod === 0) {
-      headline = three
-        ? 'Aucune différence : les trois fichiers contiennent exactement les mêmes lignes.'
-        : 'Aucune différence : les deux fichiers contiennent exactement les mêmes lignes.';
+      // « Exactement les mêmes lignes » n'est vrai que si toutes les
+      // colonnes ont été vérifiées. Sinon (comparatif avancé sans colonne
+      // à comparer, colonnes d'un seul côté dans le comparatif simple), on
+      // dit seulement ce qui a été vérifié : chaque ligne se retrouve.
+      if (!toutesColonnesVerifiees()) {
+        headline = three
+          ? 'Aucune différence : chaque ligne de chaque fichier se retrouve dans les deux autres.'
+          : 'Aucune différence : chaque ligne de A se retrouve dans B, et inversement.';
+      } else {
+        headline = three
+          ? 'Aucune différence : les trois fichiers contiennent exactement les mêmes lignes.'
+          : 'Aucune différence : les deux fichiers contiennent exactement les mêmes lignes.';
+      }
       headlineOk = true;
     } else if (nAbs === 0) {
       headline = `Il y a ${fmt(nMod)} ligne${plur(nMod)} retrouvée${plur(nMod)} ${three ? "dans les trois fichiers" : "des deux côtés"} mais dont le contenu diffère.`;
@@ -963,14 +987,19 @@ const XLDiffResults = (() => {
   // colonnes, dans l'ordre d'origine — et ajoute à droite le verdict de
   // l'analyse. Les lignes venues de B ou C et absentes de A sont
   // ajoutées à la suite.
-  function statutLigne(sides, masque, tuple, aDesEcarts, sd) {
+  //
+  // Une ligne présente partout mais non rapprochée est une occurrence de
+  // plus que dans les autres fichiers. Si l'usager a coché « Ignorer les
+  // lignes en double au sein d'un même fichier », l'écran ne la compte pas
+  // comme une différence : le fichier annoté le dit de la même façon.
+  function statutLigne(sides, masque, tuple, aDesEcarts, sd, doublonsIgnores) {
     if (tuple >= 0) {
       if (aDesEcarts) return 'Écart de contenu';
       return sides.length > 2 ? 'Identique partout' : 'Identique';
     }
     const manquants = sides.filter((o, j) => !((masque >> j) & 1));
     if (manquants.length) return 'Absente de ' + joinFr(manquants);
-    return `Occurrence en trop dans ${sd}`;
+    return doublonsIgnores ? `En double dans ${sd} (ignorée)` : `Occurrence en trop dans ${sd}`;
   }
 
   function exportAnnotated() {
@@ -1000,7 +1029,7 @@ const XLDiffResults = (() => {
       const t = trA.tuple[i];
       const ecarts = t >= 0 ? diff.tupleDiffs.get(t) : null;
       const ligne = srcA.headers.map(h => val(row[h]));
-      ligne.push(statutLigne(sides, trA.presence[i], t, !!ecarts, sideA));
+      ligne.push(statutLigne(sides, trA.presence[i], t, !!ecarts, sideA, diff.ignoreDuplicates));
       ligne.push(presenceTexte(trA.presence[i]) || sideA);
       if (cmpCols.length) {
         ligne.push(ecarts ? ecarts.map(d => {
@@ -1044,7 +1073,7 @@ const XLDiffResults = (() => {
         }
         const pos = posLigne.get(row);
         const masque = pos === undefined ? 0 : diff.trace[sd].presence[pos];
-        ligne.push(statutLigne(sides, masque, -1, false, sd));
+        ligne.push(statutLigne(sides, masque, -1, false, sd, diff.ignoreDuplicates));
         ligne.push(row.__presence || sd);
         if (cmpCols.length) ligne.push('');
         for (const col of cmpCols) {
