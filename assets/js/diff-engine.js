@@ -66,8 +66,10 @@
 //    trace[side].presence[i] = masque de bits des fichiers où la
 //                              clé de la ligne existe (bit 0 = A…)
 //  et `tuples[side][t]` donne l'indice de ligne de chaque fichier
-//  pour le rapprochement t. C'est ce qui permet d'exporter le
-//  fichier source annoté ligne à ligne, sans le réanalyser.
+//  pour le rapprochement t. `premiere[side][i]` donne, pour la
+//  ligne i du 1er fichier, la 1re ligne de même clé dans `side`
+//  (RECHERCHEV) : c'est ce qui permet d'importer des colonnes de B
+//  ou C dans le fichier A sans le réanalyser.
 // ============================================================
 
 const XLDiffEngine = (() => {
@@ -439,6 +441,13 @@ const XLDiffEngine = (() => {
     const keys = new Set();
     for (const i of idx) for (const k of i.keys.keys()) keys.add(k);
 
+    // RECHERCHEV : pour chaque ligne du 1er fichier, la 1re ligne de même
+    // clé dans chacun des autres (-1 si aucune). Contrairement au
+    // rapprochement, toutes les occurrences de la clé dans le 1er fichier
+    // y ont droit, comme dans Excel.
+    const premiere = {};
+    for (let j = 1; j < nb; j++) premiere[sides[j]] = new Int32Array(sources[0].data.length).fill(-1);
+
     const curseur = new Int32Array(nb);
     for (const k of keys) {
       let minC = Infinity;
@@ -450,6 +459,9 @@ const XLDiffEngine = (() => {
         if (c < minC) minC = c;
         if (c > 0) masque |= (1 << j);
         curseur[j] = e ? e.h : -1;
+      }
+      for (let li = curseur[0]; li >= 0; li = idx[0].next[li]) {
+        for (let j = 1; j < nb; j++) premiere[sides[j]][li] = curseur[j];
       }
       const presence = sides.filter((sd, j) => (masque >> j) & 1).join(' + ');
 
@@ -582,6 +594,7 @@ const XLDiffEngine = (() => {
       trace,
       tuples: tuplesTyped,
       tupleDiffs,
+      premiere,
       identiques,
       partagees,
       avertissements,

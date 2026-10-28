@@ -411,8 +411,9 @@
   });
   if (btnExportAnnote) {
     btnExportAnnote.addEventListener('click', () => {
-      XLDiffResults.exportAnnotated();
-      statusText.textContent = 'Export du fichier A annoté terminé ✓';
+      XLDiffResults.exportImport(btnExportAnnote, () => {
+        statusText.textContent = 'Import des colonnes dans A terminé ✓';
+      });
     });
   }
 

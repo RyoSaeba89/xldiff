@@ -32,7 +32,8 @@
 //        XLDiffResults.setColumns(columns)
 //        XLDiffResults.exportResults(ancre, fait)
 //                                           (ouvre le choix des onglets)
-//        XLDiffResults.exportAnnotated()
+//        XLDiffResults.exportImport(ancre, fait)
+//                                           (ouvre le choix des colonnes)
 // ============================================================
 
 const XLDiffResults = (() => {
@@ -866,12 +867,15 @@ const XLDiffResults = (() => {
 
     choix = {
       racine,
+      titre: racine.querySelector('#exportChoiceTitre'),
       liste: racine.querySelector('#exportChoiceList'),
       bascule: racine.querySelector('#exportChoiceToggle'),
+      blocRenommer: racine.querySelector('.export-choice-rename'),
       renommer: racine.querySelector('#exportChoiceRename'),
       valider: racine.querySelector('#exportChoiceOk'),
       ancre: null,
       fait: null,
+      ecrire: null,
     };
 
     choix.liste.addEventListener('change', majChoix);
@@ -906,8 +910,9 @@ const XLDiffResults = (() => {
         if (renommer) noms[id] = c.closest('.export-choice-item').querySelector('.ec-nom').value.trim();
       }
       const fait = choix.fait;
+      const ecrireChoix = choix.ecrire;
       fermerChoix(true);
-      ecrireSelection(ids, renommer ? noms : null);
+      ecrireChoix(ids, renommer ? noms : null);
       if (fait) fait(ids);
     });
 
@@ -929,20 +934,26 @@ const XLDiffResults = (() => {
     return choix;
   }
 
-  function ouvrirChoix(ancre, fait) {
+  // `conf` = { titre, items: [{ id, label, badge }], coche, renommable,
+  // ecrire(ids, noms) } : le même panneau sert au choix des onglets et à
+  // celui des colonnes à importer dans A.
+  function ouvrirChoix(ancre, fait, conf) {
     const c = choix || creerChoix();
     c.ancre = ancre;
     c.fait = fait || null;
-    // Toutes les cases cochées et le renommage éteint à chaque ouverture :
-    // voir le commentaire de section. Le champ de chaque onglet est
-    // pré-rempli avec son libellé, celui-là même que porte la feuille
-    // exportée sans renommage.
-    c.liste.innerHTML = buildTabs().map(t =>
+    c.ecrire = conf.ecrire;
+    c.titre.textContent = conf.titre;
+    c.blocRenommer.hidden = !conf.renommable;
+    // Les cases repartent de leur état par défaut et le renommage éteint
+    // à chaque ouverture : voir le commentaire de section. Le champ de
+    // chaque onglet est pré-rempli avec son libellé, celui-là même que
+    // porte la feuille exportée sans renommage.
+    c.liste.innerHTML = conf.items.map(t =>
       '<div class="export-choice-item">' +
       '<label class="ec-case">' +
-      `<input type="checkbox" checked data-onglet="${escAttr(t.id)}">` +
+      `<input type="checkbox"${conf.coche ? ' checked' : ''} data-onglet="${escAttr(t.id)}">` +
       `<span class="ec-label">${esc(t.label)}</span>` +
-      `<span class="ec-count">${num(t.count)}</span>` +
+      `<span class="ec-count">${esc(t.badge)}</span>` +
       '</label>' +
       `<input type="text" class="ec-nom" hidden value="${escAttr(t.label)}" ` +
       `aria-label="Nom de la feuille pour l'onglet ${escAttr(t.label)}">` +
@@ -978,119 +989,66 @@ const XLDiffResults = (() => {
       return;
     }
     if (choixOuvert() && choix.ancre === bouton) { fermerChoix(true); return; }
-    ouvrirChoix(bouton, fait);
+    ouvrirChoix(bouton, fait, {
+      titre: 'Que voulez-vous exporter ?',
+      items: buildTabs().map(t => ({ id: t.id, label: t.label, badge: num(t.count) })),
+      coche: true,
+      renommable: true,
+      ecrire: ecrireSelection,
+    });
   }
 
-  // ---------- Export du fichier A annoté ----------
+  // ---------- Import de colonnes de B ou C dans le fichier A ----------
 
   // Reprend le fichier A tel quel — toutes ses lignes, toutes ses
-  // colonnes, dans l'ordre d'origine — et ajoute à droite le verdict de
-  // l'analyse. Les lignes venues de B ou C et absentes de A sont
-  // ajoutées à la suite.
-  //
-  // Une ligne présente partout mais non rapprochée est une occurrence de
-  // plus que dans les autres fichiers. Si l'usager a coché « Ignorer les
-  // lignes en double au sein d'un même fichier », l'écran ne la compte pas
-  // comme une différence : le fichier annoté le dit de la même façon.
-  function statutLigne(sides, masque, tuple, aDesEcarts, sd, doublonsIgnores) {
-    if (tuple >= 0) {
-      if (aDesEcarts) return 'Écart de contenu';
-      return sides.length > 2 ? 'Identique partout' : 'Identique';
-    }
-    const manquants = sides.filter((o, j) => !((masque >> j) & 1));
-    if (manquants.length) return 'Absente de ' + joinFr(manquants);
-    return doublonsIgnores ? `En double dans ${sd} (ignorée)` : `Occurrence en trop dans ${sd}`;
-  }
+  // colonnes, dans l'ordre d'origine — et ajoute à droite les colonnes de
+  // B ou C cochées par l'usager, à la manière d'une RECHERCHEV : chaque
+  // ligne de A reçoit la valeur de la 1re ligne de même clé (colonnes de
+  // rapprochement, égalité tolérante du moteur), vide si la clé est
+  // absente. `ids` = « côté:indice de colonne ».
+  function ecrireImport(ids) {
+    if (!state || !state.sources || !ids.length) return;
+    const { diff, sides, sources } = state;
+    const srcA = sources[sides[0]];
+    const choisies = ids.map(id => {
+      const [sd, i] = id.split(':');
+      return { sd, h: sources[sd].headers[+i] };
+    });
 
-  function exportAnnotated() {
-    if (!state || !state.sources) return;
-    const { diff, columns, sides, sources } = state;
-    const sideA = sides[0];
-    const autres = sides.slice(1);
-    const srcA = sources[sideA];
-    const cmpCols = columns.filter(c => c.role === 'cmp');
-
-    // Nom des colonnes ajoutées : on prend le nom porté par le fichier A
-    const nomCmp = col => col.cols[sideA] || col.label;
-
-    const entete = srcA.headers.slice();
-    entete.push('Statut', 'Présente dans');
-    if (cmpCols.length) entete.push('Colonnes en écart');
-    for (const col of cmpCols) for (const sd of autres) entete.push(`${nomCmp(col)} (${sd})`);
-    entete.push('Ligne d\'origine');
-
-    const aoa = [entete];
-    const presenceTexte = masque => sides.filter((sd, j) => (masque >> j) & 1).join(' + ');
-
-    // 1) toutes les lignes du fichier A, dans leur ordre d'origine
-    const trA = diff.trace[sideA];
+    const aoa = [srcA.headers.concat(choisies.map(c => `${c.h} (${c.sd})`))];
     for (let i = 0; i < srcA.data.length; i++) {
       const row = srcA.data[i];
-      const t = trA.tuple[i];
-      const ecarts = t >= 0 ? diff.tupleDiffs.get(t) : null;
       const ligne = srcA.headers.map(h => val(row[h]));
-      ligne.push(statutLigne(sides, trA.presence[i], t, !!ecarts, sideA, diff.ignoreDuplicates));
-      ligne.push(presenceTexte(trA.presence[i]) || sideA);
-      if (cmpCols.length) {
-        ligne.push(ecarts ? ecarts.map(d => {
-          const col = cmpCols.find(c => c.label === d.label);
-          return col ? nomCmp(col) : d.label;
-        }).join(', ') : '');
+      for (const { sd, h } of choisies) {
+        const p = diff.premiere[sd][i];
+        ligne.push(p < 0 ? '' : val(sources[sd].data[p][h]));
       }
-      for (const col of cmpCols) {
-        for (const sd of autres) {
-          if (t < 0) { ligne.push(''); continue; }
-          const c = col.cols[sd];
-          const autreRow = sources[sd].data[diff.tuples[sd][t]];
-          ligne.push(c == null ? '' : val(autreRow[c]));
-        }
-      }
-      ligne.push(sideA + (row.__rowNum || i + 2));
       aoa.push(ligne);
     }
 
-    // 2) à la suite, les lignes de B et C qui n'ont pas été rapprochées
-    const posA = new Map(srcA.headers.map((h, i) => [h, i]));
-    for (const sd of autres) {
-      // `trace` est indexée par la POSITION de la ligne dans le fichier,
-      // que __rowNum ne donne pas : le numéro de ligne Excel tient compte
-      // des lignes vides écartées à la lecture. D'où cette table, bâtie
-      // une fois par fichier sur l'identité des objets.
-      const posLigne = new Map(sources[sd].data.map((r, i) => [r, i]));
-      for (const row of diff.bySide[sd]) {
-        const ligne = new Array(srcA.headers.length).fill('');
-        // Seules les colonnes de rapprochement sont reportees : elles
-        // identifient la ligne. Recopier une valeur comparee de B dans la
-        // colonne de A la ferait passer pour une valeur du fichier A ;
-        // elle figure de toute facon dans sa propre colonne « (B) ».
-        for (const col of columns) {
-          if (col.role !== 'key') continue;
-          const nomA = col.cols[sideA];
-          const nomAutre = col.cols[sd];
-          if (nomA == null || nomAutre == null) continue;
-          const p = posA.get(nomA);
-          if (p !== undefined) ligne[p] = val(row[nomAutre]);
-        }
-        const pos = posLigne.get(row);
-        const masque = pos === undefined ? 0 : diff.trace[sd].presence[pos];
-        ligne.push(statutLigne(sides, masque, -1, false, sd, diff.ignoreDuplicates));
-        ligne.push(row.__presence || sd);
-        if (cmpCols.length) ligne.push('');
-        for (const col of cmpCols) {
-          for (const autre of autres) {
-            const c = col.cols[autre];
-            ligne.push(autre === sd && c != null ? val(row[c]) : '');
-          }
-        }
-        ligne.push(sd + (row.__rowNum || ''));
-        aoa.push(ligne);
-      }
-    }
-
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(retirerColonnesVides(aoa)), 'Fichier A annoté');
-    ecrire(wb, `xldiff_fichierA_annote_${horodatage()}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(retirerColonnesVides(aoa)), 'Fichier A complété');
+    ecrire(wb, `xldiff_fichierA_complete_${horodatage()}.xlsx`);
   }
 
-  return { init, show, hide, setColumns, exportResults, exportAnnotated };
+  // Le clic ouvre le même panneau que l'export par onglets, garni des
+  // colonnes des autres fichiers, toutes décochées : l'usager coche ce
+  // qu'il veut importer.
+  function exportImport(ancre, fait) {
+    if (!state || !state.sources) return;
+    if (choixOuvert() && choix.ancre === ancre) { fermerChoix(true); return; }
+    const items = [];
+    for (const sd of state.sides.slice(1)) {
+      state.sources[sd].headers.forEach((h, i) => items.push({ id: `${sd}:${i}`, label: h, badge: sd }));
+    }
+    ouvrirChoix(ancre, fait, {
+      titre: 'Quelles colonnes importer dans A ?',
+      items,
+      coche: false,
+      renommable: false,
+      ecrire: ecrireImport,
+    });
+  }
+
+  return { init, show, hide, setColumns, exportResults, exportImport };
 })();

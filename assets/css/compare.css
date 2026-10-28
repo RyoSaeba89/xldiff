@@ -297,8 +297,8 @@
   line-height: 1.4;
   color: var(--red);
 }
-/* Le display: block ci-dessus l'emporterait sur la règle du navigateur */
-.ec-nom[hidden], .ec-erreur[hidden] { display: none; }
+/* Les display: block / flex l'emporteraient sur la règle du navigateur */
+.ec-nom[hidden], .ec-erreur[hidden], .export-choice-rename[hidden] { display: none; }
 
 /* La case qui ouvre les champs, détachée de la liste qu'elle transforme */
 .export-choice-rename {

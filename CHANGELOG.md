@@ -2,6 +2,15 @@
 
 Ces notes sont aussi lisibles dans l'application, page **Nouveautés** : <https://ryosaeba89.github.io/xldiff/pages/changelog.html>
 
+## Version 4.3 — 28 octobre 2026
+
+### Importer des colonnes de B ou C dans le fichier A
+
+- **Nouveau bouton « Importer des colonnes dans A »**, à la place de « Exporter le fichier A annoté » : un panneau s'ouvre sous le bouton et liste toutes les colonnes de B, et de C s'il y a un troisième fichier, toutes décochées. Cochez celles qu'il vous faut, qu'elles soient associées à une colonne de A ou non.
+- **Le fichier produit est votre fichier A tel quel**, toutes ses lignes et toutes ses colonnes, avec à droite les colonnes cochées : « Service (B) », « Badge (C) »…
+- **Comme une RECHERCHEV d'Excel** : chaque ligne de A reçoit la valeur de la ligne de B ou C qui a la même clé de rapprochement, même quand la clé figure plusieurs fois dans A. Si elle figure plusieurs fois dans B, c'est la première ligne qui est prise ; si elle en est absente, la cellule reste vide. La clé est reconnue avec la même tolérance que la comparaison : zéros en tête, accents, majuscules, dates.
+- **Le fichier A annoté disparaît** : les colonnes Statut, Présente dans, Colonnes en écart et Ligne d'origine, et les lignes de B ou C ajoutées à la suite, ne sont plus produites. Le résultat de l'analyse reste dans **Exporter .xlsx**, onglet par onglet.
+
 ## Version 4.2 — 13 octobre 2026
 
 ### Les fichiers d'une seule colonne sont acceptés, et un fichier refusé dit pourquoi

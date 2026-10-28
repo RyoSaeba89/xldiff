@@ -63,6 +63,21 @@
 
     <div class="release">
       <div class="release-header">
+        <span class="release-tag">Version 4.3</span>
+        <span class="release-date">28 octobre 2026</span>
+      </div>
+
+      <h3>Importer des colonnes de B ou C dans le fichier A</h3>
+      <ul>
+        <li><strong>Nouveau bouton « Importer des colonnes dans A »</strong>, à la place de « Exporter le fichier A annoté » : un panneau s'ouvre sous le bouton et liste toutes les colonnes de B, et de C s'il y a un troisième fichier, toutes décochées. Cochez celles qu'il vous faut, qu'elles soient associées à une colonne de A ou non.</li>
+        <li><strong>Le fichier produit est votre fichier A tel quel</strong>, toutes ses lignes et toutes ses colonnes, avec à droite les colonnes cochées : « Service (B) », « Badge (C) »…</li>
+        <li><strong>Comme une RECHERCHEV d'Excel</strong> : chaque ligne de A reçoit la valeur de la ligne de B ou C qui a la même clé de rapprochement, même quand la clé figure plusieurs fois dans A. Si elle figure plusieurs fois dans B, c'est la première ligne qui est prise ; si elle en est absente, la cellule reste vide. La clé est reconnue avec la même tolérance que la comparaison : zéros en tête, accents, majuscules, dates.</li>
+        <li><strong>Le fichier A annoté disparaît</strong> : les colonnes <em>Statut</em>, <em>Présente dans</em>, <em>Colonnes en écart</em> et <em>Ligne d'origine</em>, et les lignes de B ou C ajoutées à la suite, ne sont plus produites. Le résultat de l'analyse reste dans <strong>Exporter .xlsx</strong>, onglet par onglet.</li>
+      </ul>
+    </div>
+
+    <div class="release">
+      <div class="release-header">
         <span class="release-tag">Version 4.2</span>
         <span class="release-date">13 octobre 2026</span>
       </div>
@@ -376,7 +391,7 @@
   </div>
 </div>
 
-<div class="footer">XLDiff v4.2 — RyoSaeba89</div>
+<div class="footer">XLDiff v4.3 — RyoSaeba89</div>
 
 </body>
 </html>

@@ -203,7 +203,7 @@
         {
           cible: '#results.visible',
           titre: 'Lisez le résultat, puis exportez',
-          texte: 'Un résumé en phrases simples, puis le détail par onglets — les lignes absentes, les écarts de contenu, et les lignes <strong>identiques</strong> de part et d\'autre. Avec trois fichiers, la colonne <strong>Présente dans</strong> dit où chaque ligne se trouve. Deux exports : <strong>Exporter .xlsx</strong> pour la liste — il vous demande d\'abord quels onglets exporter, tous cochés — et <strong>Exporter le fichier A annoté</strong> pour reprendre votre fichier A avec le verdict ajouté à droite.',
+          texte: 'Un résumé en phrases simples, puis le détail par onglets — les lignes absentes, les écarts de contenu, et les lignes <strong>identiques</strong> de part et d\'autre. Avec trois fichiers, la colonne <strong>Présente dans</strong> dit où chaque ligne se trouve. Deux exports : <strong>Exporter .xlsx</strong> pour la liste — il vous demande d\'abord quels onglets exporter, tous cochés — et <strong>Importer des colonnes dans A</strong> pour reprendre votre fichier A en y ajoutant les colonnes de B ou C de votre choix.',
         },
       ],
       sections: [
@@ -241,7 +241,7 @@
           titre: 'Les exports',
           html: `<ul>
             <li><strong>Exporter .xlsx</strong> — un classeur qui reprend les onglets ci-dessus, une feuille par onglet, avec le même libellé et le même contenu. Le clic ouvre d'abord un panneau où vous choisissez les onglets à exporter : tout est coché, décochez ce dont vous n'avez pas besoin. Une case <strong>Renommer les onglets avant l'export</strong> y ouvre, sous chaque onglet retenu, un champ pour donner à la feuille le nom de votre choix.</li>
-            <li><strong>Exporter le fichier A annoté</strong> — votre fichier A complet, avec à droite <em>Statut</em>, <em>Présente dans</em>, <em>Colonnes en écart</em>, la valeur des autres fichiers et la ligne d'origine. Les lignes venues de B ou C sont ajoutées à la suite.</li>
+            <li><strong>Importer des colonnes dans A</strong> — votre fichier A complet, tel quel, avec à droite les colonnes de B ou C que vous cochez dans le panneau qui s'ouvre (rien n'est coché au départ). Comme une RECHERCHEV d'Excel : chaque ligne de A reçoit la valeur de la ligne de B ou C qui a la même clé de rapprochement — la première, si la clé y figure plusieurs fois — et la cellule reste vide si la ligne n'y est pas.</li>
             <li>Dans les deux cas, <strong>les colonnes qu'aucune ligne ne renseigne ne sont pas écrites</strong> : le fichier reprend exactement les colonnes que le tableau vous montre, et le tableau ne montre que celles qui portent une valeur.</li>
           </ul>`,
         },
